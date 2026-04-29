@@ -27,7 +27,7 @@ import { useSearch } from '@repo/hooks/useSearch';
 **Package Paths:**
 
 - `@repo/hooks/nuqs` — re-exports from `nuqs` (NOT `nuqs/adapters/tanstack-router`)
-- `@repo/hooks/usePagination` — provides `page`, `limit`, `handlePageChange`, `handlePageSizeChange`
+- `@repo/hooks/usePagination` — provides `page`, `limit`, `handlePageChange`, `handleLimitChange`
 - `@repo/hooks/useSearch` — provides debounced `search`, raw `inputValue`, `setSearch`
 
 ## 2. Hook Implementation (`use<Feature>Filters.ts`)
@@ -55,8 +55,7 @@ export function useFeaturesFilters() {
     inputValue: searchInputValue,
     setSearch,
   } = useSearch('search');
-  const { page, limit, handlePageChange, handlePageSizeChange } =
-    usePagination();
+  const { page, limit, handlePageChange, handleLimitChange } = usePagination();
 
   // ─── URL filter state ──────────────────────────────────────────
   const [sortBy, setSortBy] = useQueryState(
@@ -174,7 +173,7 @@ export function useFeaturesFilters() {
     categoryIds: categoryIds ?? undefined,
     includeDeleted: includeDeleted ?? undefined,
     page,
-    pageSize: limit, // NOTE: API expects "pageSize", hook returns "limit"
+    limit,
   };
 
   return {
@@ -199,7 +198,7 @@ export function useFeaturesFilters() {
     page,
     limit,
     handlePageChange,
-    handlePageSizeChange,
+    handleLimitChange,
     // Helpers
     clearFilters,
     hasActiveFilters,
@@ -231,12 +230,12 @@ search            → Debounced value (400ms delay, used for API calls)
 | `''`      | Removed by `setSearch` | Becomes `undefined`    |
 | `'value'` | Shown in URL           | Passed as-is           |
 
-### Params Mapping
+### Pagination Params
 
-The `usePagination` hook returns `limit` but the API expects `pageSize`. Always map:
+The `usePagination` hook and API both use `limit`. Pass it through unchanged:
 
 ```typescript
-const params = { ..., pageSize: limit };
+const params = { ..., page, limit };
 ```
 
 ## 4. Active Filters Display Pattern
@@ -279,7 +278,7 @@ const activeFilters = useMemo(() => {
 1. **NEVER use `search` for input value** — always use `searchInputValue` (prevents laggy typing)
 2. **NEVER forget to reset page** in change handlers — users get empty pages
 3. **NEVER pass `null` to API params** — convert to `undefined` in the `params` object
-4. **NEVER forget `limit` → `pageSize` mapping** — they have different names
+4. **NEVER use `pageSize` in API params** — use `limit` everywhere
 5. **ALWAYS use `parseAsStringLiteral` with `as const` arrays** — validates against known values
 6. **ALWAYS use `parseAsBoolean` for boolean URL params** — parses 'true'/'false' strings correctly
 7. **ALWAYS wrap handlers in `useCallback`** with proper dependency arrays

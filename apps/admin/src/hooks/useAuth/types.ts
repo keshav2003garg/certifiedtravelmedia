@@ -1,4 +1,4 @@
-import { ApiData } from '@/utils/types.util';
+import type { ApiData } from '@/lib/api/types';
 
 export type LoginRequest = ApiData<
   {

@@ -135,8 +135,8 @@ export default function FeaturesPage() {
                 <PaginationControls
                   pagination={pagination}
                   onPageChange={filters.handlePageChange}
-                  onPageSizeChange={filters.handlePageSizeChange}
-                  currentPageSize={filters.limit}
+                  onLimitChange={filters.handleLimitChange}
+                  currentLimit={filters.limit}
                 />
               ) : null}
             </div>
@@ -668,15 +668,15 @@ import type { Pagination } from '@/hooks/useFeatures/types';
 interface PaginationControlsProps {
   pagination: Pagination;
   onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
-  currentPageSize: number;
+  onLimitChange: (limit: number) => void;
+  currentLimit: number;
 }
 
 export default function PaginationControls({
   pagination,
   onPageChange,
-  onPageSizeChange,
-  currentPageSize,
+  onLimitChange,
+  currentLimit,
 }: PaginationControlsProps) {
   const { t } = useTranslation('common');
 
@@ -684,16 +684,16 @@ export default function PaginationControls({
     <div className="flex items-center justify-between">
       <p className="text-muted-foreground text-sm">
         {t('pagination.showing', {
-          from: (pagination.page - 1) * currentPageSize + 1,
-          to: Math.min(pagination.page * currentPageSize, pagination.total),
+          from: (pagination.page - 1) * currentLimit + 1,
+          to: Math.min(pagination.page * currentLimit, pagination.total),
           total: pagination.total,
         })}
       </p>
 
       <div className="flex items-center gap-2">
         <Select
-          value={String(currentPageSize)}
-          onValueChange={(v) => onPageSizeChange(Number(v))}
+          value={String(currentLimit)}
+          onValueChange={(v) => onLimitChange(Number(v))}
         >
           <SelectTrigger className="h-8 w-[70px]">
             <SelectValue />

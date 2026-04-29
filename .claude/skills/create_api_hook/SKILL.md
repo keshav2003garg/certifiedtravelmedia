@@ -58,7 +58,7 @@ export interface FeatureDetail extends FeatureItem {
 export type ListFeaturesRequest = ApiData<
   {
     page?: number;
-    pageSize?: number;
+    limit?: number;
     sortBy?: string;
     order?: string;
     search?: string;

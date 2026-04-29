@@ -1,12 +1,9 @@
-// Node Modules
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
-// Functions
-import { getUser } from '@/functions/get-user-details';
-
-// Components
-import AuthSidebar from '@/components/auth/sidebar';
 import AuthMobileHeader from '@/components/auth/mobile-header';
+import AuthSidebar from '@/components/auth/sidebar';
+
+import { getUser } from '@/functions/get-user-details';
 
 export const Route = createFileRoute('/(auth)')({
   component: RouteComponent,

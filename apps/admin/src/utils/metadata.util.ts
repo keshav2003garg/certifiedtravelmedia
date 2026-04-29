@@ -35,14 +35,6 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Charts - CTM Grid Admin',
       description: 'Manage brochure stand chart layouts',
     },
-    '/dashboard/charts/archives': {
-      title: 'Chart Archives - CTM Grid Admin',
-      description: 'View archived chart snapshots',
-    },
-    '/dashboard/users': {
-      title: 'Users - CTM Grid Admin',
-      description: 'Manage user accounts and permissions',
-    },
   };
 
   const metadata = pathMap[path];

@@ -62,8 +62,8 @@ export default feature;
 **Imports — use shared validators from `@repo/server-utils`:**
 
 ```typescript
-import z from 'zod/v4';
-import { createValidatorSchema } from '@repo/server-utils/validator/zod-validator-schema';
+import { z } from '@repo/utils/zod';
+import { createValidatorSchema } from '@repo/server-utils/utils/zod-validator-schema';
 import { paginationSchema } from '@repo/server-utils/validator/pagination.validator';
 import {
   idParamSchema,
@@ -193,7 +193,7 @@ export type GetFeatureGraphContext = TypedContext<
 **CRITICAL:** Prefer inferring from validators. Only define manual interfaces for complex response shapes.
 
 ```typescript
-import { z } from 'zod/v4';
+import { z } from '@repo/utils/zod';
 import type {
   listFeaturesValidator,
   createFeatureValidator,
@@ -206,7 +206,7 @@ export type ListFeaturesParams = z.infer<typeof listFeaturesValidator.query>;
 // Extract filters by omitting pagination + sort fields
 export type ListFeaturesFilters = Omit<
   ListFeaturesParams,
-  'page' | 'pageSize' | 'sortBy' | 'order'
+  'page' | 'limit' | 'sortBy' | 'order'
 >;
 
 export type CreateFeatureInput = z.infer<typeof createFeatureValidator.json>;
@@ -248,7 +248,10 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import HttpError from '@repo/server-utils/errors/http-error';
-import { buildPaginationResponse } from '@repo/server-utils/utils/pagination';
+import {
+  buildPaginationResponse,
+  getPaginationOffset,
+} from '@repo/server-utils/utils/pagination';
 import type { PaginationParams } from '@repo/server-utils/types/util.types';
 import type {
   ListFeaturesFilters,
@@ -264,8 +267,8 @@ class FeatureService {
     sortBy?: string,
     order?: string,
   ) {
-    const { page, pageSize } = pagination;
-    const offset = (page - 1) * pageSize;
+    const { page, limit } = pagination;
+    const offset = getPaginationOffset(pagination);
 
     // Build conditions array dynamically
     const conditions: SQL[] = [];
@@ -321,7 +324,7 @@ class FeatureService {
         .from(featureSchema)
         .where(finalWhere)
         .orderBy(this.getOrderBy(sortBy, order))
-        .limit(pageSize)
+        .limit(limit)
         .offset(offset),
     ]);
 
@@ -329,7 +332,7 @@ class FeatureService {
 
     return {
       items,
-      pagination: buildPaginationResponse(page, pageSize, total),
+      pagination: buildPaginationResponse(page, limit, total),
     };
   }
 
@@ -387,14 +390,12 @@ class FeatureService {
         });
 
       if (categoryIds.length > 0) {
-        await tx
-          .insert(featureCategorySchema)
-          .values(
-            categoryIds.map((categoryId) => ({
-              featureId: item.id,
-              categoryId,
-            })),
-          );
+        await tx.insert(featureCategorySchema).values(
+          categoryIds.map((categoryId) => ({
+            featureId: item.id,
+            categoryId,
+          })),
+        );
       }
 
       return { item };
@@ -497,9 +498,9 @@ import type {
 } from './<feature>.validators';
 
 export async function listFeaturesHandler(ctx: ListFeaturesContext) {
-  const { page, pageSize, sortBy, order, ...filters } = ctx.req.valid('query');
+  const { page, limit, sortBy, order, ...filters } = ctx.req.valid('query');
   const result = await featureService.list(
-    { page, pageSize },
+    { page, limit },
     filters,
     sortBy,
     order,
