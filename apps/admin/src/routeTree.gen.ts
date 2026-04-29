@@ -13,6 +13,7 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardroutesIndexRouteImport } from './routes/dashboard/(routes)/index'
+import { Route as DashboardroutesCustomersRouteImport } from './routes/dashboard/(routes)/customers'
 import { Route as DashboardroutesChartsRouteImport } from './routes/dashboard/(routes)/charts'
 import { Route as DashboardroutesBrochureTypesRouteImport } from './routes/dashboard/(routes)/brochure-types'
 import { Route as authroutesResetPasswordRouteImport } from './routes/(auth)/(routes)/reset-password'
@@ -38,6 +39,12 @@ const DashboardroutesIndexRoute = DashboardroutesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardroutesCustomersRoute =
+  DashboardroutesCustomersRouteImport.update({
+    id: '/(routes)/customers',
+    path: '/customers',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardroutesChartsRoute = DashboardroutesChartsRouteImport.update({
   id: '/(routes)/charts',
   path: '/charts',
@@ -74,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof authroutesResetPasswordRoute
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/charts': typeof DashboardroutesChartsRoute
+  '/dashboard/customers': typeof DashboardroutesCustomersRoute
   '/dashboard/': typeof DashboardroutesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -83,6 +91,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof authroutesResetPasswordRoute
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/charts': typeof DashboardroutesChartsRoute
+  '/dashboard/customers': typeof DashboardroutesCustomersRoute
   '/dashboard': typeof DashboardroutesIndexRoute
 }
 export interface FileRoutesById {
@@ -95,6 +104,7 @@ export interface FileRoutesById {
   '/(auth)/(routes)/reset-password': typeof authroutesResetPasswordRoute
   '/dashboard/(routes)/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/(routes)/charts': typeof DashboardroutesChartsRoute
+  '/dashboard/(routes)/customers': typeof DashboardroutesCustomersRoute
   '/dashboard/(routes)/': typeof DashboardroutesIndexRoute
 }
 export interface FileRouteTypes {
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard/brochure-types'
     | '/dashboard/charts'
+    | '/dashboard/customers'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard/brochure-types'
     | '/dashboard/charts'
+    | '/dashboard/customers'
     | '/dashboard'
   id:
     | '__root__'
@@ -127,6 +139,7 @@ export interface FileRouteTypes {
     | '/(auth)/(routes)/reset-password'
     | '/dashboard/(routes)/brochure-types'
     | '/dashboard/(routes)/charts'
+    | '/dashboard/(routes)/customers'
     | '/dashboard/(routes)/'
   fileRoutesById: FileRoutesById
 }
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardroutesIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/(routes)/customers': {
+      id: '/dashboard/(routes)/customers'
+      path: '/customers'
+      fullPath: '/dashboard/customers'
+      preLoaderRoute: typeof DashboardroutesCustomersRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/(routes)/charts': {
@@ -223,12 +243,14 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 interface DashboardRouteRouteChildren {
   DashboardroutesBrochureTypesRoute: typeof DashboardroutesBrochureTypesRoute
   DashboardroutesChartsRoute: typeof DashboardroutesChartsRoute
+  DashboardroutesCustomersRoute: typeof DashboardroutesCustomersRoute
   DashboardroutesIndexRoute: typeof DashboardroutesIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesBrochureTypesRoute: DashboardroutesBrochureTypesRoute,
   DashboardroutesChartsRoute: DashboardroutesChartsRoute,
+  DashboardroutesCustomersRoute: DashboardroutesCustomersRoute,
   DashboardroutesIndexRoute: DashboardroutesIndexRoute,
 }
 
