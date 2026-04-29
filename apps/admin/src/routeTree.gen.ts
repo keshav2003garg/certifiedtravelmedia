@@ -13,6 +13,7 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardroutesIndexRouteImport } from './routes/dashboard/(routes)/index'
+import { Route as DashboardroutesWarehousesRouteImport } from './routes/dashboard/(routes)/warehouses'
 import { Route as DashboardroutesCustomersRouteImport } from './routes/dashboard/(routes)/customers'
 import { Route as DashboardroutesChartsRouteImport } from './routes/dashboard/(routes)/charts'
 import { Route as DashboardroutesBrochureTypesRouteImport } from './routes/dashboard/(routes)/brochure-types'
@@ -39,6 +40,12 @@ const DashboardroutesIndexRoute = DashboardroutesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardroutesWarehousesRoute =
+  DashboardroutesWarehousesRouteImport.update({
+    id: '/(routes)/warehouses',
+    path: '/warehouses',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardroutesCustomersRoute =
   DashboardroutesCustomersRouteImport.update({
     id: '/(routes)/customers',
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/charts': typeof DashboardroutesChartsRoute
   '/dashboard/customers': typeof DashboardroutesCustomersRoute
+  '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/': typeof DashboardroutesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -92,6 +100,7 @@ export interface FileRoutesByTo {
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/charts': typeof DashboardroutesChartsRoute
   '/dashboard/customers': typeof DashboardroutesCustomersRoute
+  '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard': typeof DashboardroutesIndexRoute
 }
 export interface FileRoutesById {
@@ -105,6 +114,7 @@ export interface FileRoutesById {
   '/dashboard/(routes)/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/(routes)/charts': typeof DashboardroutesChartsRoute
   '/dashboard/(routes)/customers': typeof DashboardroutesCustomersRoute
+  '/dashboard/(routes)/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/(routes)/': typeof DashboardroutesIndexRoute
 }
 export interface FileRouteTypes {
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/dashboard/brochure-types'
     | '/dashboard/charts'
     | '/dashboard/customers'
+    | '/dashboard/warehouses'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/dashboard/brochure-types'
     | '/dashboard/charts'
     | '/dashboard/customers'
+    | '/dashboard/warehouses'
     | '/dashboard'
   id:
     | '__root__'
@@ -140,6 +152,7 @@ export interface FileRouteTypes {
     | '/dashboard/(routes)/brochure-types'
     | '/dashboard/(routes)/charts'
     | '/dashboard/(routes)/customers'
+    | '/dashboard/(routes)/warehouses'
     | '/dashboard/(routes)/'
   fileRoutesById: FileRoutesById
 }
@@ -177,6 +190,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardroutesIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/(routes)/warehouses': {
+      id: '/dashboard/(routes)/warehouses'
+      path: '/warehouses'
+      fullPath: '/dashboard/warehouses'
+      preLoaderRoute: typeof DashboardroutesWarehousesRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/(routes)/customers': {
@@ -244,6 +264,7 @@ interface DashboardRouteRouteChildren {
   DashboardroutesBrochureTypesRoute: typeof DashboardroutesBrochureTypesRoute
   DashboardroutesChartsRoute: typeof DashboardroutesChartsRoute
   DashboardroutesCustomersRoute: typeof DashboardroutesCustomersRoute
+  DashboardroutesWarehousesRoute: typeof DashboardroutesWarehousesRoute
   DashboardroutesIndexRoute: typeof DashboardroutesIndexRoute
 }
 
@@ -251,6 +272,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesBrochureTypesRoute: DashboardroutesBrochureTypesRoute,
   DashboardroutesChartsRoute: DashboardroutesChartsRoute,
   DashboardroutesCustomersRoute: DashboardroutesCustomersRoute,
+  DashboardroutesWarehousesRoute: DashboardroutesWarehousesRoute,
   DashboardroutesIndexRoute: DashboardroutesIndexRoute,
 }
 

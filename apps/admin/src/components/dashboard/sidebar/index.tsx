@@ -74,9 +74,10 @@ export const navigationItems: SidebarItem[] = [
     icon: Settings2,
     minRole: 'manager',
     items: [
+      { title: 'Brochure', url: '/dashboard/Brochure' },
+      { title: 'Customers', url: '/dashboard/customers' },
       { title: 'Warehouses', url: '/dashboard/warehouses' },
       { title: 'Brochure Types', url: '/dashboard/brochure-types' },
-      { title: 'Customers', url: '/dashboard/customers' },
     ],
   },
   {

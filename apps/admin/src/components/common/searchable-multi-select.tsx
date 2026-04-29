@@ -17,6 +17,23 @@ export interface MultiSelectOption {
   description?: string;
 }
 
+function cacheOption(
+  cachedOptions: MultiSelectOption[],
+  option: MultiSelectOption,
+) {
+  const existingIndex = cachedOptions.findIndex(
+    (cachedOption) => cachedOption.value === option.value,
+  );
+
+  if (existingIndex === -1) {
+    return [...cachedOptions, option];
+  }
+
+  const nextCachedOptions = [...cachedOptions];
+  nextCachedOptions[existingIndex] = option;
+  return nextCachedOptions;
+}
+
 interface SearchableMultiSelectProps {
   options: MultiSelectOption[];
   value: string[];
@@ -46,8 +63,35 @@ function SearchableMultiSelect({
 }: SearchableMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedOptionCache, setSelectedOptionCache] = useState<
+    MultiSelectOption[]
+  >([]);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [triggerWidth, setTriggerWidth] = useState(0);
+
+  const clearSearch = useCallback(() => {
+    setSearch('');
+    onSearchChange?.('');
+  }, [onSearchChange]);
+
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setOpen(isOpen);
+
+      if (!isOpen) {
+        clearSearch();
+      }
+    },
+    [clearSearch],
+  );
+
+  const handleSearchChange = useCallback(
+    (nextSearch: string) => {
+      setSearch(nextSearch);
+      onSearchChange?.(nextSearch);
+    },
+    [onSearchChange],
+  );
 
   useEffect(() => {
     if (open && triggerRef.current) {
@@ -55,10 +99,22 @@ function SearchableMultiSelect({
     }
   }, [open]);
 
-  const selectedOptions = useMemo(
-    () => options.filter((opt) => value.includes(opt.value)),
-    [options, value],
-  );
+  const selectedOptions = useMemo(() => {
+    const optionsByValue = new Map<string, MultiSelectOption>();
+
+    for (const option of selectedOptionCache) {
+      optionsByValue.set(option.value, option);
+    }
+
+    for (const option of options) {
+      optionsByValue.set(option.value, option);
+    }
+
+    return value.flatMap((optionValue) => {
+      const option = optionsByValue.get(optionValue);
+      return option ? [option] : [];
+    });
+  }, [options, selectedOptionCache, value]);
 
   const filteredOptions = useMemo(() => {
     if (onSearchChange) return options;
@@ -72,7 +128,12 @@ function SearchableMultiSelect({
   }, [options, search, onSearchChange]);
 
   const handleToggle = useCallback(
-    (optionValue: string) => {
+    (option: MultiSelectOption) => {
+      setSelectedOptionCache((cachedOptions) =>
+        cacheOption(cachedOptions, option),
+      );
+
+      const optionValue = option.value;
       const newValue = value.includes(optionValue)
         ? value.filter((v) => v !== optionValue)
         : [...value, optionValue];
@@ -89,7 +150,7 @@ function SearchableMultiSelect({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
+    <Popover open={open} onOpenChange={handleOpenChange} modal={true}>
       <PopoverTrigger asChild>
         <Button
           ref={triggerRef}
@@ -144,10 +205,7 @@ function SearchableMultiSelect({
             <Input
               placeholder={searchPlaceholder}
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                onSearchChange?.(e.target.value);
-              }}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="h-9 pl-8"
             />
           </div>
@@ -169,7 +227,7 @@ function SearchableMultiSelect({
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => handleToggle(option.value)}
+                  onClick={() => handleToggle(option)}
                   className={cn(
                     'hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors',
                     isSelected && 'bg-accent',

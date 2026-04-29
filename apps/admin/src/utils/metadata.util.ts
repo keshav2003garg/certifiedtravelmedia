@@ -43,6 +43,10 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Customers - CTM Grid Admin',
       description: 'Manage customer configuration',
     },
+    '/dashboard/warehouses': {
+      title: 'Warehouses - CTM Grid Admin',
+      description: 'Manage warehouse configuration',
+    },
   };
 
   const metadata = pathMap[path];

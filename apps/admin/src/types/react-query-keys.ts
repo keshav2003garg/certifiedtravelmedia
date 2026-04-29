@@ -7,4 +7,7 @@ export enum ReactQueryKeys {
   GET_BROCHURE_TYPE = 'GET::/admin/configs/brochure-types/:id',
   GET_CUSTOMERS = 'GET::/admin/configs/customers',
   GET_CUSTOMER = 'GET::/admin/configs/customers/:id',
+  GET_WAREHOUSES = 'GET::/admin/configs/warehouses',
+  GET_WAREHOUSE = 'GET::/admin/configs/warehouses/:id',
+  GET_WAREHOUSE_SECTORS = 'GET::/admin/configs/warehouses/sectors',
 }

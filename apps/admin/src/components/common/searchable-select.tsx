@@ -45,8 +45,15 @@ function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedOptionCache, setSelectedOptionCache] =
+    useState<SearchableSelectOption | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [triggerWidth, setTriggerWidth] = useState(0);
+
+  const clearSearch = useCallback(() => {
+    setSearch('');
+    onSearchChange?.('');
+  }, [onSearchChange]);
 
   useEffect(() => {
     if (open && triggerRef.current) {
@@ -55,8 +62,10 @@ function SearchableSelect({
   }, [open]);
 
   const selectedOption = useMemo(
-    () => options.find((option) => option.value === value),
-    [options, value],
+    () =>
+      options.find((option) => option.value === value) ??
+      (selectedOptionCache?.value === value ? selectedOptionCache : undefined),
+    [options, selectedOptionCache, value],
   );
 
   const filteredOptions = useMemo(() => {
@@ -78,20 +87,32 @@ function SearchableSelect({
   }, [options, search, onSearchChange]);
 
   const handleSelect = useCallback(
-    (selectedValue: string) => {
-      onChange(selectedValue);
+    (option: SearchableSelectOption) => {
+      setSelectedOptionCache(option);
+      onChange(option.value);
       setOpen(false);
-      setSearch('');
+      clearSearch();
     },
-    [onChange],
+    [clearSearch, onChange],
   );
 
-  const handleOpenChange = useCallback((isOpen: boolean) => {
-    setOpen(isOpen);
-    if (!isOpen) {
-      setSearch('');
-    }
-  }, []);
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setOpen(isOpen);
+      if (!isOpen) {
+        clearSearch();
+      }
+    },
+    [clearSearch],
+  );
+
+  const handleSearchChange = useCallback(
+    (nextSearch: string) => {
+      setSearch(nextSearch);
+      onSearchChange?.(nextSearch);
+    },
+    [onSearchChange],
+  );
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange} modal={true}>
@@ -101,7 +122,7 @@ function SearchableSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          disabled={disabled || isLoading}
+          disabled={disabled}
           className={cn(
             'h-11 w-full justify-between font-normal',
             !value && 'text-muted-foreground',
@@ -123,17 +144,13 @@ function SearchableSelect({
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        {/* Search Input */}
         <div className="border-b p-2">
           <div className="relative">
             <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
             <Input
               placeholder={searchPlaceholder}
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                onSearchChange?.(e.target.value);
-              }}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="h-9 pl-8"
             />
           </div>
@@ -153,7 +170,7 @@ function SearchableSelect({
               <button
                 key={option.value}
                 type="button"
-                onClick={() => handleSelect(option.value)}
+                onClick={() => handleSelect(option)}
                 className={cn(
                   'hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors',
                   option.value === value && 'bg-accent',
@@ -178,13 +195,11 @@ function SearchableSelect({
           )}
         </div>
 
-        {/* Show count hint (client-side mode only) */}
         {!onSearchChange && !search && options.length > 10 && (
           <div className="text-muted-foreground border-t px-3 py-2 text-center text-xs">
             Showing 10 of {options.length} • Type to search
           </div>
         )}
-        {/* Server-side search hint */}
         {onSearchChange && !search && (
           <div className="text-muted-foreground border-t px-3 py-2 text-center text-xs">
             Type to search
