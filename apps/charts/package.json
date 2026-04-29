@@ -1,0 +1,44 @@
+{
+  "name": "@repo/charts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@repo/env": "workspace:*",
+    "@repo/hooks": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@services/betterauth": "workspace:*",
+    "@services/database": "workspace:*",
+    "@tailwindcss/vite": "^4.2.4",
+    "@tanstack/devtools-vite": "^0.5.5",
+    "@tanstack/nitro-v2-vite-plugin": "^1.154.9",
+    "@tanstack/react-devtools": "^0.9.13",
+    "@tanstack/react-query": "^5.100.6",
+    "@tanstack/react-query-devtools": "^5.100.6",
+    "@tanstack/react-router": "^1.168.25",
+    "@tanstack/react-router-devtools": "^1.166.13",
+    "@tanstack/react-router-ssr-query": "^1.166.12",
+    "@tanstack/react-start": "^1.167.50",
+    "@vitejs/plugin-react": "^6.0.1",
+    "better-auth": "^1.6.9",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^0.577.0",
+    "ofetch": "^1.5.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwindcss": "^4.2.4",
+    "vite": "^8.0.10"
+  },
+  "devDependencies": {
+    "@repo/esconfig": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
+  }
+}

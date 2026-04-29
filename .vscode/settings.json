@@ -26,8 +26,8 @@
     {
       "name": "user",
       "base": "admin",
-      "color": "blue-500",
-      "folderNames": ["user", "users"]
+      "color": "orange-500",
+      "folderNames": ["charts", "charts"]
     }
   ],
   "files.watcherExclude": {
