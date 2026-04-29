@@ -4,7 +4,7 @@ import { parseAsString, useQueryState } from 'nuqs';
 
 import { debounce } from '@repo/utils/debounce';
 
-import { usePagination } from '../usePagination/usePagination';
+import { usePagination } from '../usePagination';
 
 export function useSearch(key?: string) {
   const { handlePageChange } = usePagination();

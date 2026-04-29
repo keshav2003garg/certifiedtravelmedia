@@ -35,6 +35,10 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Charts - CTM Grid Admin',
       description: 'Manage brochure stand chart layouts',
     },
+    '/dashboard/brochure-types': {
+      title: 'Brochure Types - CTM Grid Admin',
+      description: 'Manage brochure type configuration',
+    },
   };
 
   const metadata = pathMap[path];

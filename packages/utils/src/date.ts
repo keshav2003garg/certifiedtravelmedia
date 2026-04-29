@@ -10,7 +10,7 @@ const localeMap: Record<string, Locale> = {
   en: enUS,
 };
 
-let currentLocale = 'nb';
+let currentLocale = 'en';
 
 /**
  * Set the global locale used by all date formatting functions.
@@ -25,7 +25,7 @@ export function getDateLocale() {
 }
 
 function getLocale(locale?: string) {
-  return localeMap[locale ?? currentLocale] ?? nb;
+  return localeMap[locale ?? currentLocale] ?? enUS;
 }
 
 const TZ_RE = /([+-]\d{2}:?\d{2}|Z)$/;
@@ -54,15 +54,15 @@ export function formatOrdinalDate(date: Date, locale?: string) {
           ? 'rd'
           : 'th';
 
-  return `${dayOfMonth}${ordinal} ${format(date, 'MMM yyyy', { locale: getLocale(locale) })}`;
+  return `${format(date, 'MMM', { locale: getLocale(locale) })} ${dayOfMonth}${ordinal}, ${format(date, 'yyyy')}`;
 }
 
 export function formatShortDate(date: string | Date, locale?: string) {
-  return format(toDate(date), 'dd. MMM yyyy', { locale: getLocale(locale) });
+  return format(toDate(date), 'MMM d, yyyy', { locale: getLocale(locale) });
 }
 
 export function formatFullDate(date: string | Date, locale?: string) {
-  return format(toDate(date), 'dd. MMMM yyyy', { locale: getLocale(locale) });
+  return format(toDate(date), 'MMMM d, yyyy', { locale: getLocale(locale) });
 }
 
 export function formatTime(date: string | Date) {
@@ -71,7 +71,7 @@ export function formatTime(date: string | Date) {
 
 export function formatDateTime(date: string | Date, locale?: string) {
   const d = toDate(date);
-  return `${format(d, 'dd. MMM yyyy', { locale: getLocale(locale) })} ${format(d, 'HH:mm')}`;
+  return `${format(d, 'MMM d, yyyy', { locale: getLocale(locale) })} ${format(d, 'HH:mm')}`;
 }
 
 export function formatMonthYear(date: string | Date, locale?: string) {

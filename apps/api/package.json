@@ -1,0 +1,31 @@
+{
+  "name": "@repo/api",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch --env-file=../../.env.development.local src/node.ts",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.14",
+    "@hono/zod-validator": "^0.7.6",
+    "@react-pdf/renderer": "^4.5.1",
+    "@repo/env": "workspace:*",
+    "@repo/server-utils": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@services/betterauth": "workspace:*",
+    "@services/database": "workspace:*",
+    "@services/email": "workspace:*",
+    "axios": "^1.15.2",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.15",
+    "react": "^19.2.5"
+  },
+  "devDependencies": {
+    "@repo/esconfig": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
+    "@types/react": "^19.2.14",
+    "tsx": "^4.21.0"
+  }
+}

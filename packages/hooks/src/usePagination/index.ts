@@ -9,14 +9,14 @@ export function usePagination() {
     parseAsInteger.withDefault(10),
   );
 
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      if (size < 1) return;
+  const handleLimitChange = useCallback(
+    (limit: number) => {
+      if (limit < 1) return;
 
-      if (size === 10) {
+      if (limit === 10) {
         setLimit(null);
       } else {
-        setLimit(size);
+        setLimit(limit);
       }
     },
     [setLimit],
@@ -51,6 +51,6 @@ export function usePagination() {
     goToPreviousPage,
 
     limit,
-    handlePageSizeChange,
+    handleLimitChange,
   };
 }

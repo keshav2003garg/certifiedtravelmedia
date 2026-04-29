@@ -5,7 +5,7 @@ export interface ApiData<Payload, Response> {
 
 export interface PaginationParams {
   page: number;
-  pageSize: number;
+  limit: number;
 }
 
 export interface PaginatedResponse<T> {

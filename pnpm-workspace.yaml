@@ -3,4 +3,5 @@ packages:
   - packages/*
   - services/*
 allowBuilds:
+  '@parcel/watcher': true
   esbuild: true
