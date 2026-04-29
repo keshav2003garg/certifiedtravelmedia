@@ -1,0 +1,11 @@
+{
+  "extends": "@repo/tsconfig/library.json",
+
+  "compilerOptions": {
+    "paths": {
+      "@repo/hooks/*": ["./src/*"]
+    }
+  },
+
+  "include": ["src/**/*"]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "ctmmedia",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "db:generate": "pnpm --filter database db:generate",
+    "db:migrate": "pnpm --filter database db:migrate",
+    "add:admin": "pnpm --filter api admin",
+    "add:api": "pnpm --filter api add",
+    "add:charts": "pnpm --filter charts add",
+    "add:ui": "pnpm --filter ui add",
+    "add:shadcn": "pnpm --filter ui ui",
+    "deploy:prod": "sst deploy --stage prod",
+    "deploy:staging": "sst deploy --stage staging",
+    "remove:prod": "sst remove --stage prod",
+    "remove:staging": "sst remove --stage staging",
+    "refresh:prod": "sst refresh --stage prod",
+    "refresh:staging": "sst refresh --stage staging",
+    "sync:env:staging": "./scripts/sync-github-env.sh staging",
+    "sync:env:production": "./scripts/sync-github-env.sh production"
+  },
+  "dependencies": {
+    "sst": "4.7.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.6.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "globals": "^17.5.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.7.4",
+    "turbo": "^2.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.59.1"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20"
+  }
+}

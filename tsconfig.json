@@ -1,0 +1,23 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/env"
+    },
+    {
+      "path": "./packages/ui"
+    },
+    {
+      "path": "./packages/utils"
+    },
+    {
+      "path": "./services/betterauth"
+    },
+    {
+      "path": "./services/database"
+    },
+    {
+      "path": "./services/email"
+    }
+  ]
+}
