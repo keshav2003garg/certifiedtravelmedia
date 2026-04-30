@@ -14,7 +14,8 @@ export const getUser = createServerFn().handler(async () => {
 
   if (!session) return null;
 
-  if (session.user.role !== 'admin') return null;
+  const allowedRoles = ['admin', 'manager', 'staff'];
+  if (!allowedRoles.includes(session.user.role ?? '')) return null;
 
   return session;
 });

@@ -1,6 +1,7 @@
 export enum ReactQueryKeys {
   // Sessions
   GET_SESSIONS = 'GET::/auth.listSessions()',
+  GET_USERS = 'GET::/auth.admin.listUsers()',
 
   // Configs
   GET_BROCHURES = 'GET::/admin/configs/brochures',

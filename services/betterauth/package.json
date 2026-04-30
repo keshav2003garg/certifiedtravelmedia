@@ -22,6 +22,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./admin-access": {
+      "types": "./src/plugins/admin-access.ts",
+      "default": "./src/plugins/admin-access.ts"
     }
   }
 }
