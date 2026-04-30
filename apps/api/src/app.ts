@@ -9,10 +9,12 @@ import { createUserContextMiddleware } from '@repo/server-utils/middlewares/auth
 
 import auth from '@/services/auth';
 
+import chartsRoute from '@/routes/admin/charts/charts.route';
 import configsRoute from '@/routes/admin/configs/configs.route';
 import inventoryRoute from '@/routes/admin/inventory/inventory.route';
 import locationsRoute from '@/routes/admin/locations/locations.route';
 import uploadsRoute from '@/routes/admin/uploads/uploads.route';
+import standChartRoute from '@/routes/public/chart/stand-chart.route';
 
 import type { AppBindings } from '@repo/server-utils/types/app.types';
 
@@ -41,9 +43,11 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => {
 });
 
 app.route('/api/admin/configs', configsRoute);
+app.route('/api/admin/charts', chartsRoute);
 app.route('/api/admin/inventory', inventoryRoute);
 app.route('/api/admin/locations', locationsRoute);
 app.route('/api/admin/uploads', uploadsRoute);
+app.route('/api/charts', standChartRoute);
 
 app.notFound(notFound);
 app.onError(onError);

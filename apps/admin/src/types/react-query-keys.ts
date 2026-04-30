@@ -19,4 +19,8 @@ export enum ReactQueryKeys {
   GET_LOCATIONS = 'GET::/admin/locations',
   GET_LOCATIONS_BY_SECTOR = 'GET::/admin/locations/by-sector',
   GET_LOCATION = 'GET::/admin/locations/:id',
+
+  // Charts
+  GET_CHART_SECTORS = 'GET::/admin/charts/sectors',
+  GET_SECTOR_CHART = 'GET::/admin/charts/sectors/:sectorId',
 }

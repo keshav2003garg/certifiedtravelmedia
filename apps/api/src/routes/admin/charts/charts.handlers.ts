@@ -1,0 +1,129 @@
+import sendResponse from '@repo/server-utils/utils/response';
+
+import { chartsService } from './charts.services';
+
+import type {
+  ChartIdContext,
+  CloneChartContext,
+  DeleteTileContext,
+  GetArchiveContext,
+  GetSectorChartContext,
+  InitializeSectorChartContext,
+  ListArchivesContext,
+  ListChartsContext,
+  SaveChartContext,
+  UpsertTileContext,
+} from './charts.validators';
+
+export async function listChartsHandler(ctx: ListChartsContext) {
+  const params = ctx.req.valid('query');
+
+  const result = await chartsService.list(params);
+
+  return sendResponse(ctx, 200, 'Charts retrieved successfully', {
+    sectors: result.data,
+    pagination: result.pagination,
+  });
+}
+
+export async function getSectorChartHandler(ctx: GetSectorChartContext) {
+  const { sectorId } = ctx.req.valid('param');
+  const params = ctx.req.valid('query');
+
+  const chart = await chartsService.getSectorChart(sectorId, params);
+
+  return sendResponse(ctx, 200, 'Chart retrieved successfully', { chart });
+}
+
+export async function initializeSectorChartHandler(
+  ctx: InitializeSectorChartContext,
+) {
+  const { sectorId } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+
+  const chart = await chartsService.initializeSectorChart(sectorId, body);
+
+  return sendResponse(ctx, 201, 'Chart initialized successfully', { chart });
+}
+
+export async function getChartHandler(ctx: ChartIdContext) {
+  const { id } = ctx.req.valid('param');
+
+  const chart = await chartsService.getById(id);
+
+  return sendResponse(ctx, 200, 'Chart retrieved successfully', { chart });
+}
+
+export async function saveChartHandler(ctx: SaveChartContext) {
+  const { id } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+
+  const chart = await chartsService.save(id, body);
+
+  return sendResponse(ctx, 200, 'Chart saved successfully', { chart });
+}
+
+export async function upsertTileHandler(ctx: UpsertTileContext) {
+  const { id } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+
+  const tile = await chartsService.upsertTile(id, body);
+
+  return sendResponse(ctx, 200, 'Tile saved successfully', { tile });
+}
+
+export async function deleteTileHandler(ctx: DeleteTileContext) {
+  const { id, tileId } = ctx.req.valid('param');
+
+  const result = await chartsService.removeTile(id, tileId);
+
+  return sendResponse(ctx, 200, 'Tile removed successfully', result);
+}
+
+export async function completeChartHandler(ctx: ChartIdContext) {
+  const { id } = ctx.req.valid('param');
+  const user = ctx.get('user')!;
+
+  const chart = await chartsService.complete(id, user.id);
+
+  return sendResponse(ctx, 200, 'Chart completed successfully', { chart });
+}
+
+export async function cloneChartHandler(ctx: CloneChartContext) {
+  const { id } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+
+  const chart = await chartsService.clone(id, body);
+
+  return sendResponse(ctx, 201, 'Chart cloned successfully', { chart });
+}
+
+export async function archiveChartHandler(ctx: ChartIdContext) {
+  const { id } = ctx.req.valid('param');
+  const user = ctx.get('user')!;
+
+  const chart = await chartsService.archive(id, user.id);
+
+  return sendResponse(ctx, 200, 'Chart archived successfully', { chart });
+}
+
+export async function listArchivesHandler(ctx: ListArchivesContext) {
+  const params = ctx.req.valid('query');
+
+  const result = await chartsService.listArchives(params);
+
+  return sendResponse(ctx, 200, 'Chart archives retrieved successfully', {
+    archives: result.data,
+    pagination: result.pagination,
+  });
+}
+
+export async function getArchiveHandler(ctx: GetArchiveContext) {
+  const { id } = ctx.req.valid('param');
+
+  const archive = await chartsService.getArchive(id);
+
+  return sendResponse(ctx, 200, 'Chart archive retrieved successfully', {
+    archive,
+  });
+}

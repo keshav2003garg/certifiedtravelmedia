@@ -12,18 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChartsSectorIdRouteImport } from './routes/charts/$sectorId'
 import { Route as DashboardroutesIndexRouteImport } from './routes/dashboard/(routes)/index'
 import { Route as DashboardroutesWarehousesRouteImport } from './routes/dashboard/(routes)/warehouses'
 import { Route as DashboardroutesUsersRouteImport } from './routes/dashboard/(routes)/users'
 import { Route as DashboardroutesSettingsRouteImport } from './routes/dashboard/(routes)/settings'
 import { Route as DashboardroutesLocationsRouteImport } from './routes/dashboard/(routes)/locations'
 import { Route as DashboardroutesCustomersRouteImport } from './routes/dashboard/(routes)/customers'
-import { Route as DashboardroutesChartsRouteImport } from './routes/dashboard/(routes)/charts'
 import { Route as DashboardroutesBrochureTypesRouteImport } from './routes/dashboard/(routes)/brochure-types'
 import { Route as DashboardroutesBrochureRouteImport } from './routes/dashboard/(routes)/brochure'
 import { Route as authroutesResetPasswordRouteImport } from './routes/(auth)/(routes)/reset-password'
 import { Route as authroutesLoginRouteImport } from './routes/(auth)/(routes)/login'
 import { Route as authroutesForgotPasswordRouteImport } from './routes/(auth)/(routes)/forgot-password'
+import { Route as DashboardroutesChartsIndexRouteImport } from './routes/dashboard/(routes)/charts/index'
 import { Route as DashboardroutesInventoryNewIntakeRouteImport } from './routes/dashboard/(routes)/inventory/new-intake'
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
@@ -38,6 +39,11 @@ const authRouteRoute = authRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChartsSectorIdRoute = ChartsSectorIdRouteImport.update({
+  id: '/charts/$sectorId',
+  path: '/charts/$sectorId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardroutesIndexRoute = DashboardroutesIndexRouteImport.update({
@@ -73,11 +79,6 @@ const DashboardroutesCustomersRoute =
     path: '/customers',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
-const DashboardroutesChartsRoute = DashboardroutesChartsRouteImport.update({
-  id: '/(routes)/charts',
-  path: '/charts',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardroutesBrochureTypesRoute =
   DashboardroutesBrochureTypesRouteImport.update({
     id: '/(routes)/brochure-types',
@@ -105,6 +106,12 @@ const authroutesForgotPasswordRoute =
     path: '/forgot-password',
     getParentRoute: () => authRouteRoute,
   } as any)
+const DashboardroutesChartsIndexRoute =
+  DashboardroutesChartsIndexRouteImport.update({
+    id: '/(routes)/charts/',
+    path: '/charts/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardroutesInventoryNewIntakeRoute =
   DashboardroutesInventoryNewIntakeRouteImport.update({
     id: '/(routes)/inventory/new-intake',
@@ -115,12 +122,12 @@ const DashboardroutesInventoryNewIntakeRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/charts/$sectorId': typeof ChartsSectorIdRoute
   '/forgot-password': typeof authroutesForgotPasswordRoute
   '/login': typeof authroutesLoginRoute
   '/reset-password': typeof authroutesResetPasswordRoute
   '/dashboard/brochure': typeof DashboardroutesBrochureRoute
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
-  '/dashboard/charts': typeof DashboardroutesChartsRoute
   '/dashboard/customers': typeof DashboardroutesCustomersRoute
   '/dashboard/locations': typeof DashboardroutesLocationsRoute
   '/dashboard/settings': typeof DashboardroutesSettingsRoute
@@ -128,15 +135,16 @@ export interface FileRoutesByFullPath {
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/': typeof DashboardroutesIndexRoute
   '/dashboard/inventory/new-intake': typeof DashboardroutesInventoryNewIntakeRoute
+  '/dashboard/charts/': typeof DashboardroutesChartsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/charts/$sectorId': typeof ChartsSectorIdRoute
   '/forgot-password': typeof authroutesForgotPasswordRoute
   '/login': typeof authroutesLoginRoute
   '/reset-password': typeof authroutesResetPasswordRoute
   '/dashboard/brochure': typeof DashboardroutesBrochureRoute
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
-  '/dashboard/charts': typeof DashboardroutesChartsRoute
   '/dashboard/customers': typeof DashboardroutesCustomersRoute
   '/dashboard/locations': typeof DashboardroutesLocationsRoute
   '/dashboard/settings': typeof DashboardroutesSettingsRoute
@@ -144,18 +152,19 @@ export interface FileRoutesByTo {
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard': typeof DashboardroutesIndexRoute
   '/dashboard/inventory/new-intake': typeof DashboardroutesInventoryNewIntakeRoute
+  '/dashboard/charts': typeof DashboardroutesChartsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/(auth)': typeof authRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/charts/$sectorId': typeof ChartsSectorIdRoute
   '/(auth)/(routes)/forgot-password': typeof authroutesForgotPasswordRoute
   '/(auth)/(routes)/login': typeof authroutesLoginRoute
   '/(auth)/(routes)/reset-password': typeof authroutesResetPasswordRoute
   '/dashboard/(routes)/brochure': typeof DashboardroutesBrochureRoute
   '/dashboard/(routes)/brochure-types': typeof DashboardroutesBrochureTypesRoute
-  '/dashboard/(routes)/charts': typeof DashboardroutesChartsRoute
   '/dashboard/(routes)/customers': typeof DashboardroutesCustomersRoute
   '/dashboard/(routes)/locations': typeof DashboardroutesLocationsRoute
   '/dashboard/(routes)/settings': typeof DashboardroutesSettingsRoute
@@ -163,18 +172,19 @@ export interface FileRoutesById {
   '/dashboard/(routes)/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/(routes)/': typeof DashboardroutesIndexRoute
   '/dashboard/(routes)/inventory/new-intake': typeof DashboardroutesInventoryNewIntakeRoute
+  '/dashboard/(routes)/charts/': typeof DashboardroutesChartsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/charts/$sectorId'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/dashboard/brochure'
     | '/dashboard/brochure-types'
-    | '/dashboard/charts'
     | '/dashboard/customers'
     | '/dashboard/locations'
     | '/dashboard/settings'
@@ -182,15 +192,16 @@ export interface FileRouteTypes {
     | '/dashboard/warehouses'
     | '/dashboard/'
     | '/dashboard/inventory/new-intake'
+    | '/dashboard/charts/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/charts/$sectorId'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/dashboard/brochure'
     | '/dashboard/brochure-types'
-    | '/dashboard/charts'
     | '/dashboard/customers'
     | '/dashboard/locations'
     | '/dashboard/settings'
@@ -198,17 +209,18 @@ export interface FileRouteTypes {
     | '/dashboard/warehouses'
     | '/dashboard'
     | '/dashboard/inventory/new-intake'
+    | '/dashboard/charts'
   id:
     | '__root__'
     | '/'
     | '/(auth)'
     | '/dashboard'
+    | '/charts/$sectorId'
     | '/(auth)/(routes)/forgot-password'
     | '/(auth)/(routes)/login'
     | '/(auth)/(routes)/reset-password'
     | '/dashboard/(routes)/brochure'
     | '/dashboard/(routes)/brochure-types'
-    | '/dashboard/(routes)/charts'
     | '/dashboard/(routes)/customers'
     | '/dashboard/(routes)/locations'
     | '/dashboard/(routes)/settings'
@@ -216,12 +228,14 @@ export interface FileRouteTypes {
     | '/dashboard/(routes)/warehouses'
     | '/dashboard/(routes)/'
     | '/dashboard/(routes)/inventory/new-intake'
+    | '/dashboard/(routes)/charts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   authRouteRoute: typeof authRouteRouteWithChildren
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  ChartsSectorIdRoute: typeof ChartsSectorIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -245,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/charts/$sectorId': {
+      id: '/charts/$sectorId'
+      path: '/charts/$sectorId'
+      fullPath: '/charts/$sectorId'
+      preLoaderRoute: typeof ChartsSectorIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/(routes)/': {
@@ -289,13 +310,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardroutesCustomersRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/(routes)/charts': {
-      id: '/dashboard/(routes)/charts'
-      path: '/charts'
-      fullPath: '/dashboard/charts'
-      preLoaderRoute: typeof DashboardroutesChartsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/(routes)/brochure-types': {
       id: '/dashboard/(routes)/brochure-types'
       path: '/brochure-types'
@@ -331,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authroutesForgotPasswordRouteImport
       parentRoute: typeof authRouteRoute
     }
+    '/dashboard/(routes)/charts/': {
+      id: '/dashboard/(routes)/charts/'
+      path: '/charts'
+      fullPath: '/dashboard/charts/'
+      preLoaderRoute: typeof DashboardroutesChartsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/(routes)/inventory/new-intake': {
       id: '/dashboard/(routes)/inventory/new-intake'
       path: '/inventory/new-intake'
@@ -360,7 +381,6 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 interface DashboardRouteRouteChildren {
   DashboardroutesBrochureRoute: typeof DashboardroutesBrochureRoute
   DashboardroutesBrochureTypesRoute: typeof DashboardroutesBrochureTypesRoute
-  DashboardroutesChartsRoute: typeof DashboardroutesChartsRoute
   DashboardroutesCustomersRoute: typeof DashboardroutesCustomersRoute
   DashboardroutesLocationsRoute: typeof DashboardroutesLocationsRoute
   DashboardroutesSettingsRoute: typeof DashboardroutesSettingsRoute
@@ -368,12 +388,12 @@ interface DashboardRouteRouteChildren {
   DashboardroutesWarehousesRoute: typeof DashboardroutesWarehousesRoute
   DashboardroutesIndexRoute: typeof DashboardroutesIndexRoute
   DashboardroutesInventoryNewIntakeRoute: typeof DashboardroutesInventoryNewIntakeRoute
+  DashboardroutesChartsIndexRoute: typeof DashboardroutesChartsIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesBrochureRoute: DashboardroutesBrochureRoute,
   DashboardroutesBrochureTypesRoute: DashboardroutesBrochureTypesRoute,
-  DashboardroutesChartsRoute: DashboardroutesChartsRoute,
   DashboardroutesCustomersRoute: DashboardroutesCustomersRoute,
   DashboardroutesLocationsRoute: DashboardroutesLocationsRoute,
   DashboardroutesSettingsRoute: DashboardroutesSettingsRoute,
@@ -382,6 +402,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesIndexRoute: DashboardroutesIndexRoute,
   DashboardroutesInventoryNewIntakeRoute:
     DashboardroutesInventoryNewIntakeRoute,
+  DashboardroutesChartsIndexRoute: DashboardroutesChartsIndexRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
@@ -392,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   authRouteRoute: authRouteRouteWithChildren,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  ChartsSectorIdRoute: ChartsSectorIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
