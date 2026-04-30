@@ -10,6 +10,7 @@ import { createUserContextMiddleware } from '@repo/server-utils/middlewares/auth
 import auth from '@/services/auth';
 
 import configsRoute from '@/routes/admin/configs/configs.route';
+import inventoryRoute from '@/routes/admin/inventory/inventory.route';
 import uploadsRoute from '@/routes/admin/uploads/uploads.route';
 
 import type { AppBindings } from '@repo/server-utils/types/app.types';
@@ -39,6 +40,7 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => {
 });
 
 app.route('/api/admin/configs', configsRoute);
+app.route('/api/admin/inventory', inventoryRoute);
 app.route('/api/admin/uploads', uploadsRoute);
 
 app.notFound(notFound);

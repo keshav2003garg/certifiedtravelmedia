@@ -59,6 +59,10 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Settings - CTM Grid Admin',
       description: 'Manage your profile, password, and active sessions',
     },
+    '/dashboard/inventory/new-intake': {
+      title: 'New Inventory Intake - CTM Grid Admin',
+      description: 'Submit staff inventory intake requests for review',
+    },
   };
 
   const metadata = pathMap[path];

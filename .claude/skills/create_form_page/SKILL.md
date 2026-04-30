@@ -19,7 +19,7 @@ This skill creates complete CRUD form pages with create/edit mode switching, sec
 ├── pricing-section.tsx      # Section component (memo'd)
 ├── images-section.tsx       # Image upload section
 ├── settings-section.tsx     # Toggles, selects
-└── category-picker.tsx      # Special async multi-select (if needed)
+└── category-picker.tsx      # Server-search entity picker (if needed)
 ```
 
 ## 2. Form Schema (`schema.ts`)
@@ -524,7 +524,84 @@ import { NumericInput } from '@repo/ui/components/base/numeric-input';
 - NumericInput returns `undefined` for empty fields — works with optional Zod schemas
 - For required fields that must never be undefined: `onChange={(v) => field.onChange(v ?? 0)}`
 
-## 7. Conditional Fields (useWatch)
+## 7. Server-Search Entity Selects
+
+For entity-backed choices such as customers, warehouses, sectors, brochure types, brochures, products, inventory items, or any list that can grow, use `SearchableSelect` / `SearchableMultiSelect` with `useServerSearchSelectOptions`. Do not preload large option arrays with a fixed `limit` just to feed a local select.
+
+Use static `Select` only for small finite choices such as enums, status, role, sort order, month, year, or boolean-like modes.
+
+```typescript
+import { useCallback } from 'react';
+import SearchableSelect from '@/components/common/searchable-select';
+import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
+import { featureQueryKeys, useFeatures } from '@/hooks/useFeatures';
+import type { SearchableSelectOption } from '@/components/common/searchable-select';
+import type { ServerSearchSelectParams } from '@/hooks/useServerSearchSelectOptions';
+
+type FeatureOptionParams = ServerSearchSelectParams & {
+  customerSearch?: string;
+};
+
+function CustomerField() {
+  const { getCustomerOptions } = useFeatures();
+
+  const selectCustomerOptions = useCallback(
+    (data: CustomerOptionsResponse | undefined): SearchableSelectOption[] =>
+      (data?.customers ?? []).map((customer) => ({
+        value: customer.id,
+        label: customer.name,
+        description: customer.email ?? undefined,
+      })),
+    [],
+  );
+
+  const {
+    options: customerOptions,
+    setSearch: setCustomerSearch,
+    isSearching: isSearchingCustomers,
+  } = useServerSearchSelectOptions<
+    CustomerOptionsResponse,
+    SearchableSelectOption,
+    FeatureOptionParams
+  >({
+    queryKey: featureQueryKeys.customerOptions,
+    queryFn: getCustomerOptions,
+    selectOptions: selectCustomerOptions,
+    baseOptions: existingCustomer
+      ? [{ value: existingCustomer.id, label: existingCustomer.name }]
+      : [],
+    buildParams: ({ page, limit, search }) => ({
+      page,
+      limit,
+      customerSearch: search,
+    }),
+  });
+
+  return (
+    <SearchableSelect
+      options={customerOptions}
+      value={field.value}
+      onChange={field.onChange}
+      onSearchChange={setCustomerSearch}
+      isLoading={isSearchingCustomers}
+      placeholder="Select customer"
+      searchPlaceholder="Search customers"
+      emptyMessage="No customers found"
+    />
+  );
+}
+```
+
+**Server-Search Select Rules:**
+
+- Use `useServerSearchSelectOptions` for all relation/entity selects backed by API data.
+- API hooks should expose stable list/option functions and query keys that accept `{ page, limit, search }`; use `buildParams` to map `search` to endpoint-specific params like `customerSearch` or `warehouseSearch`.
+- Pass `onSearchChange={setSearch}` to `SearchableSelect` / `SearchableMultiSelect`; this makes the component treat options as server-filtered.
+- Use `baseOptions` in edit mode so already selected values remain visible before the first search result returns.
+- Keep separate hook instances and loading states for independent selects, even when they call the same endpoint.
+- Do not fetch `limit: 50` or `limit: 100` form options at the page level unless the option set is truly finite and small.
+
+## 8. Conditional Fields (useWatch)
 
 ```typescript
 import { useFormContext, useWatch } from '@repo/ui/lib/form';
@@ -573,7 +650,7 @@ function PricingSection() {
 - Use ternary `condition ? <JSX> : null` (NOT `condition && <JSX>`)
 - When hiding weight fields, optionally clear them in the Select onChange
 
-## 8. Image Upload Section
+## 9. Image Upload Section
 
 ```typescript
 import { memo, useMemo } from 'react';
@@ -636,7 +713,7 @@ export default memo(ImagesSection);
 - Max 10 images (check before uploading)
 - First image = primary (show badge)
 
-## 9. Route Integration
+## 10. Route Integration
 
 ### Create route
 

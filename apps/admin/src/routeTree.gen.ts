@@ -23,6 +23,7 @@ import { Route as DashboardroutesBrochureRouteImport } from './routes/dashboard/
 import { Route as authroutesResetPasswordRouteImport } from './routes/(auth)/(routes)/reset-password'
 import { Route as authroutesLoginRouteImport } from './routes/(auth)/(routes)/login'
 import { Route as authroutesForgotPasswordRouteImport } from './routes/(auth)/(routes)/forgot-password'
+import { Route as DashboardroutesInventoryNewIntakeRouteImport } from './routes/dashboard/(routes)/inventory/new-intake'
 
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
@@ -97,6 +98,12 @@ const authroutesForgotPasswordRoute =
     path: '/forgot-password',
     getParentRoute: () => authRouteRoute,
   } as any)
+const DashboardroutesInventoryNewIntakeRoute =
+  DashboardroutesInventoryNewIntakeRouteImport.update({
+    id: '/(routes)/inventory/new-intake',
+    path: '/inventory/new-intake',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/users': typeof DashboardroutesUsersRoute
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/': typeof DashboardroutesIndexRoute
+  '/dashboard/inventory/new-intake': typeof DashboardroutesInventoryNewIntakeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +134,7 @@ export interface FileRoutesByTo {
   '/dashboard/users': typeof DashboardroutesUsersRoute
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard': typeof DashboardroutesIndexRoute
+  '/dashboard/inventory/new-intake': typeof DashboardroutesInventoryNewIntakeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/dashboard/(routes)/users': typeof DashboardroutesUsersRoute
   '/dashboard/(routes)/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/(routes)/': typeof DashboardroutesIndexRoute
+  '/dashboard/(routes)/inventory/new-intake': typeof DashboardroutesInventoryNewIntakeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/dashboard/warehouses'
     | '/dashboard/'
+    | '/dashboard/inventory/new-intake'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/dashboard/warehouses'
     | '/dashboard'
+    | '/dashboard/inventory/new-intake'
   id:
     | '__root__'
     | '/'
@@ -190,6 +202,7 @@ export interface FileRouteTypes {
     | '/dashboard/(routes)/users'
     | '/dashboard/(routes)/warehouses'
     | '/dashboard/(routes)/'
+    | '/dashboard/(routes)/inventory/new-intake'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authroutesForgotPasswordRouteImport
       parentRoute: typeof authRouteRoute
     }
+    '/dashboard/(routes)/inventory/new-intake': {
+      id: '/dashboard/(routes)/inventory/new-intake'
+      path: '/inventory/new-intake'
+      fullPath: '/dashboard/inventory/new-intake'
+      preLoaderRoute: typeof DashboardroutesInventoryNewIntakeRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
 
@@ -326,6 +346,7 @@ interface DashboardRouteRouteChildren {
   DashboardroutesUsersRoute: typeof DashboardroutesUsersRoute
   DashboardroutesWarehousesRoute: typeof DashboardroutesWarehousesRoute
   DashboardroutesIndexRoute: typeof DashboardroutesIndexRoute
+  DashboardroutesInventoryNewIntakeRoute: typeof DashboardroutesInventoryNewIntakeRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -337,6 +358,8 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesUsersRoute: DashboardroutesUsersRoute,
   DashboardroutesWarehousesRoute: DashboardroutesWarehousesRoute,
   DashboardroutesIndexRoute: DashboardroutesIndexRoute,
+  DashboardroutesInventoryNewIntakeRoute:
+    DashboardroutesInventoryNewIntakeRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
