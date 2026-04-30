@@ -3,6 +3,8 @@ export enum ReactQueryKeys {
   GET_SESSIONS = 'GET::/auth.listSessions()',
 
   // Configs
+  GET_BROCHURES = 'GET::/admin/configs/brochures',
+  GET_BROCHURE = 'GET::/admin/configs/brochures/:id',
   GET_BROCHURE_TYPES = 'GET::/admin/configs/brochure-types',
   GET_BROCHURE_TYPE = 'GET::/admin/configs/brochure-types/:id',
   GET_CUSTOMERS = 'GET::/admin/configs/customers',
