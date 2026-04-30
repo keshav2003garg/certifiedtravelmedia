@@ -9,6 +9,8 @@ import type { QueryKey } from '@tanstack/react-query';
 export const SERVER_SEARCH_SELECT_LIMIT = 10;
 export const SERVER_SEARCH_SELECT_DEBOUNCE_MS = 400;
 
+const EMPTY_OPTIONS: readonly never[] = Object.freeze([]);
+
 export interface ServerSearchSelectParams {
   page: number;
   limit: number;
@@ -67,6 +69,11 @@ export function useServerSearchSelectOptions<
   limit = SERVER_SEARCH_SELECT_LIMIT,
   debounceMs = SERVER_SEARCH_SELECT_DEBOUNCE_MS,
 }: UseServerSearchSelectOptionsParams<TData, TOption, TParams>) {
+  const stableBaseOptions =
+    baseOptions.length === 0
+      ? (EMPTY_OPTIONS as unknown as TOption[])
+      : baseOptions;
+
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -127,8 +134,8 @@ export function useServerSearchSelectOptions<
   );
 
   const options = useMemo(
-    () => mergeOptions(baseOptions, fetchedOptions),
-    [baseOptions, fetchedOptions],
+    () => mergeOptions(stableBaseOptions, fetchedOptions),
+    [stableBaseOptions, fetchedOptions],
   );
 
   return {

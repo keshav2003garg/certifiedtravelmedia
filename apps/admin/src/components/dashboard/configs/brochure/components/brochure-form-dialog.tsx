@@ -35,6 +35,7 @@ import { brochureFormSchema, defaultBrochureValues } from '../schema';
 import type { SearchableSelectOption } from '@/components/common/searchable-select';
 import type {
   Brochure,
+  BrochureDetail,
   CreateBrochureRequest,
 } from '@/hooks/useBrochures/types';
 import type { ListBrochureTypesRequest } from '@/hooks/useBrochureTypes/types';
@@ -45,6 +46,7 @@ interface BrochureFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   brochure: Brochure | null;
+  onCreated?: (brochure: BrochureDetail) => void;
 }
 
 function getChangedFields(data: BrochureFormData, brochure: Brochure) {
@@ -69,6 +71,7 @@ function BrochureFormDialog({
   open,
   onOpenChange,
   brochure,
+  onCreated,
 }: BrochureFormDialogProps) {
   const { createMutation, updateMutation } = useBrochures();
   const { getBrochureTypes } = useBrochureTypes();
@@ -170,7 +173,10 @@ function BrochureFormDialog({
   function onSubmit(data: BrochureFormData) {
     if (!brochure) {
       createMutation.mutate(data, {
-        onSuccess: () => onOpenChange(false),
+        onSuccess: (response) => {
+          onCreated?.(response.brochure);
+          onOpenChange(false);
+        },
       });
       return;
     }

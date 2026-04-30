@@ -2,6 +2,63 @@ import type { ApiData } from '@/lib/api/types';
 
 export type TransactionType = 'Delivery';
 
+export type InventoryRequestStatus =
+  | 'Pending'
+  | 'Approved'
+  | 'Rejected'
+  | 'Cancelled';
+
+export type InventoryRequestSortBy =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'dateReceived'
+  | 'status'
+  | 'brochureName';
+
+export type SortOrder = 'asc' | 'desc';
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface InventoryRequest {
+  id: string;
+  status: InventoryRequestStatus;
+  warehouseId: string | null;
+  brochureTypeId: string | null;
+  brochureName: string | null;
+  customerName: string | null;
+  imageUrl: string | null;
+  dateReceived: string;
+  boxes: number;
+  unitsPerBox: number;
+  transactionType: TransactionType;
+  notes: string | null;
+  rejectionReason: string | null;
+  requestedBy: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  warehouseName: string | null;
+  brochureTypeName: string | null;
+  requestedByName: string | null;
+  requestedByEmail: string | null;
+}
+
+export interface InventoryRequestStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  cancelled: number;
+}
+
 export type CreateInventoryRequestPayload = {
   warehouseId: string;
   brochureTypeId: string;
@@ -24,4 +81,28 @@ export type CreateInventoryRequestRequest = ApiData<
       createdAt: string;
     };
   }
+>;
+
+export type ListInventoryRequestsRequest = ApiData<
+  {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: InventoryRequestSortBy;
+    order?: SortOrder;
+    status?: InventoryRequestStatus;
+    transactionType?: TransactionType;
+    warehouseId?: string;
+    brochureTypeId?: string;
+    requestedBy?: string;
+  },
+  {
+    requests: InventoryRequest[];
+    pagination: Pagination;
+  }
+>;
+
+export type GetInventoryRequestStatsRequest = ApiData<
+  undefined,
+  { stats: InventoryRequestStats }
 >;

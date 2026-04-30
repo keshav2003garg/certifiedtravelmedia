@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
+import { Calendar } from '@repo/ui/components/base/calendar';
 import {
   Form,
   FormControl,
@@ -11,16 +12,23 @@ import {
 } from '@repo/ui/components/base/form';
 import { Input } from '@repo/ui/components/base/input';
 import { NumericInput } from '@repo/ui/components/base/numeric-input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@repo/ui/components/base/popover';
 import { Textarea } from '@repo/ui/components/base/textarea';
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import {
-  CalendarDays,
+  CalendarIcon,
   FileImage,
   Loader2,
   Send,
   Tags,
   Warehouse,
 } from '@repo/ui/lib/icons';
+import { cn } from '@repo/ui/lib/utils';
+import { formatFullDate, parseISODate, toISODate } from '@repo/utils/date';
 
 import ImageUploadField from '@/components/common/image-upload-field';
 import SearchableSelect from '@/components/common/searchable-select';
@@ -82,42 +90,56 @@ function InventoryRequestForm({
     [],
   );
 
-  const {
-    options: warehouseOptions,
-    setSearch: setWarehouseSearch,
-    isSearching: isSearchingWarehouses,
-  } = useServerSearchSelectOptions({
-    queryKey: warehouseQueryKeys.list,
-    queryFn: getWarehouses,
-    selectOptions: selectWarehouseOptions,
-    buildParams: ({ page, limit, search }) => ({
+  const buildSearchParams = useCallback(
+    ({
+      page,
+      limit,
+      search,
+    }: {
+      page: number;
+      limit: number;
+      search?: string;
+    }) => ({
       page,
       limit,
       search,
     }),
-  });
+    [],
+  );
 
-  const {
-    options: brochureTypeOptions,
-    setSearch: setBrochureTypeSearch,
-    isSearching: isSearchingBrochureTypes,
-  } = useServerSearchSelectOptions({
-    queryKey: (params) =>
+  const brochureTypeQueryKey = useCallback(
+    (params: ListBrochureTypesRequest['payload']) =>
       [
         ReactQueryKeys.GET_BROCHURE_TYPES,
         'inventory-request-form',
         params,
       ] as const,
-    queryFn: getBrochureTypes,
-    selectOptions: selectBrochureTypeOptions,
-    buildParams: ({ page, limit, search }) => ({
-      page,
-      limit,
-      search,
-    }),
+    [],
+  );
+
+  const {
+    options: warehouseOptions,
+    setSearch: setWarehouseSearch,
+    isLoading: isLoadingWarehouses,
+  } = useServerSearchSelectOptions({
+    queryKey: warehouseQueryKeys.list,
+    queryFn: getWarehouses,
+    selectOptions: selectWarehouseOptions,
+    buildParams: buildSearchParams,
   });
 
-  const isLoadingOptions = isSearchingWarehouses || isSearchingBrochureTypes;
+  const {
+    options: brochureTypeOptions,
+    setSearch: setBrochureTypeSearch,
+    isLoading: isLoadingBrochureTypes,
+  } = useServerSearchSelectOptions({
+    queryKey: brochureTypeQueryKey,
+    queryFn: getBrochureTypes,
+    selectOptions: selectBrochureTypeOptions,
+    buildParams: buildSearchParams,
+  });
+
+  const isLoadingOptions = isLoadingWarehouses || isLoadingBrochureTypes;
 
   const form = useForm<InventoryRequestFormData>({
     resolver: zodResolver(inventoryRequestFormSchema),
@@ -164,7 +186,7 @@ function InventoryRequestForm({
                     placeholder="Select warehouse"
                     searchPlaceholder="Search warehouses"
                     emptyMessage="No active warehouses found"
-                    isLoading={isSearchingWarehouses}
+                    isLoading={isLoadingWarehouses}
                     disabled={isSubmitting}
                     icon={<Warehouse className="size-4 shrink-0" />}
                     onSearchChange={setWarehouseSearch}
@@ -189,7 +211,7 @@ function InventoryRequestForm({
                     placeholder="Select type"
                     searchPlaceholder="Search brochure types"
                     emptyMessage="No brochure types found"
-                    isLoading={isSearchingBrochureTypes}
+                    isLoading={isLoadingBrochureTypes}
                     disabled={isSubmitting}
                     icon={<Tags className="size-4 shrink-0" />}
                     onSearchChange={setBrochureTypeSearch}
@@ -270,21 +292,11 @@ function InventoryRequestForm({
             control={form.control}
             name="dateReceived"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date received</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <CalendarDays className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                    <Input
-                      {...field}
-                      type="date"
-                      className="pl-9"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+              <DateReceivedField
+                value={field.value}
+                onChange={field.onChange}
+                disabled={isSubmitting}
+              />
             )}
           />
 
@@ -301,8 +313,9 @@ function InventoryRequestForm({
                     onBlur={field.onBlur}
                     name={field.name}
                     ref={field.ref}
-                    min={1}
-                    integerOnly
+                    min={0.01}
+                    step={0.01}
+                    decimals={2}
                     placeholder="1"
                     disabled={isSubmitting}
                   />
@@ -380,5 +393,60 @@ function InventoryRequestForm({
     </Form>
   );
 }
+
+interface DateReceivedFieldProps {
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}
+
+const DateReceivedField = memo(function DateReceivedField({
+  value,
+  onChange,
+  disabled,
+}: DateReceivedFieldProps) {
+  const selectedDate = useMemo(() => parseISODate(value), [value]);
+
+  const handleSelect = useCallback(
+    (date: Date | undefined) => {
+      onChange(date ? toISODate(date) : '');
+    },
+    [onChange],
+  );
+
+  return (
+    <FormItem className="flex flex-col">
+      <FormLabel>Date received</FormLabel>
+      <Popover>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={disabled}
+              className={cn(
+                'w-full justify-between font-normal',
+                !selectedDate && 'text-muted-foreground',
+              )}
+            >
+              {selectedDate ? formatFullDate(selectedDate) : 'Pick a date'}
+              <CalendarIcon className="size-4 opacity-50" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-0" align="start">
+          <Calendar
+            className="w-full"
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleSelect}
+            captionLayout="dropdown"
+          />
+        </PopoverContent>
+      </Popover>
+      <FormMessage />
+    </FormItem>
+  );
+});
 
 export default memo(InventoryRequestForm);

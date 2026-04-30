@@ -77,3 +77,35 @@ export function formatDateTime(date: string | Date, locale?: string) {
 export function formatMonthYear(date: string | Date, locale?: string) {
   return format(toDate(date), 'MMMM yyyy', { locale: getLocale(locale) });
 }
+
+/**
+ * Today as an ISO date string (YYYY-MM-DD) in the user's local timezone.
+ * Use for default form values where the API expects a date-only string.
+ */
+export function todayISODate() {
+  return toISODate(new Date());
+}
+
+/**
+ * Convert a Date to a YYYY-MM-DD string using local-timezone components.
+ * Avoids the UTC shift that `toISOString().slice(0, 10)` causes near
+ * midnight boundaries.
+ */
+export function toISODate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Parse a YYYY-MM-DD string into a local-timezone Date. Returns `undefined`
+ * for empty or malformed input — convenient for controlled form fields that
+ * may hold an empty string.
+ */
+export function parseISODate(value: string | null | undefined) {
+  if (!value) return undefined;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+}

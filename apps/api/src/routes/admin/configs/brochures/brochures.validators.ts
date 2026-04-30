@@ -2,6 +2,7 @@ import { createValidatorSchema } from '@repo/server-utils/utils/zod-validator-sc
 import { searchFilterSchema } from '@repo/server-utils/validator/filters.validator';
 import { paginationSchema } from '@repo/server-utils/validator/pagination.validator';
 import { createSortSchema } from '@repo/server-utils/validator/sorting.validators';
+import { roundDecimals } from '@repo/utils/number';
 import { z } from '@repo/utils/zod';
 
 import type { TypedContext } from '@repo/server-utils/types/app.types';
@@ -80,8 +81,9 @@ const createImageBodySchema = z.object({
     .default([])
     .refine(
       (packSizes) =>
-        new Set(packSizes.map((packSize) => packSize.unitsPerBox.toFixed(2)))
-          .size === packSizes.length,
+        new Set(
+          packSizes.map((packSize) => roundDecimals(packSize.unitsPerBox)),
+        ).size === packSizes.length,
       { message: 'Duplicate pack sizes are not allowed' },
     ),
 });

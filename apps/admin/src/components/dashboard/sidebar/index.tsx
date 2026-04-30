@@ -54,12 +54,17 @@ export const navigationItems: SidebarItem[] = [
       { title: 'Inventory', url: '/dashboard/inventory' },
       {
         title: 'New Inventory Intake',
-        url: '/dashboard/inventory/new-intake',
+        url: '/dashboard/inventory/intake-request',
         allowedRoles: ['staff'],
       },
       {
         title: 'New Inventory',
         url: '/dashboard/inventory/new',
+        allowedRoles: ['manager', 'admin'],
+      },
+      {
+        title: 'Request Queue',
+        url: '/dashboard/inventory/request-queue',
         allowedRoles: ['manager', 'admin'],
       },
       {

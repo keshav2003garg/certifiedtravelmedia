@@ -63,9 +63,18 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Settings - CTM Grid Admin',
       description: 'Manage your profile, password, and active sessions',
     },
-    '/dashboard/inventory/new-intake': {
+    '/dashboard/inventory/request-queue': {
+      title: 'Inventory Request Queue - CTM Grid Admin',
+      description: 'Review staff inventory intake requests',
+    },
+    '/dashboard/inventory/intake-request': {
       title: 'New Inventory Intake - CTM Grid Admin',
       description: 'Submit staff inventory intake requests for review',
+    },
+    '/dashboard/inventory/new': {
+      title: 'New Inventory - CTM Grid Admin',
+      description:
+        'Add stock directly into a warehouse and record a transaction',
     },
   };
 

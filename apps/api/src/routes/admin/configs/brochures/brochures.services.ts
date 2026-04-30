@@ -18,6 +18,7 @@ import {
   createPaginatedResult,
   getPaginationOffset,
 } from '@repo/server-utils/utils/pagination';
+import { roundDecimals } from '@repo/utils/number';
 
 import {
   brochureImagePackSizes,
@@ -85,7 +86,7 @@ function rethrowBrochureWriteError(error: unknown): never {
 
 class BrochuresService {
   private normalizeUnitsPerBox(value: number) {
-    return Number(value.toFixed(2));
+    return roundDecimals(value);
   }
 
   private async getBrochureOrThrow(id: string) {

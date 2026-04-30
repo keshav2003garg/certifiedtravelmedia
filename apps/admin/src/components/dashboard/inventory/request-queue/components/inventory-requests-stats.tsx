@@ -2,34 +2,49 @@ import { memo } from 'react';
 
 import { Card, CardContent } from '@repo/ui/components/base/card';
 import { Skeleton } from '@repo/ui/components/base/skeleton';
-import { Grid2X2, MapPin } from '@repo/ui/lib/icons';
+import { CheckCircle2, Clock, Inbox, XCircle } from '@repo/ui/lib/icons';
 import { formatCount } from '@repo/utils/number';
 
-import type { Stats } from '@/hooks/useLocations/types';
+import type { InventoryRequestStats } from '@/hooks/useInventoryRequests/types';
 
-interface LocationsStatsProps {
-  stats?: Stats;
+interface InventoryRequestsStatsProps {
+  stats?: InventoryRequestStats;
   isLoading: boolean;
 }
 
-function LocationsStats({ stats, isLoading }: LocationsStatsProps) {
+function InventoryRequestsStats({
+  stats,
+  isLoading,
+}: InventoryRequestsStatsProps) {
   const items = [
     {
-      label: 'Total Locations',
-      value: stats?.totalLocations ?? 0,
-      icon: MapPin,
+      label: 'Total Requests',
+      value: stats?.total ?? 0,
+      icon: Inbox,
       className: 'bg-sky-50 text-sky-700',
     },
     {
-      label: 'Total Sectors',
-      value: stats?.totalSectors ?? 0,
-      icon: Grid2X2,
+      label: 'Pending Review',
+      value: stats?.pending ?? 0,
+      icon: Clock,
       className: 'bg-amber-50 text-amber-700',
+    },
+    {
+      label: 'Approved',
+      value: stats?.approved ?? 0,
+      icon: CheckCircle2,
+      className: 'bg-emerald-50 text-emerald-700',
+    },
+    {
+      label: 'Rejected',
+      value: stats?.rejected ?? 0,
+      icon: XCircle,
+      className: 'bg-rose-50 text-rose-700',
     },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
         <Card key={item.label} className="shadow-none">
           <CardContent className="flex items-center gap-4 p-5">
@@ -65,4 +80,4 @@ function LocationsStats({ stats, isLoading }: LocationsStatsProps) {
   );
 }
 
-export default memo(LocationsStats);
+export default memo(InventoryRequestsStats);

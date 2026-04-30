@@ -1,3 +1,4 @@
+import { todayISODate } from '@repo/utils/date';
 import { z } from '@repo/utils/zod';
 
 function normalizeText(value: string) {
@@ -36,8 +37,10 @@ export const inventoryRequestFormSchema = z.object({
   dateReceived: z.iso.date('Date received must be a valid date'),
   boxes: z
     .number()
-    .int('Boxes must be a whole number')
-    .positive('Boxes must be greater than 0'),
+    .positive('Boxes must be greater than 0')
+    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
+      message: 'Boxes can have at most two decimal places',
+    }),
   unitsPerBox: z
     .number()
     .positive('Units per box must be greater than 0')
@@ -58,7 +61,7 @@ export function getDefaultInventoryRequestValues() {
     brochureName: '',
     customerName: '',
     imageUrl: '',
-    dateReceived: new Date().toISOString().slice(0, 10),
+    dateReceived: todayISODate(),
     boxes: 1,
     unitsPerBox: 1,
     notes: '',

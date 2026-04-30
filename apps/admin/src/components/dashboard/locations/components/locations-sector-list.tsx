@@ -10,6 +10,7 @@ import { Badge } from '@repo/ui/components/base/badge';
 import { Button } from '@repo/ui/components/base/button';
 import { ExternalLink, MapPin } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
+import { formatCount } from '@repo/utils/number';
 
 import type { Location, SectorWithLocations } from '@/hooks/useLocations/types';
 
@@ -87,7 +88,7 @@ function LocationsSectorList({ sectors }: LocationsSectorListProps) {
                     : 'bg-muted text-muted-foreground',
                 )}
               >
-                {sector.locationCount.toLocaleString()} locations
+                {formatCount(sector.locationCount)} locations
               </Badge>
             </div>
           </AccordionTrigger>

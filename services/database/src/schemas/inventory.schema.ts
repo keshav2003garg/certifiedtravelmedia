@@ -48,11 +48,9 @@ export const inventoryItems = pgTable(
 
     boxes: real('boxes').notNull(),
 
-    stockLevel: stockLevelEnum('stock_level').notNull(),
+    stockLevel: stockLevelEnum('stock_level').notNull().default('On Target'),
 
     qrCodeUrl: varchar('qr_code_url', { length: 500 }),
-
-    notes: text('notes'),
 
     createdAt: timestamp('created_at', { mode: 'string' })
       .notNull()

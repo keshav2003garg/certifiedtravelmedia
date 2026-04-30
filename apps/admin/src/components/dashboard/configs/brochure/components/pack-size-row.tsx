@@ -23,6 +23,7 @@ import { NumericInput } from '@repo/ui/components/base/numeric-input';
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import { Check, Loader2, Pencil, Trash2, X } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
+import { formatDecimal } from '@repo/utils/number';
 
 import { useBrochures } from '@/hooks/useBrochures';
 
@@ -35,13 +36,6 @@ interface PackSizeRowProps {
   brochureId: string;
   imageId: string;
   packSize: BrochureImagePackSize;
-}
-
-function formatUnits(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(value);
 }
 
 function PackSizeRow({ brochureId, imageId, packSize }: PackSizeRowProps) {
@@ -147,7 +141,7 @@ function PackSizeRow({ brochureId, imageId, packSize }: PackSizeRowProps) {
     <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
       <div className="min-w-0">
         <p className="text-sm font-medium">
-          {formatUnits(packSize.unitsPerBox)} units per box
+          {formatDecimal(packSize.unitsPerBox)} units per box
         </p>
         <p className="text-muted-foreground text-xs">
           {packSize.inventoryItemCount} inventory items
@@ -187,8 +181,8 @@ function PackSizeRow({ brochureId, imageId, packSize }: PackSizeRowProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete pack size?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove {formatUnits(packSize.unitsPerBox)} units per box
-              from the image.
+              This will remove {formatDecimal(packSize.unitsPerBox)} units per
+              box from the image.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

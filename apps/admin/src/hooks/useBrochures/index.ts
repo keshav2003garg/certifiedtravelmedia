@@ -281,6 +281,9 @@ export function useBrochures() {
   });
 
   return {
+    // Fetchers
+    getBrochures,
+
     // Queries Options
     brochuresQueryOptions,
     brochureQueryOptions,

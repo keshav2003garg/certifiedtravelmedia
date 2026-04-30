@@ -1,7 +1,13 @@
 import { createValidatorSchema } from '@repo/server-utils/utils/zod-validator-schema';
+import { searchFilterSchema } from '@repo/server-utils/validator/filters.validator';
+import { paginationSchema } from '@repo/server-utils/validator/pagination.validator';
+import { createSortSchema } from '@repo/server-utils/validator/sorting.validators';
 import { z } from '@repo/utils/zod';
 
-import { transactionTypeEnum } from '@services/database/schemas';
+import {
+  inventoryRequestStatusEnum,
+  transactionTypeEnum,
+} from '@services/database/schemas';
 
 import type { TypedContext } from '@repo/server-utils/types/app.types';
 
@@ -15,8 +21,10 @@ const optionalTextSchema = (max: number, message: string) =>
 
 const positiveBoxesSchema = z.coerce
   .number()
-  .int('Boxes must be a whole number')
-  .positive('Boxes must be greater than 0');
+  .positive('Boxes must be greater than 0')
+  .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
+    message: 'Boxes can have at most two decimal places',
+  });
 
 const unitsPerBoxSchema = z.coerce
   .number()
@@ -57,4 +65,42 @@ export const createInventoryRequestValidator = createValidatorSchema({
 });
 export type CreateInventoryRequestContext = TypedContext<
   typeof createInventoryRequestValidator
+>;
+
+const inventoryRequestSortSchema = createSortSchema([
+  'createdAt',
+  'updatedAt',
+  'dateReceived',
+  'status',
+  'brochureName',
+]);
+
+const inventoryRequestStatusFilterSchema = z
+  .enum(inventoryRequestStatusEnum.enumValues)
+  .optional();
+
+const inventoryRequestTypeFilterSchema = z
+  .enum(transactionTypeEnum.enumValues)
+  .optional();
+
+export const listInventoryRequestsValidator = createValidatorSchema({
+  query: paginationSchema
+    .extend(searchFilterSchema.shape)
+    .extend(inventoryRequestSortSchema.shape)
+    .extend({
+      search: z
+        .string()
+        .trim()
+        .max(255, 'Search must be 255 characters or less')
+        .optional()
+        .transform((value) => (value ? value.replace(/\s+/g, ' ') : undefined)),
+      status: inventoryRequestStatusFilterSchema,
+      transactionType: inventoryRequestTypeFilterSchema,
+      warehouseId: z.uuid('Invalid warehouse ID').optional(),
+      brochureTypeId: z.uuid('Invalid brochure type ID').optional(),
+      requestedBy: z.string().trim().min(1).max(255).optional(),
+    }),
+});
+export type ListInventoryRequestsContext = TypedContext<
+  typeof listInventoryRequestsValidator
 >;
