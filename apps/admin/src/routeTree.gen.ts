@@ -16,6 +16,7 @@ import { Route as DashboardroutesIndexRouteImport } from './routes/dashboard/(ro
 import { Route as DashboardroutesWarehousesRouteImport } from './routes/dashboard/(routes)/warehouses'
 import { Route as DashboardroutesUsersRouteImport } from './routes/dashboard/(routes)/users'
 import { Route as DashboardroutesSettingsRouteImport } from './routes/dashboard/(routes)/settings'
+import { Route as DashboardroutesLocationsRouteImport } from './routes/dashboard/(routes)/locations'
 import { Route as DashboardroutesCustomersRouteImport } from './routes/dashboard/(routes)/customers'
 import { Route as DashboardroutesChartsRouteImport } from './routes/dashboard/(routes)/charts'
 import { Route as DashboardroutesBrochureTypesRouteImport } from './routes/dashboard/(routes)/brochure-types'
@@ -60,6 +61,12 @@ const DashboardroutesSettingsRoute = DashboardroutesSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardroutesLocationsRoute =
+  DashboardroutesLocationsRouteImport.update({
+    id: '/(routes)/locations',
+    path: '/locations',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardroutesCustomersRoute =
   DashboardroutesCustomersRouteImport.update({
     id: '/(routes)/customers',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/charts': typeof DashboardroutesChartsRoute
   '/dashboard/customers': typeof DashboardroutesCustomersRoute
+  '/dashboard/locations': typeof DashboardroutesLocationsRoute
   '/dashboard/settings': typeof DashboardroutesSettingsRoute
   '/dashboard/users': typeof DashboardroutesUsersRoute
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/dashboard/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/charts': typeof DashboardroutesChartsRoute
   '/dashboard/customers': typeof DashboardroutesCustomersRoute
+  '/dashboard/locations': typeof DashboardroutesLocationsRoute
   '/dashboard/settings': typeof DashboardroutesSettingsRoute
   '/dashboard/users': typeof DashboardroutesUsersRoute
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/dashboard/(routes)/brochure-types': typeof DashboardroutesBrochureTypesRoute
   '/dashboard/(routes)/charts': typeof DashboardroutesChartsRoute
   '/dashboard/(routes)/customers': typeof DashboardroutesCustomersRoute
+  '/dashboard/(routes)/locations': typeof DashboardroutesLocationsRoute
   '/dashboard/(routes)/settings': typeof DashboardroutesSettingsRoute
   '/dashboard/(routes)/users': typeof DashboardroutesUsersRoute
   '/dashboard/(routes)/warehouses': typeof DashboardroutesWarehousesRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/dashboard/brochure-types'
     | '/dashboard/charts'
     | '/dashboard/customers'
+    | '/dashboard/locations'
     | '/dashboard/settings'
     | '/dashboard/users'
     | '/dashboard/warehouses'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/dashboard/brochure-types'
     | '/dashboard/charts'
     | '/dashboard/customers'
+    | '/dashboard/locations'
     | '/dashboard/settings'
     | '/dashboard/users'
     | '/dashboard/warehouses'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
     | '/dashboard/(routes)/brochure-types'
     | '/dashboard/(routes)/charts'
     | '/dashboard/(routes)/customers'
+    | '/dashboard/(routes)/locations'
     | '/dashboard/(routes)/settings'
     | '/dashboard/(routes)/users'
     | '/dashboard/(routes)/warehouses'
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/dashboard/settings'
       preLoaderRoute: typeof DashboardroutesSettingsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/(routes)/locations': {
+      id: '/dashboard/(routes)/locations'
+      path: '/locations'
+      fullPath: '/dashboard/locations'
+      preLoaderRoute: typeof DashboardroutesLocationsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/(routes)/customers': {
@@ -342,6 +362,7 @@ interface DashboardRouteRouteChildren {
   DashboardroutesBrochureTypesRoute: typeof DashboardroutesBrochureTypesRoute
   DashboardroutesChartsRoute: typeof DashboardroutesChartsRoute
   DashboardroutesCustomersRoute: typeof DashboardroutesCustomersRoute
+  DashboardroutesLocationsRoute: typeof DashboardroutesLocationsRoute
   DashboardroutesSettingsRoute: typeof DashboardroutesSettingsRoute
   DashboardroutesUsersRoute: typeof DashboardroutesUsersRoute
   DashboardroutesWarehousesRoute: typeof DashboardroutesWarehousesRoute
@@ -354,6 +375,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesBrochureTypesRoute: DashboardroutesBrochureTypesRoute,
   DashboardroutesChartsRoute: DashboardroutesChartsRoute,
   DashboardroutesCustomersRoute: DashboardroutesCustomersRoute,
+  DashboardroutesLocationsRoute: DashboardroutesLocationsRoute,
   DashboardroutesSettingsRoute: DashboardroutesSettingsRoute,
   DashboardroutesUsersRoute: DashboardroutesUsersRoute,
   DashboardroutesWarehousesRoute: DashboardroutesWarehousesRoute,

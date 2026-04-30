@@ -11,6 +11,7 @@ import SidebarGroup from '@repo/ui/components/base/sidebar-group';
 import {
   FileText,
   LayoutGrid,
+  MapPin,
   Package,
   Settings,
   Settings2,
@@ -34,6 +35,11 @@ type SidebarItem = SidebarGroupProps['items'][number] & {
 };
 
 export const navigationItems: SidebarItem[] = [
+  {
+    title: 'Locations',
+    url: '/dashboard/locations',
+    icon: MapPin,
+  },
   {
     title: 'Charts',
     url: '/dashboard/charts',

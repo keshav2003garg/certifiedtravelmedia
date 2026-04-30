@@ -47,6 +47,10 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Customers - CTM Grid Admin',
       description: 'Manage customer configuration',
     },
+    '/dashboard/locations': {
+      title: 'Locations - CTM Grid Admin',
+      description: 'Review synced location and sector configuration',
+    },
     '/dashboard/warehouses': {
       title: 'Warehouses - CTM Grid Admin',
       description: 'Manage warehouse configuration',

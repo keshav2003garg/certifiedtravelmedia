@@ -13,4 +13,10 @@ export enum ReactQueryKeys {
   GET_WAREHOUSES = 'GET::/admin/configs/warehouses',
   GET_WAREHOUSE = 'GET::/admin/configs/warehouses/:id',
   GET_WAREHOUSE_SECTORS = 'GET::/admin/configs/warehouses/sectors',
+
+  // Locations
+  GET_LOCATION_STATS = 'GET::/admin/locations/stats',
+  GET_LOCATIONS = 'GET::/admin/locations',
+  GET_LOCATIONS_BY_SECTOR = 'GET::/admin/locations/by-sector',
+  GET_LOCATION = 'GET::/admin/locations/:id',
 }

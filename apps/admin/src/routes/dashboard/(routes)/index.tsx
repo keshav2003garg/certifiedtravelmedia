@@ -4,7 +4,7 @@ import { getMetadata } from '@/utils/metadata.util';
 
 export const Route = createFileRoute('/dashboard/(routes)/')({
   beforeLoad: function () {
-    throw redirect({ to: '/dashboard/charts' });
+    throw redirect({ to: '/dashboard/locations' });
   },
   component: function () {
     return null;
