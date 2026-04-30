@@ -1,1 +1,3 @@
-export enum ReactQueryKeys {}
+export enum ReactQueryKeys {
+  GET_CHART = 'GET::/charts/:locationId',
+}

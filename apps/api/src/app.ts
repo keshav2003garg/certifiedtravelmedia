@@ -14,7 +14,7 @@ import configsRoute from '@/routes/admin/configs/configs.route';
 import inventoryRoute from '@/routes/admin/inventory/inventory.route';
 import locationsRoute from '@/routes/admin/locations/locations.route';
 import uploadsRoute from '@/routes/admin/uploads/uploads.route';
-import standChartRoute from '@/routes/public/chart/stand-chart.route';
+import publicChartsRoute from '@/routes/public/charts/charts.route';
 
 import type { AppBindings } from '@repo/server-utils/types/app.types';
 
@@ -47,7 +47,7 @@ app.route('/api/admin/charts', chartsRoute);
 app.route('/api/admin/inventory', inventoryRoute);
 app.route('/api/admin/locations', locationsRoute);
 app.route('/api/admin/uploads', uploadsRoute);
-app.route('/api/charts', standChartRoute);
+app.route('/api/charts', publicChartsRoute);
 
 app.notFound(notFound);
 app.onError(onError);

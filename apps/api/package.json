@@ -21,11 +21,13 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.15",
+    "pdfkit": "^0.18.0",
     "react": "^19.2.5"
   },
   "devDependencies": {
     "@repo/esconfig": "workspace:*",
     "@repo/tsconfig": "workspace:*",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^19.2.14",
     "tsx": "^4.21.0"
   }

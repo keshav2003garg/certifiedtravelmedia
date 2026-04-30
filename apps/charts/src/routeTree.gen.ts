@@ -9,27 +9,51 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LocationLocationIdRouteImport } from './routes/location.$locationId'
 
-export interface FileRoutesByFullPath {}
-export interface FileRoutesByTo {}
+const LocationLocationIdRoute = LocationLocationIdRouteImport.update({
+  id: '/location/$locationId',
+  path: '/location/$locationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+
+export interface FileRoutesByFullPath {
+  '/location/$locationId': typeof LocationLocationIdRoute
+}
+export interface FileRoutesByTo {
+  '/location/$locationId': typeof LocationLocationIdRoute
+}
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/location/$locationId': typeof LocationLocationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: never
+  fullPaths: '/location/$locationId'
   fileRoutesByTo: FileRoutesByTo
-  to: never
-  id: '__root__'
+  to: '/location/$locationId'
+  id: '__root__' | '/location/$locationId'
   fileRoutesById: FileRoutesById
 }
-export interface RootRouteChildren {}
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {}
+export interface RootRouteChildren {
+  LocationLocationIdRoute: typeof LocationLocationIdRoute
 }
 
-const rootRouteChildren: RootRouteChildren = {}
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/location/$locationId': {
+      id: '/location/$locationId'
+      path: '/location/$locationId'
+      fullPath: '/location/$locationId'
+      preLoaderRoute: typeof LocationLocationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+  }
+}
+
+const rootRouteChildren: RootRouteChildren = {
+  LocationLocationIdRoute: LocationLocationIdRoute,
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
