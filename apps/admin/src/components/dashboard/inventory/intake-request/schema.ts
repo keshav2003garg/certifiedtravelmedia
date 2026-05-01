@@ -1,6 +1,8 @@
 import { todayISODate } from '@repo/utils/date';
 import { z } from '@repo/utils/zod';
 
+const TRANSACTION_TYPES = ['Delivery', 'Start Count'] as const;
+
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, ' ');
 }
@@ -28,7 +30,7 @@ export const inventoryRequestFormSchema = z.object({
   customerName: z
     .string()
     .trim()
-    .max(255, 'Customer name must be 255 characters or less'),
+    .max(255, 'Acumatica customer must be 255 characters or less'),
   imageUrl: z
     .string()
     .trim()
@@ -47,6 +49,7 @@ export const inventoryRequestFormSchema = z.object({
     .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
       message: 'Units per box can have at most two decimal places',
     }),
+  transactionType: z.enum(TRANSACTION_TYPES),
   notes: z.string().trim().max(2000, 'Notes must be 2000 characters or less'),
 });
 
@@ -64,6 +67,12 @@ export function getDefaultInventoryRequestValues() {
     dateReceived: todayISODate(),
     boxes: 1,
     unitsPerBox: 1,
+    transactionType: 'Delivery',
     notes: '',
   } satisfies InventoryRequestFormData;
 }
+
+export const TRANSACTION_TYPE_OPTIONS = TRANSACTION_TYPES.map((value) => ({
+  value,
+  label: value,
+}));

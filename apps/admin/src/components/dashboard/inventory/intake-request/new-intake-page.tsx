@@ -49,19 +49,18 @@ function NewInventoryIntakePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-xl space-y-6">
       <div className="space-y-1">
         <h1 className="text-foreground text-2xl font-semibold tracking-normal">
-          New Inventory Intake
+          Intake Form
         </h1>
         <p className="text-muted-foreground max-w-2xl text-sm">
-          Submit received inventory for manager review without changing actual
-          stock.
+          Record a new brochure delivery or start count.
         </p>
       </div>
 
-      <Card className="shadow-none">
-        <CardContent className="space-y-5 p-5">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardContent className="space-y-5 p-0">
           <InventoryRequestForm
             ownerId={user.id}
             isSubmitting={createMutation.isPending}
