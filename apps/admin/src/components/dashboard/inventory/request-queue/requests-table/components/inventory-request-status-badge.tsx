@@ -24,7 +24,11 @@ function InventoryRequestStatusBadge({
   return (
     <Badge
       variant="outline"
-      className={cn('rounded-md font-medium', STATUS_CLASSES[status], className)}
+      className={cn(
+        'rounded-md font-medium',
+        STATUS_CLASSES[status],
+        className,
+      )}
     >
       {status}
     </Badge>

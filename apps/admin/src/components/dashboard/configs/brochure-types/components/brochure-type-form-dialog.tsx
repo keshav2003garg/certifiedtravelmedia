@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -23,6 +23,7 @@ import { useForm, zodResolver } from '@repo/ui/lib/form';
 import { Loader2 } from '@repo/ui/lib/icons';
 
 import { useBrochureTypes } from '@/hooks/useBrochureTypes';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 import {
   BROCHURE_TYPE_COL_SPAN_MAX,
@@ -79,11 +80,12 @@ function BrochureTypeFormDialog({
     defaultValues,
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-    }
-  }, [defaultValues, form, open]);
+  useResetFormOnActivation(
+    open,
+    form.reset,
+    defaultValues,
+    brochureType?.id ?? null,
+  );
 
   function onSubmit(data: BrochureTypeFormData) {
     if (!brochureType) {

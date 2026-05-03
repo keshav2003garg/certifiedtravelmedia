@@ -303,11 +303,11 @@ function InventoryRequestForm({
           name="customerName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Acumatica customer</FormLabel>
+              <FormLabel>Customer Name</FormLabel>
               <FormControl>
                 <Input
                   {...field}
-                  placeholder="Acumatica customer name"
+                  placeholder="Customer name"
                   autoComplete="off"
                   disabled={isSubmitting}
                 />

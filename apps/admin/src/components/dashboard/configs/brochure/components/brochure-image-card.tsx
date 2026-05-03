@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 
 import {
   AlertDialog,
@@ -38,6 +38,7 @@ import { cn } from '@repo/ui/lib/utils';
 import ImageUploadField from '@/components/common/image-upload-field';
 
 import { useBrochures } from '@/hooks/useBrochures';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 import {
   brochureImageFormSchema,
@@ -69,26 +70,29 @@ function BrochureImageCard({ brochureId, image }: BrochureImageCardProps) {
   const isImagePending =
     updateImageMutation.isPending || deleteImageMutation.isPending;
 
-  const imageForm = useForm<BrochureImageFormData>({
-    resolver: zodResolver(brochureImageFormSchema),
-    defaultValues: {
+  const imageFormValues = useMemo(
+    () => ({
       imageUrl: image.imageUrl ?? '',
       sortOrder: image.sortOrder,
-    },
+    }),
+    [image.imageUrl, image.sortOrder],
+  );
+
+  const imageForm = useForm<BrochureImageFormData>({
+    resolver: zodResolver(brochureImageFormSchema),
+    defaultValues: imageFormValues,
   });
   const packSizeForm = useForm<PackSizeFormData>({
     resolver: zodResolver(packSizeFormSchema),
     defaultValues: defaultPackSizeValues,
   });
 
-  useEffect(() => {
-    if (isEditingImage) {
-      imageForm.reset({
-        imageUrl: image.imageUrl ?? '',
-        sortOrder: image.sortOrder,
-      });
-    }
-  }, [image.imageUrl, image.sortOrder, imageForm, isEditingImage]);
+  useResetFormOnActivation(
+    isEditingImage,
+    imageForm.reset,
+    imageFormValues,
+    image.id,
+  );
 
   function handleUpdateImage(data: BrochureImageFormData) {
     const body: Partial<BrochureImageFormData> = {};

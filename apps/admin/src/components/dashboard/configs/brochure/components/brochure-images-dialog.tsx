@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
@@ -28,6 +28,7 @@ import { AlertCircle, FileImage, Loader2, Plus } from '@repo/ui/lib/icons';
 import ImageUploadField from '@/components/common/image-upload-field';
 
 import { useBrochures } from '@/hooks/useBrochures';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 import { brochureImageFormSchema, defaultBrochureImageValues } from '../schema';
 import BrochureImageCard from './brochure-image-card';
@@ -79,11 +80,12 @@ function BrochureImagesDialog({
     defaultValues: defaultBrochureImageValues,
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset(defaultBrochureImageValues);
-    }
-  }, [form, open]);
+  useResetFormOnActivation(
+    open,
+    form.reset,
+    defaultBrochureImageValues,
+    brochureId,
+  );
 
   function onSubmit(values: FormData) {
     if (!brochureId) return;

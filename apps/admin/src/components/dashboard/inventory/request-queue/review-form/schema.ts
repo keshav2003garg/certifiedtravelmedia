@@ -1,11 +1,10 @@
-import { todayISODate } from '@repo/utils/date';
 import { z } from '@repo/utils/zod';
 
-const TRANSACTION_TYPES = ['Delivery', 'Start Count'] as const;
+import { normalizeReviewText } from './utils';
 
-export function normalizeInventoryIntakeText(value: string) {
-  return value.trim().replace(/\s+/g, ' ');
-}
+import type { InventoryRequest } from '@/hooks/useInventoryRequests/types';
+
+const TRANSACTION_TYPES = ['Delivery', 'Start Count'] as const;
 
 function isValidOptionalUrl(value: string) {
   if (!value) return true;
@@ -26,7 +25,7 @@ const twoDecimalPositiveNumber = (field: string) =>
       message: `${field} can have at most two decimal places`,
     });
 
-export const inventoryIntakeFormSchema = z.object({
+export const inventoryRequestReviewFormSchema = z.object({
   warehouseId: z.uuid('Warehouse is required'),
   brochureTypeId: z.uuid('Brochure type is required'),
   customerId: z.union([z.uuid('Invalid Acumatica customer'), z.literal('')]),
@@ -39,38 +38,39 @@ export const inventoryIntakeFormSchema = z.object({
     .trim()
     .min(1, 'Brochure name is required')
     .max(255, 'Brochure name must be 255 characters or less')
-    .transform(normalizeInventoryIntakeText),
+    .transform(normalizeReviewText),
   imageUrl: z
     .string()
     .trim()
     .max(500, 'Image URL must be 500 characters or less')
     .refine(isValidOptionalUrl, 'Image URL must be a valid URL'),
+  dateReceived: z.iso.date('Date received must be a valid date'),
   boxes: twoDecimalPositiveNumber('Boxes'),
   unitsPerBox: twoDecimalPositiveNumber('Units per box'),
   transactionType: z.enum(TRANSACTION_TYPES),
-  transactionDate: z.iso.date('Transaction date must be a valid date'),
   notes: z.string().trim().max(2000, 'Notes must be 2000 characters or less'),
 });
 
-export type InventoryIntakeFormData = z.infer<typeof inventoryIntakeFormSchema>;
+export type InventoryRequestReviewFormData = z.infer<
+  typeof inventoryRequestReviewFormSchema
+>;
 
-export function getDefaultInventoryIntakeValues(): InventoryIntakeFormData {
+export function getInventoryRequestReviewValues(request: InventoryRequest) {
   return {
-    warehouseId: '',
-    brochureTypeId: '',
+    warehouseId: request.warehouseId ?? '',
+    brochureTypeId: request.brochureTypeId ?? '',
     customerId: '',
-    customerName: '',
-    brochureName: '',
-    imageUrl: '',
-    boxes: 1,
-    unitsPerBox: 225,
-    transactionType: 'Delivery',
-    transactionDate: todayISODate(),
-    notes: '',
-  };
+    customerName: request.customerName ?? '',
+    brochureName: request.brochureName ?? '',
+    imageUrl: request.imageUrl ?? '',
+    dateReceived: request.dateReceived,
+    boxes: request.boxes,
+    unitsPerBox: request.unitsPerBox,
+    transactionType: request.transactionType,
+    notes: request.notes ?? '',
+  } satisfies InventoryRequestReviewFormData;
 }
 
-export const TRANSACTION_TYPE_OPTIONS = TRANSACTION_TYPES.map((value) => ({
-  value,
-  label: value,
-}));
+export const REVIEW_TRANSACTION_TYPE_OPTIONS = TRANSACTION_TYPES.map(
+  (value) => ({ value, label: value }),
+);

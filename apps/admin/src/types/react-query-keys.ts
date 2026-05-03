@@ -26,5 +26,6 @@ export enum ReactQueryKeys {
 
   // Inventory
   GET_INVENTORY_REQUESTS = 'GET::/admin/inventory/requests',
+  GET_INVENTORY_REQUEST = 'GET::/admin/inventory/requests/:id',
   GET_INVENTORY_REQUEST_STATS = 'GET::/admin/inventory/requests/stats',
 }

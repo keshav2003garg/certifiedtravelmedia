@@ -198,6 +198,11 @@ export function useStorageUpload({
     },
   });
 
+  const upload = uploadMutation.mutateAsync;
+  const deleteObject = deleteMutation.mutateAsync;
+  const resetUpload = uploadMutation.reset;
+  const resetDelete = deleteMutation.reset;
+
   const createSignedDownloadUrl = useCallback(
     async (path: string, expiresIn?: number) => {
       const response = await api<CreateSignedDownloadUrlRequest['response']>(
@@ -214,14 +219,14 @@ export function useStorageUpload({
 
   const reset = useCallback(() => {
     setError(null);
-    uploadMutation.reset();
-    deleteMutation.reset();
-  }, [uploadMutation, deleteMutation]);
+    resetUpload();
+    resetDelete();
+  }, [resetDelete, resetUpload]);
 
   return {
     config,
-    upload: uploadMutation.mutateAsync,
-    deleteObject: deleteMutation.mutateAsync,
+    upload,
+    deleteObject,
     createSignedDownloadUrl,
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,

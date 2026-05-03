@@ -59,7 +59,9 @@ const orderLabels: Record<SortOrder, string> = {
 
 const STATUS_ALL = '__all__';
 
-function InventoryRequestsFilterBar({ filters }: InventoryRequestsFilterBarProps) {
+function InventoryRequestsFilterBar({
+  filters,
+}: InventoryRequestsFilterBarProps) {
   const {
     search,
     searchInputValue,

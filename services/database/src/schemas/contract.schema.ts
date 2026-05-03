@@ -36,7 +36,9 @@ export const contracts = pgTable(
       .notNull()
       .default('00001'),
 
-    customerUuid: uuid('customer_uuid').references(() => customers.id),
+    customerUuid: uuid('customer_uuid').references(() => customers.id, {
+      onDelete: 'set null',
+    }),
 
     tier: contractTierEnum('tier').notNull().default('Normal Placement'),
     status: varchar('status', { length: 50 }).notNull().default('Open'),

@@ -37,9 +37,13 @@ export const brochures = pgTable(
       .notNull()
       .references(() => brochureTypes.id),
 
-    customerId: uuid('customer_id').references(() => customers.id),
+    customerId: uuid('customer_id').references(() => customers.id, {
+      onDelete: 'set null',
+    }),
 
-    createdBy: text('created_by').references(() => userSchema.id),
+    createdBy: text('created_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
 
     createdAt: timestamp('created_at', { mode: 'string' })
       .notNull()
@@ -62,13 +66,15 @@ export const brochureImages = pgTable(
 
     brochureId: uuid('brochure_id')
       .notNull()
-      .references(() => brochures.id),
+      .references(() => brochures.id, { onDelete: 'cascade' }),
 
     imageUrl: varchar('image_url', { length: 500 }),
 
     sortOrder: integer('sort_order').notNull().default(0),
 
-    uploadedBy: text('uploaded_by').references(() => userSchema.id),
+    uploadedBy: text('uploaded_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
 
     createdAt: timestamp('created_at', { mode: 'string' })
       .notNull()
@@ -87,7 +93,7 @@ export const brochureImagePackSizes = pgTable(
 
     brochureImageId: uuid('brochure_image_id')
       .notNull()
-      .references(() => brochureImages.id),
+      .references(() => brochureImages.id, { onDelete: 'cascade' }),
 
     unitsPerBox: numeric('units_per_box', {
       precision: 12,
@@ -95,7 +101,9 @@ export const brochureImagePackSizes = pgTable(
       mode: 'number',
     }).notNull(),
 
-    createdBy: text('created_by').references(() => userSchema.id),
+    createdBy: text('created_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
 
     createdAt: timestamp('created_at', { mode: 'string' })
       .notNull()

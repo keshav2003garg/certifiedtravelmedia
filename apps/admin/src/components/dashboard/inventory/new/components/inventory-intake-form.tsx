@@ -1,13 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
-import { Badge } from '@repo/ui/components/base/badge';
 import { Button } from '@repo/ui/components/base/button';
-import { Calendar } from '@repo/ui/components/base/calendar';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -15,56 +14,69 @@ import {
 } from '@repo/ui/components/base/form';
 import { NumericInput } from '@repo/ui/components/base/numeric-input';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@repo/ui/components/base/popover';
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@repo/ui/components/base/select';
-import { Skeleton } from '@repo/ui/components/base/skeleton';
+import { Textarea } from '@repo/ui/components/base/textarea';
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import {
-  CalendarIcon,
-  Image as ImageIcon,
+  Building2,
   Loader2,
-  Plus,
   RotateCcw,
   Save,
   Tags,
+  UserRound,
   Warehouse,
 } from '@repo/ui/lib/icons';
-import { cn } from '@repo/ui/lib/utils';
-import { formatFullDate, parseISODate, toISODate } from '@repo/utils/date';
-import { formatDecimal } from '@repo/utils/number';
 
 import SearchableSelect from '@/components/common/searchable-select';
-import BrochureFormDialog from '@/components/dashboard/configs/brochure/components/brochure-form-dialog';
+import BrochureImageRequestField from '@/components/dashboard/inventory/intake-request/components/brochure-image-request-field';
+import DateReceivedField from '@/components/dashboard/inventory/intake-request/components/date-received-field';
+import ReviewCreatableSearchField from '@/components/dashboard/inventory/request-queue/review-form/components/review-creatable-search-field';
 
 import { brochureQueryKeys, useBrochures } from '@/hooks/useBrochures';
+import { useBrochureTypes } from '@/hooks/useBrochureTypes';
+import { useCustomers } from '@/hooks/useCustomers';
 import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
 import { useWarehouses, warehouseQueryKeys } from '@/hooks/useWarehouses';
+
+import { ReactQueryKeys } from '@/types/react-query-keys';
 
 import {
   getDefaultInventoryIntakeValues,
   inventoryIntakeFormSchema,
+  normalizeInventoryIntakeText,
   TRANSACTION_TYPE_OPTIONS,
 } from '../schema';
-import BrochureImageQuickAddDialog from './brochure-image-quick-add-dialog';
-import PackSizeQuickAddDialog from './pack-size-quick-add-dialog';
 
 import type { SearchableSelectOption } from '@/components/common/searchable-select';
 import type {
-  BrochureDetail,
+  Brochure,
   ListBrochuresRequest,
 } from '@/hooks/useBrochures/types';
+import type { ListBrochureTypesRequest } from '@/hooks/useBrochureTypes/types';
+import type { ListCustomersRequest } from '@/hooks/useCustomers/types';
 import type { CreateInventoryIntakePayload } from '@/hooks/useInventoryItems/types';
 import type { ListWarehousesRequest } from '@/hooks/useWarehouses/types';
 import type { InventoryIntakeFormData } from '../schema';
+
+type WarehouseOptionData = ListWarehousesRequest['response']['data'];
+type BrochureTypeOptionData = ListBrochureTypesRequest['response']['data'];
+type CustomerOptionData = ListCustomersRequest['response']['data'];
+type BrochureOptionData = ListBrochuresRequest['response']['data'];
+
+interface IntakeCustomerOption extends SearchableSelectOption {
+  acumaticaId: string;
+}
+
+interface IntakeBrochureOption extends SearchableSelectOption {
+  brochureTypeId: string;
+  customerId: string | null;
+  customerName: string | null;
+}
 
 interface InventoryIntakeFormProps {
   ownerId: string;
@@ -73,74 +85,101 @@ interface InventoryIntakeFormProps {
     values: CreateInventoryIntakePayload,
     onSuccess: () => void,
   ) => void;
+  initialValues?: Partial<InventoryIntakeFormData>;
+  submitLabel?: string;
+  headerSlot?: ReactNode;
+  extraFooterActions?: ReactNode;
+  resetOnSuccess?: boolean;
+  seedBrochureOption?: SearchableSelectOption | null;
+}
+
+function getBrochureOption(brochure: Brochure): IntakeBrochureOption {
+  return {
+    value: brochure.id,
+    label: brochure.name,
+    description:
+      brochure.brochureTypeName +
+      (brochure.customerName ? ` · ${brochure.customerName}` : ''),
+    brochureTypeId: brochure.brochureTypeId,
+    customerId: brochure.customerId,
+    customerName: brochure.customerName,
+  };
 }
 
 function InventoryIntakeForm({
   ownerId,
   isSubmitting,
   onSubmit,
+  initialValues,
+  submitLabel = 'Save intake',
+  headerSlot,
+  extraFooterActions,
+  resetOnSuccess = true,
+  seedBrochureOption,
 }: InventoryIntakeFormProps) {
   const { brochureQueryOptions, getBrochures } = useBrochures();
+  const { getBrochureTypes } = useBrochureTypes();
+  const { getCustomers } = useCustomers();
   const { getWarehouses } = useWarehouses();
-  const defaultValues = useMemo(() => getDefaultInventoryIntakeValues(), []);
+
+  const defaultValues = useMemo(
+    () => ({ ...getDefaultInventoryIntakeValues(), ...initialValues }),
+    [initialValues],
+  );
 
   const form = useForm<InventoryIntakeFormData>({
     resolver: zodResolver(inventoryIntakeFormSchema),
     defaultValues,
   });
 
-  const brochureId = form.watch('brochureId');
-  const brochureImageId = form.watch('brochureImageId');
+  const brochureTypeId = form.watch('brochureTypeId');
+  const customerId = form.watch('customerId');
 
-  const [createBrochureOpen, setCreateBrochureOpen] = useState(false);
-  const [addImageOpen, setAddImageOpen] = useState(false);
-  const [addPackSizeOpen, setAddPackSizeOpen] = useState(false);
-  const [brochureLabelCache, setBrochureLabelCache] = useState<
-    SearchableSelectOption[]
+  const [selectedBrochureId, setSelectedBrochureId] = useState('');
+  const [brochureOptionCache, setBrochureOptionCache] = useState<
+    IntakeBrochureOption[]
+  >([]);
+  const [customerOptionCache, setCustomerOptionCache] = useState<
+    IntakeCustomerOption[]
   >([]);
 
-  const brochureDetailQuery = useQuery({
-    ...brochureQueryOptions(brochureId),
-    enabled: brochureId.length > 0,
-  });
-  const brochureDetail = brochureDetailQuery.data?.brochure;
+  const addBrochureOption = useCallback((option: IntakeBrochureOption) => {
+    setBrochureOptionCache((prev) => {
+      if (prev.some((cached) => cached.value === option.value)) return prev;
+      return [...prev, option];
+    });
+  }, []);
 
-  const selectedImage = useMemo(
-    () =>
-      brochureDetail?.images.find((img) => img.id === brochureImageId) ?? null,
-    [brochureDetail, brochureImageId],
-  );
+  const addCustomerOption = useCallback((option: IntakeCustomerOption) => {
+    setCustomerOptionCache((prev) => {
+      if (prev.some((cached) => cached.value === option.value)) return prev;
+      return [...prev, option];
+    });
+  }, []);
 
-  const selectBrochureOptions = useCallback(
-    (
-      data: ListBrochuresRequest['response']['data'] | undefined,
-    ): SearchableSelectOption[] =>
-      (data?.brochures ?? []).map((brochure) => ({
-        value: brochure.id,
-        label: brochure.name,
-        description:
-          brochure.brochureTypeName +
-          (brochure.customerName ? ` · ${brochure.customerName}` : ''),
-      })),
-    [],
-  );
+  const seededBrochureOption = useMemo<IntakeBrochureOption[]>(() => {
+    if (!seedBrochureOption) return [];
 
-  const {
-    options: brochureOptions,
-    setSearch: setBrochureSearch,
-    isSearching: isSearchingBrochures,
-  } = useServerSearchSelectOptions({
-    queryKey: (params) => brochureQueryKeys.list(params),
-    queryFn: getBrochures,
-    selectOptions: selectBrochureOptions,
-    baseOptions: brochureLabelCache,
-    buildParams: ({ page, limit, search }) => ({ page, limit, search }),
-  });
+    return [
+      {
+        ...seedBrochureOption,
+        brochureTypeId: initialValues?.brochureTypeId ?? '',
+        customerId: initialValues?.customerId || null,
+        customerName: initialValues?.customerName || null,
+      },
+    ];
+  }, [initialValues, seedBrochureOption]);
+
+  const brochureBaseOptions = useMemo(() => {
+    const options = [...seededBrochureOption, ...brochureOptionCache];
+    return options.filter(
+      (option, index, list) =>
+        list.findIndex((item) => item.value === option.value) === index,
+    );
+  }, [brochureOptionCache, seededBrochureOption]);
 
   const selectWarehouseOptions = useCallback(
-    (
-      data: ListWarehousesRequest['response']['data'] | undefined,
-    ): SearchableSelectOption[] =>
+    (data: WarehouseOptionData | undefined): SearchableSelectOption[] =>
       (data?.warehouses ?? []).map((warehouse) => ({
         value: warehouse.id,
         label: warehouse.name,
@@ -149,314 +188,389 @@ function InventoryIntakeForm({
     [],
   );
 
+  const selectBrochureTypeOptions = useCallback(
+    (data: BrochureTypeOptionData | undefined): SearchableSelectOption[] =>
+      (data?.brochureTypes ?? []).map((brochureType) => ({
+        value: brochureType.id,
+        label: brochureType.name,
+        description: `${brochureType.colSpan} columns`,
+      })),
+    [],
+  );
+
+  const selectCustomerOptions = useCallback(
+    (data: CustomerOptionData | undefined): IntakeCustomerOption[] =>
+      (data?.customers ?? []).map((customer) => ({
+        value: customer.id,
+        label: customer.name,
+        description: customer.acumaticaId,
+        acumaticaId: customer.acumaticaId,
+      })),
+    [],
+  );
+
+  const selectBrochureOptions = useCallback(
+    (data: BrochureOptionData | undefined): IntakeBrochureOption[] =>
+      (data?.brochures ?? []).map(getBrochureOption),
+    [],
+  );
+
+  const buildSearchParams = useCallback(
+    ({
+      page,
+      limit,
+      search,
+    }: {
+      page: number;
+      limit: number;
+      search?: string;
+    }) => ({ page, limit, search }),
+    [],
+  );
+
   const {
     options: warehouseOptions,
     setSearch: setWarehouseSearch,
-    isSearching: isSearchingWarehouses,
+    isLoading: isLoadingWarehouses,
   } = useServerSearchSelectOptions({
     queryKey: warehouseQueryKeys.list,
     queryFn: getWarehouses,
     selectOptions: selectWarehouseOptions,
-    buildParams: ({ page, limit, search }) => ({ page, limit, search }),
+    buildParams: buildSearchParams,
   });
 
-  // When brochure changes, reset image + pack size selections.
-  useEffect(() => {
-    form.setValue('brochureImageId', '');
-    form.setValue('brochureImagePackSizeId', '');
-  }, [brochureId, form]);
-
-  // When image changes, reset pack size selection.
-  useEffect(() => {
-    form.setValue('brochureImagePackSizeId', '');
-  }, [brochureImageId, form]);
-
-  const handleBrochureCreated = useCallback(
-    (brochure: BrochureDetail) => {
-      setBrochureLabelCache((prev) => {
-        if (prev.some((option) => option.value === brochure.id)) return prev;
-        return [
-          ...prev,
-          {
-            value: brochure.id,
-            label: brochure.name,
-            description:
-              brochure.brochureTypeName +
-              (brochure.customerName ? ` · ${brochure.customerName}` : ''),
-          },
-        ];
-      });
-      form.setValue('brochureId', brochure.id, { shouldValidate: true });
-    },
-    [form, setBrochureLabelCache],
+  const brochureTypeQueryKey = useCallback(
+    (params: ListBrochureTypesRequest['payload']) =>
+      [
+        ReactQueryKeys.GET_BROCHURE_TYPES,
+        'manager-intake-form',
+        params,
+      ] as const,
+    [],
   );
 
-  const handleImageCreated = useCallback(
+  const {
+    options: brochureTypeOptions,
+    setSearch: setBrochureTypeSearch,
+    isLoading: isLoadingBrochureTypes,
+  } = useServerSearchSelectOptions({
+    queryKey: brochureTypeQueryKey,
+    queryFn: getBrochureTypes,
+    selectOptions: selectBrochureTypeOptions,
+    buildParams: buildSearchParams,
+  });
+
+  const customerQueryKey = useCallback(
+    (params: ListCustomersRequest['payload']) =>
+      [ReactQueryKeys.GET_CUSTOMERS, 'manager-intake-form', params] as const,
+    [],
+  );
+
+  const {
+    options: customerOptions,
+    search: customerSearch,
+    setSearch: setCustomerSearch,
+    isSearching: isSearchingCustomers,
+  } = useServerSearchSelectOptions({
+    queryKey: customerQueryKey,
+    queryFn: getCustomers,
+    selectOptions: selectCustomerOptions,
+    buildParams: buildSearchParams,
+    baseOptions: customerOptionCache,
+  });
+
+  const buildBrochureSearchParams = useCallback(
     ({
-      imageId,
-      packSizeId,
+      page,
+      limit,
+      search,
     }: {
-      brochure: BrochureDetail;
-      imageId: string;
-      packSizeId: string;
-    }) => {
-      form.setValue('brochureImageId', imageId, { shouldValidate: true });
-      form.setValue('brochureImagePackSizeId', packSizeId, {
+      page: number;
+      limit: number;
+      search?: string;
+    }) => ({
+      page,
+      limit,
+      search,
+      brochureTypeId: brochureTypeId || undefined,
+    }),
+    [brochureTypeId],
+  );
+
+  const {
+    options: brochureOptions,
+    search: brochureSearch,
+    setSearch: setBrochureSearch,
+    isSearching: isSearchingBrochures,
+  } = useServerSearchSelectOptions({
+    queryKey: (params) => brochureQueryKeys.list(params),
+    queryFn: getBrochures,
+    selectOptions: selectBrochureOptions,
+    buildParams: buildBrochureSearchParams,
+    baseOptions: brochureBaseOptions,
+  });
+
+  const brochureDetailQuery = useQuery({
+    ...brochureQueryOptions(selectedBrochureId),
+    enabled: selectedBrochureId.length > 0,
+  });
+  const selectedBrochureImages =
+    brochureDetailQuery.data?.brochure.images ?? [];
+
+  const handleCustomerSelect = useCallback(
+    (option: SearchableSelectOption) => {
+      const customerOption = option as IntakeCustomerOption;
+
+      addCustomerOption(customerOption);
+      form.setValue('customerId', customerOption.value, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue('customerName', customerOption.label, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [addCustomerOption, form],
+  );
+
+  const handleCustomerUseText = useCallback(
+    (name: string) => {
+      form.setValue('customerId', '', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue('customerName', normalizeInventoryIntakeText(name), {
+        shouldDirty: true,
         shouldValidate: true,
       });
     },
     [form],
   );
 
-  const handlePackSizeCreated = useCallback(
-    (packSizeId: string) => {
-      form.setValue('brochureImagePackSizeId', packSizeId, {
+  const handleBrochureSelect = useCallback(
+    (option: SearchableSelectOption) => {
+      const brochureOption = option as IntakeBrochureOption;
+
+      addBrochureOption(brochureOption);
+      setSelectedBrochureId(brochureOption.value);
+      form.setValue('brochureName', brochureOption.label, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue('brochureTypeId', brochureOption.brochureTypeId, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue('customerId', brochureOption.customerId ?? '', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue('customerName', brochureOption.customerName ?? '', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue('imageUrl', '', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [addBrochureOption, form],
+  );
+
+  const handleBrochureUseText = useCallback(
+    (name: string) => {
+      setSelectedBrochureId('');
+      form.setValue('brochureName', normalizeInventoryIntakeText(name), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue('imageUrl', '', {
+        shouldDirty: true,
         shouldValidate: true,
       });
     },
     [form],
   );
 
-  function resetForm() {
-    form.reset(getDefaultInventoryIntakeValues());
-  }
+  const handleBrochureTypeChange = useCallback(
+    (value: string, onChange: (value: string) => void) => {
+      onChange(value);
+      setSelectedBrochureId('');
+      form.setValue('imageUrl', '', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [form],
+  );
 
-  function handleSubmit(values: InventoryIntakeFormData) {
-    onSubmit(
-      {
-        warehouseId: values.warehouseId,
-        brochureImagePackSizeId: values.brochureImagePackSizeId,
-        boxes: values.boxes,
-        transactionType: values.transactionType,
-        transactionDate: values.transactionDate,
-      },
-      resetForm,
-    );
-  }
+  const resetForm = useCallback(() => {
+    form.reset({ ...getDefaultInventoryIntakeValues(), ...initialValues });
+    setSelectedBrochureId('');
+  }, [form, initialValues]);
 
-  const noImages = brochureDetail && brochureDetail.images.length === 0;
-  const noPackSizes = selectedImage && selectedImage.packSizes.length === 0;
+  const handleSubmit = useCallback(
+    (values: InventoryIntakeFormData) => {
+      onSubmit(
+        {
+          warehouseId: values.warehouseId,
+          brochureTypeId: values.brochureTypeId,
+          customerId: values.customerId || undefined,
+          customerName: values.customerName || undefined,
+          brochureName: values.brochureName,
+          imageUrl: values.imageUrl || undefined,
+          boxes: values.boxes,
+          unitsPerBox: values.unitsPerBox,
+          transactionType: values.transactionType,
+          transactionDate: values.transactionDate,
+          notes: values.notes || undefined,
+        },
+        () => {
+          if (resetOnSuccess) resetForm();
+        },
+      );
+    },
+    [onSubmit, resetForm, resetOnSuccess],
+  );
+
+  const isLoadingOptions = isLoadingWarehouses || isLoadingBrochureTypes;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Section 1: Brochure */}
+        {headerSlot}
+
         <section className="space-y-4">
-          <header className="flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-base font-semibold">Brochure</h2>
-              <p className="text-muted-foreground text-sm">
-                Select an existing brochure or create a new one.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateBrochureOpen(true)}
-              disabled={isSubmitting}
-            >
-              <Plus className="size-4" />
-              New brochure
-            </Button>
+          <header>
+            <h2 className="text-base font-semibold">Brochure</h2>
+            <p className="text-muted-foreground text-sm">
+              Select existing records when they match, or keep the entered text
+              to create them during intake.
+            </p>
           </header>
 
           <FormField
             control={form.control}
-            name="brochureId"
+            name="brochureTypeId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="sr-only">Brochure</FormLabel>
+                <FormLabel>Brochure type</FormLabel>
                 <FormControl>
                   <SearchableSelect
-                    options={brochureOptions}
+                    options={brochureTypeOptions}
                     value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Select brochure"
-                    searchPlaceholder="Search brochures"
-                    emptyMessage="No brochures found"
-                    isLoading={isSearchingBrochures}
+                    onChange={(value) =>
+                      handleBrochureTypeChange(value, field.onChange)
+                    }
+                    placeholder="Select brochure type"
+                    searchPlaceholder="Search brochure types"
+                    emptyMessage="No brochure types found"
+                    isLoading={isLoadingBrochureTypes}
                     disabled={isSubmitting}
                     icon={<Tags className="size-4 shrink-0" />}
-                    onSearchChange={setBrochureSearch}
+                    onSearchChange={setBrochureTypeSearch}
                   />
                 </FormControl>
+                <FormDescription>
+                  Category used when matching or creating the brochure.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </section>
 
-        {/* Section 2: Image + Pack Size */}
-        {brochureId ? (
-          <section className="space-y-4 border-t pt-6">
-            <header className="flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-base font-semibold">
-                  Image &amp; pack size
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Choose an image of this brochure and the pack size you are
-                  receiving.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAddImageOpen(true)}
-                disabled={isSubmitting || brochureDetailQuery.isLoading}
-              >
-                <Plus className="size-4" />
-                Upload image
-              </Button>
-            </header>
+          <FormField
+            control={form.control}
+            name="customerName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Acumatica customer</FormLabel>
+                <FormControl>
+                  <ReviewCreatableSearchField
+                    value={field.value}
+                    selectedValue={customerId}
+                    options={customerOptions}
+                    search={customerSearch}
+                    onSearchChange={setCustomerSearch}
+                    onSelect={handleCustomerSelect}
+                    onUseText={handleCustomerUseText}
+                    isLoading={isSearchingCustomers}
+                    disabled={isSubmitting}
+                    placeholder="Select or keep customer"
+                    searchPlaceholder="Search Acumatica customers"
+                    emptyMessage="No customers found"
+                    icon={<UserRound className="size-4 shrink-0" />}
+                    getTextLabel={(value) => `Keep "${value}" as customer`}
+                    textDescription="Stores the entered customer text if no record matches"
+                  />
+                </FormControl>
+                <FormDescription>
+                  Existing Acumatica customers are linked by ID; typed names are
+                  kept for brochure matching.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            {brochureDetailQuery.isLoading ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-36 w-full" />
-                <Skeleton className="h-36 w-full" />
-                <Skeleton className="h-36 w-full" />
-              </div>
-            ) : noImages ? (
-              <div className="rounded-md border border-dashed p-6 text-center">
-                <ImageIcon className="text-muted-foreground mx-auto size-8" />
-                <p className="text-foreground mt-2 text-sm font-medium">
-                  No images yet
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  Upload the first image to assign a pack size.
-                </p>
-              </div>
-            ) : (
-              <FormField
-                control={form.control}
-                name="brochureImageId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="sr-only">Image</FormLabel>
-                    <FormControl>
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {brochureDetail?.images.map((image) => {
-                          const isActive = field.value === image.id;
-                          return (
-                            <button
-                              key={image.id}
-                              type="button"
-                              onClick={() => field.onChange(image.id)}
-                              disabled={isSubmitting}
-                              className={cn(
-                                'group bg-card relative flex flex-col overflow-hidden rounded-md border text-left transition-colors',
-                                isActive
-                                  ? 'border-primary ring-primary/30 ring-2'
-                                  : 'border-border hover:border-primary/60',
-                              )}
-                            >
-                              <div className="bg-muted relative aspect-4/3 w-full overflow-hidden">
-                                {image.imageUrl ? (
-                                  <img
-                                    src={image.imageUrl}
-                                    alt=""
-                                    className="size-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="text-muted-foreground flex size-full items-center justify-center">
-                                    <ImageIcon className="size-8" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-between gap-2 p-2">
-                                <span className="text-xs font-medium">
-                                  Sort #{image.sortOrder}
-                                </span>
-                                <Badge variant="secondary">
-                                  {image.packSizes.length} pack
-                                  {image.packSizes.length === 1 ? '' : 's'}
-                                </Badge>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <FormField
+            control={form.control}
+            name="brochureName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Brochure name</FormLabel>
+                <FormControl>
+                  <ReviewCreatableSearchField
+                    value={field.value}
+                    selectedValue={selectedBrochureId}
+                    options={brochureOptions}
+                    search={brochureSearch}
+                    onSearchChange={setBrochureSearch}
+                    onSelect={handleBrochureSelect}
+                    onUseText={handleBrochureUseText}
+                    isLoading={isSearchingBrochures}
+                    disabled={isSubmitting}
+                    placeholder="Select or keep brochure"
+                    searchPlaceholder="Search brochures or type a name"
+                    emptyMessage="No brochures found"
+                    icon={<Building2 className="size-4 shrink-0" />}
+                    getTextLabel={(value) => `Keep "${value}" as brochure`}
+                    textDescription="Creates the brochure if no exact match exists"
+                  />
+                </FormControl>
+                <FormDescription>
+                  The selected or typed brochure is matched with type and
+                  customer before inventory is updated.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="imageUrl"
+            render={({ field, fieldState }) => (
+              <BrochureImageRequestField
+                ownerId={ownerId}
+                brochureId={selectedBrochureId}
+                images={selectedBrochureImages}
+                isLoading={brochureDetailQuery.isLoading}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                disabled={isSubmitting}
+                invalid={Boolean(fieldState.error)}
               />
             )}
+          />
+        </section>
 
-            {brochureImageId ? (
-              <div className="space-y-3 rounded-md border p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium">Pack size</p>
-                    <p className="text-muted-foreground text-xs">
-                      Pack size for the selected image.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAddPackSizeOpen(true)}
-                    disabled={isSubmitting}
-                  >
-                    <Plus className="size-4" />
-                    New pack size
-                  </Button>
-                </div>
-
-                {noPackSizes ? (
-                  <p className="text-muted-foreground text-sm">
-                    This image has no pack sizes yet — create one.
-                  </p>
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="brochureImagePackSizeId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="sr-only">Pack size</FormLabel>
-                        <FormControl>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedImage?.packSizes.map((packSize) => {
-                              const isActive = field.value === packSize.id;
-                              return (
-                                <button
-                                  key={packSize.id}
-                                  type="button"
-                                  onClick={() => field.onChange(packSize.id)}
-                                  disabled={isSubmitting}
-                                  className={cn(
-                                    'rounded-full border px-3 py-1.5 text-sm transition-colors',
-                                    isActive
-                                      ? 'border-primary bg-primary text-primary-foreground'
-                                      : 'border-border hover:border-primary/60',
-                                  )}
-                                >
-                                  {formatDecimal(Number(packSize.unitsPerBox))}{' '}
-                                  per box
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
-        {/* Section 3: Warehouse */}
         <section className="space-y-4 border-t pt-6">
           <header>
             <h2 className="text-base font-semibold">Warehouse</h2>
             <p className="text-muted-foreground text-sm">
-              Where this stock is being received.
+              Choose where this stock balance will be created or increased.
             </p>
           </header>
 
@@ -465,7 +579,7 @@ function InventoryIntakeForm({
             name="warehouseId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="sr-only">Warehouse</FormLabel>
+                <FormLabel>Warehouse</FormLabel>
                 <FormControl>
                   <SearchableSelect
                     options={warehouseOptions}
@@ -474,24 +588,26 @@ function InventoryIntakeForm({
                     placeholder="Select warehouse"
                     searchPlaceholder="Search warehouses"
                     emptyMessage="No active warehouses found"
-                    isLoading={isSearchingWarehouses}
+                    isLoading={isLoadingWarehouses}
                     disabled={isSubmitting}
                     icon={<Warehouse className="size-4 shrink-0" />}
                     onSearchChange={setWarehouseSearch}
                   />
                 </FormControl>
+                <FormDescription>
+                  Final warehouse for this inventory item.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </section>
 
-        {/* Section 4: Transaction details */}
         <section className="space-y-4 border-t pt-6">
           <header>
             <h2 className="text-base font-semibold">Transaction</h2>
             <p className="text-muted-foreground text-sm">
-              How and when this stock is being added.
+              Delivery adds to the current balance; Start Count replaces it.
             </p>
           </header>
 
@@ -501,7 +617,7 @@ function InventoryIntakeForm({
               name="transactionType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Transaction type</FormLabel>
+                  <FormLabel>Type</FormLabel>
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
@@ -509,7 +625,7 @@ function InventoryIntakeForm({
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select transaction" />
+                        <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -520,6 +636,9 @@ function InventoryIntakeForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    Only intake transaction types are available here.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -528,69 +647,93 @@ function InventoryIntakeForm({
             <FormField
               control={form.control}
               name="transactionDate"
-              render={({ field }) => {
-                const selectedDate = parseISODate(field.value);
-                return (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Transaction date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled={isSubmitting}
-                            className={cn(
-                              'w-full justify-between font-normal',
-                              !selectedDate && 'text-muted-foreground',
-                            )}
-                          >
-                            {selectedDate
-                              ? formatFullDate(selectedDate)
-                              : 'Pick a date'}
-                            <CalendarIcon className="size-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-0" align="start">
-                        <Calendar
-                          className="w-full"
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={(date) => {
-                            field.onChange(date ? toISODate(date) : '');
-                          }}
-                          captionLayout="dropdown"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
+              render={({ field }) => (
+                <DateReceivedField
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isSubmitting}
+                  label="Transaction date"
+                />
+              )}
+            />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="boxes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Boxes</FormLabel>
+                  <FormControl>
+                    <NumericInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      min={0.01}
+                      step={0.01}
+                      decimals={2}
+                      placeholder="1"
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Number of boxes for this direct intake transaction.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="unitsPerBox"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Units per box</FormLabel>
+                  <FormControl>
+                    <NumericInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      min={0.01}
+                      step={0.01}
+                      decimals={2}
+                      placeholder="225"
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Pack size that will be matched or created for the selected
+                    brochure image.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
 
           <FormField
             control={form.control}
-            name="boxes"
+            name="notes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Boxes</FormLabel>
+                <FormLabel>Notes</FormLabel>
                 <FormControl>
-                  <NumericInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    ref={field.ref}
-                    min={0.01}
-                    step={0.01}
-                    decimals={2}
-                    placeholder="1"
+                  <Textarea
+                    {...field}
+                    placeholder="Shipment, condition, or count notes"
+                    className="min-h-24 resize-y"
                     disabled={isSubmitting}
                   />
                 </FormControl>
+                <FormDescription>
+                  Saved on the inventory transaction.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -598,6 +741,7 @@ function InventoryIntakeForm({
         </section>
 
         <div className="flex flex-col-reverse gap-2 border-t pt-6 sm:flex-row sm:justify-end">
+          {extraFooterActions}
           <Button
             type="button"
             variant="outline"
@@ -607,43 +751,16 @@ function InventoryIntakeForm({
             <RotateCcw className="size-4" />
             Reset
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || isLoadingOptions}>
             {isSubmitting ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
               <Save className="size-4" />
             )}
-            Save intake
+            {submitLabel}
           </Button>
         </div>
       </form>
-
-      <BrochureFormDialog
-        open={createBrochureOpen}
-        onOpenChange={setCreateBrochureOpen}
-        brochure={null}
-        onCreated={handleBrochureCreated}
-      />
-
-      {brochureId ? (
-        <BrochureImageQuickAddDialog
-          open={addImageOpen}
-          onOpenChange={setAddImageOpen}
-          brochureId={brochureId}
-          ownerId={ownerId}
-          onCreated={handleImageCreated}
-        />
-      ) : null}
-
-      {brochureId && brochureImageId ? (
-        <PackSizeQuickAddDialog
-          open={addPackSizeOpen}
-          onOpenChange={setAddPackSizeOpen}
-          brochureId={brochureId}
-          imageId={brochureImageId}
-          onCreated={handlePackSizeCreated}
-        />
-      ) : null}
     </Form>
   );
 }

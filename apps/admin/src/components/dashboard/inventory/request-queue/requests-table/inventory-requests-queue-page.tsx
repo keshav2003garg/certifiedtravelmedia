@@ -1,4 +1,7 @@
+import { useCallback } from 'react';
+
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
@@ -15,6 +18,8 @@ import InventoryRequestsFilterBar from './components/inventory-requests-filter-b
 import InventoryRequestsSkeleton from './components/inventory-requests-skeleton';
 import InventoryRequestsStats from './components/inventory-requests-stats';
 import InventoryRequestsTable from './components/inventory-requests-table';
+
+import type { InventoryRequest } from '@/hooks/useInventoryRequests/types';
 
 function ManagerOnlyAccessCard() {
   return (
@@ -39,9 +44,21 @@ function InventoryRequestsQueuePage() {
   const { role } = useUserRole();
   const isManagerOrAdmin = role === 'manager' || role === 'admin';
 
+  const navigate = useNavigate();
+
   const { inventoryRequestsQueryOptions, inventoryRequestStatsQueryOptions } =
     useInventoryRequests();
   const filters = useInventoryRequestsFilters();
+
+  const handleSelectRequest = useCallback(
+    (request: InventoryRequest) => {
+      void navigate({
+        to: '/dashboard/inventory/request-queue/$id',
+        params: { id: request.id },
+      });
+    },
+    [navigate],
+  );
 
   const {
     data: listData,
@@ -144,7 +161,10 @@ function InventoryRequestsQueuePage() {
             />
           ) : (
             <div className="space-y-4">
-              <InventoryRequestsTable requests={requests} />
+              <InventoryRequestsTable
+                requests={requests}
+                onSelect={handleSelectRequest}
+              />
               {pagination ? (
                 <DataPaginationControls
                   pagination={pagination}

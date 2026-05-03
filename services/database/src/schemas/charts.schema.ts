@@ -47,10 +47,14 @@ export const chartLayouts = pgTable(
     locked: boolean('locked').notNull().default(false),
 
     completedAt: timestamp('completed_at', { mode: 'string' }),
-    completedBy: text('completed_by').references(() => userSchema.id),
+    completedBy: text('completed_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
 
     archivedAt: timestamp('archived_at', { mode: 'string' }),
-    archivedBy: text('archived_by').references(() => userSchema.id),
+    archivedBy: text('archived_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
 
     createdAt: timestamp('created_at', { mode: 'string' })
       .notNull()

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -28,6 +28,8 @@ import {
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import { Loader2, Plus } from '@repo/ui/lib/icons';
 
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
+
 import { createUserSchema, ROLES } from '../schema';
 
 import type { CreateUserFormData } from '../schema';
@@ -55,11 +57,12 @@ function CreateUserDialog({
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset({ name: '', email: '', password: '', role: 'staff' });
-    }
-  }, [form, open]);
+  useResetFormOnActivation(open, form.reset, {
+    name: '',
+    email: '',
+    password: '',
+    role: 'staff',
+  });
 
   const handleSubmit = useCallback(
     (values: CreateUserFormData) => {

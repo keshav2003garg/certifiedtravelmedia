@@ -14,9 +14,13 @@ import type { InventoryRequest } from '@/hooks/useInventoryRequests/types';
 
 interface InventoryRequestsTableProps {
   requests: InventoryRequest[];
+  onSelect?: (request: InventoryRequest) => void;
 }
 
-function InventoryRequestsTable({ requests }: InventoryRequestsTableProps) {
+function InventoryRequestsTable({
+  requests,
+  onSelect,
+}: InventoryRequestsTableProps) {
   return (
     <div className="overflow-x-auto rounded-md border">
       <Table className="table-fixed" style={{ minWidth: '960px' }}>
@@ -32,7 +36,11 @@ function InventoryRequestsTable({ requests }: InventoryRequestsTableProps) {
         </TableHeader>
         <TableBody>
           {requests.map((request) => (
-            <InventoryRequestsTableRow key={request.id} request={request} />
+            <InventoryRequestsTableRow
+              key={request.id}
+              request={request}
+              onSelect={onSelect}
+            />
           ))}
         </TableBody>
       </Table>

@@ -67,6 +67,10 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Inventory Request Queue - CTM Grid Admin',
       description: 'Review staff inventory intake requests',
     },
+    '/dashboard/inventory/request-queue/$id': {
+      title: 'Review Inventory Request - CTM Grid Admin',
+      description: 'Review and approve a staff inventory intake request',
+    },
     '/dashboard/inventory/intake-request': {
       title: 'New Inventory Intake - CTM Grid Admin',
       description: 'Submit staff inventory intake requests for review',

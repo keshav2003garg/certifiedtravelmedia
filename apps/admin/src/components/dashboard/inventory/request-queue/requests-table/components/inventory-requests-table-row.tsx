@@ -1,6 +1,7 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 
 import { TableCell, TableRow } from '@repo/ui/components/base/table';
+import { cn } from '@repo/ui/lib/utils';
 import { formatShortDate } from '@repo/utils/date';
 import { formatCount, formatDecimal } from '@repo/utils/number';
 
@@ -10,20 +11,31 @@ import type { InventoryRequest } from '@/hooks/useInventoryRequests/types';
 
 interface InventoryRequestsTableRowProps {
   request: InventoryRequest;
+  onSelect?: (request: InventoryRequest) => void;
 }
 
-function InventoryRequestsTableRow({ request }: InventoryRequestsTableRowProps) {
+function InventoryRequestsTableRow({
+  request,
+  onSelect,
+}: InventoryRequestsTableRowProps) {
   const totalUnits = request.boxes * request.unitsPerBox;
   const requesterLabel =
     request.requestedByName ?? request.requestedByEmail ?? 'Unknown';
 
+  const isReviewable = request.status === 'Pending' && Boolean(onSelect);
+
+  const handleClick = useCallback(() => {
+    if (isReviewable) onSelect?.(request);
+  }, [isReviewable, onSelect, request]);
+
   return (
-    <TableRow>
+    <TableRow
+      onClick={isReviewable ? handleClick : undefined}
+      className={cn(isReviewable && 'cursor-pointer')}
+    >
       <TableCell>
         <div className="min-w-0 space-y-1">
-          <p className="truncate font-medium">
-            {request.brochureName ?? '—'}
-          </p>
+          <p className="truncate font-medium">{request.brochureName ?? '—'}</p>
           <p className="text-muted-foreground truncate text-xs">
             {request.brochureTypeName ?? '—'}
             {request.customerName ? ` · ${request.customerName}` : ''}
@@ -34,9 +46,7 @@ function InventoryRequestsTableRow({ request }: InventoryRequestsTableRowProps) 
         <InventoryRequestStatusBadge status={request.status} />
       </TableCell>
       <TableCell>
-        <span className="text-sm">
-          {request.warehouseName ?? '—'}
-        </span>
+        <span className="text-sm">{request.warehouseName ?? '—'}</span>
       </TableCell>
       <TableCell>
         <div className="space-y-0.5">

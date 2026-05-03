@@ -18,7 +18,9 @@ function InventoryRequestsEmpty({
         <Inbox className="size-6" />
       </div>
       <h2 className="text-lg font-semibold tracking-normal">
-        {hasFilters ? 'No requests match your filters' : 'No inventory requests yet'}
+        {hasFilters
+          ? 'No requests match your filters'
+          : 'No inventory requests yet'}
       </h2>
       <p className="text-muted-foreground mt-2 max-w-md text-sm">
         {hasFilters

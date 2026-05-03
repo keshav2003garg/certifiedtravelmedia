@@ -41,11 +41,12 @@ export const sessionSchema = pgTable(
 
     userId: text('user_id')
       .notNull()
-      .references(() => userSchema.id),
+      .references(() => userSchema.id, { onDelete: 'cascade' }),
 
     token: varchar('token', { length: 255 }).notNull().unique(),
     impersonatedById: text('impersonated_by_id').references(
       () => userSchema.id,
+      { onDelete: 'set null' },
     ),
     expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
     ipAddress: varchar('ip_address', { length: 255 }).notNull(),
@@ -71,7 +72,7 @@ export const accountSchema = pgTable(
 
     userId: text('user_id')
       .notNull()
-      .references(() => userSchema.id),
+      .references(() => userSchema.id, { onDelete: 'cascade' }),
     accountId: varchar('account_id', { length: 255 }).notNull(),
     providerId: varchar('provider_id', { length: 255 }).notNull(),
 

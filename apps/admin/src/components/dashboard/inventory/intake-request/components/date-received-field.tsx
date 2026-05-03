@@ -21,12 +21,14 @@ interface DateReceivedFieldProps {
   value: string;
   onChange: (value: string) => void;
   disabled: boolean;
+  label?: string;
 }
 
 function DateReceivedField({
   value,
   onChange,
   disabled,
+  label = 'Date received',
 }: DateReceivedFieldProps) {
   const selectedDate = useMemo(() => parseISODate(value), [value]);
 
@@ -39,7 +41,7 @@ function DateReceivedField({
 
   return (
     <FormItem className="flex flex-col">
-      <FormLabel>Date received</FormLabel>
+      <FormLabel>{label}</FormLabel>
       <Popover>
         <PopoverTrigger asChild>
           <FormControl>

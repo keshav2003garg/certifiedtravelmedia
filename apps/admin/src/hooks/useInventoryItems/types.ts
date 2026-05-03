@@ -31,10 +31,16 @@ export interface InventoryTransaction {
 
 export type CreateInventoryIntakePayload = {
   warehouseId: string;
-  brochureImagePackSizeId: string;
+  brochureTypeId: string;
+  customerId?: string;
+  customerName?: string;
+  brochureName: string;
+  imageUrl?: string;
   boxes: number;
+  unitsPerBox: number;
   transactionType: InventoryIntakeTransactionType;
   transactionDate: string;
+  notes?: string;
 };
 
 export type CreateInventoryIntakeRequest = ApiData<

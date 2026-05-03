@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -26,6 +26,7 @@ import SearchableSelect from '@/components/common/searchable-select';
 import { useBrochures } from '@/hooks/useBrochures';
 import { useBrochureTypes } from '@/hooks/useBrochureTypes';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
 
 import { ReactQueryKeys } from '@/types/react-query-keys';
@@ -164,11 +165,12 @@ function BrochureFormDialog({
     enabled: open,
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-    }
-  }, [defaultValues, form, open]);
+  useResetFormOnActivation(
+    open,
+    form.reset,
+    defaultValues,
+    brochure?.id ?? null,
+  );
 
   function onSubmit(data: BrochureFormData) {
     if (!brochure) {

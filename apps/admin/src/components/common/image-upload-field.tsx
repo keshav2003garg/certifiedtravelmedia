@@ -51,6 +51,8 @@ function ImageUploadField({
 }: ImageUploadFieldProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const previousValueRef = useRef(value);
+
   const [isDragging, setIsDragging] = useState(false);
   const { config, upload, isUploading, error, reset } = useStorageUpload({
     bucket,
@@ -65,7 +67,10 @@ function ImageUploadField({
     .join(', ');
 
   useEffect(() => {
-    if (value) reset();
+    const valueChanged = previousValueRef.current !== value;
+    previousValueRef.current = value;
+
+    if (value && valueChanged) reset();
   }, [reset, value]);
 
   const handleFile = useCallback(

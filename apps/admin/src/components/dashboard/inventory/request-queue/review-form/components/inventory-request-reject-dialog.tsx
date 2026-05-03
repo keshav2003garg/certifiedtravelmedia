@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -17,63 +17,57 @@ import {
   FormLabel,
   FormMessage,
 } from '@repo/ui/components/base/form';
-import { Input } from '@repo/ui/components/base/input';
+import { Textarea } from '@repo/ui/components/base/textarea';
 import { useForm, zodResolver } from '@repo/ui/lib/form';
-import { KeyRound, Loader2 } from '@repo/ui/lib/icons';
+import { Loader2 } from '@repo/ui/lib/icons';
+import { z } from '@repo/utils/zod';
 
 import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
-import { resetPasswordSchema } from '../schema';
+const formSchema = z.object({
+  rejectionReason: z
+    .string()
+    .trim()
+    .min(1, 'Rejection reason is required')
+    .max(500, 'Rejection reason must be 500 characters or less'),
+});
 
-import type { UserWithRole } from '@/hooks/useUsers/types';
-import type { ResetPasswordFormData } from '../schema';
+type FormData = z.infer<typeof formSchema>;
 
-interface ResetPasswordDialogProps {
+interface InventoryRequestRejectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: UserWithRole | null;
-  onSubmit: (values: { userId: string; newPassword: string }) => void;
   isSubmitting: boolean;
+  onSubmit: (rejectionReason: string) => void;
 }
 
-function ResetPasswordDialog({
+function InventoryRequestRejectDialog({
   open,
   onOpenChange,
-  user,
-  onSubmit,
   isSubmitting,
-}: ResetPasswordDialogProps) {
-  const form = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { newPassword: '' },
+  onSubmit,
+}: InventoryRequestRejectDialogProps) {
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { rejectionReason: '' },
   });
 
-  useResetFormOnActivation(
-    open,
-    form.reset,
-    { newPassword: '' },
-    user?.id ?? null,
-  );
+  useResetFormOnActivation(open, form.reset, { rejectionReason: '' });
 
-  const handleSubmit = useCallback(
-    (values: ResetPasswordFormData) => {
-      if (!user) return;
-      onSubmit({ userId: user.id, newPassword: values.newPassword });
-    },
-    [onSubmit, user],
-  );
+  function handleSubmit(values: FormData) {
+    onSubmit(values.rejectionReason);
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Reset password</DialogTitle>
+          <DialogTitle>Reject inventory request</DialogTitle>
           <DialogDescription>
-            {user
-              ? `Set a new password for ${user.name || user.email}.`
-              : 'Set a new password for this user.'}
+            Let the requester know why this request is being rejected.
           </DialogDescription>
         </DialogHeader>
+
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
@@ -81,15 +75,15 @@ function ResetPasswordDialog({
           >
             <FormField
               control={form.control}
-              name="newPassword"
+              name="rejectionReason"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New password</FormLabel>
+                  <FormLabel>Reason</FormLabel>
                   <FormControl>
-                    <Input
+                    <Textarea
                       {...field}
-                      type="password"
-                      placeholder="Minimum 8 characters"
+                      rows={4}
+                      placeholder="Explain why this request is being rejected"
                       disabled={isSubmitting}
                     />
                   </FormControl>
@@ -97,6 +91,7 @@ function ResetPasswordDialog({
                 </FormItem>
               )}
             />
+
             <DialogFooter>
               <Button
                 type="button"
@@ -106,13 +101,15 @@ function ResetPasswordDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || !user}>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
                   <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <KeyRound className="size-4" />
-                )}
-                Reset password
+                ) : null}
+                Reject request
               </Button>
             </DialogFooter>
           </form>
@@ -122,4 +119,4 @@ function ResetPasswordDialog({
   );
 }
 
-export default memo(ResetPasswordDialog);
+export default memo(InventoryRequestRejectDialog);

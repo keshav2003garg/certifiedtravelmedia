@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 
 import {
   AlertDialog,
@@ -26,6 +26,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { formatDecimal } from '@repo/utils/number';
 
 import { useBrochures } from '@/hooks/useBrochures';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 import { packSizeFormSchema } from '../schema';
 
@@ -52,12 +53,12 @@ function PackSizeRow({ brochureId, imageId, packSize }: PackSizeRowProps) {
     resolver: zodResolver(packSizeFormSchema),
     defaultValues: { unitsPerBox: packSize.unitsPerBox },
   });
+  const resetValues = useMemo(
+    () => ({ unitsPerBox: packSize.unitsPerBox }),
+    [packSize.unitsPerBox],
+  );
 
-  useEffect(() => {
-    if (isEditing) {
-      form.reset({ unitsPerBox: packSize.unitsPerBox });
-    }
-  }, [form, isEditing, packSize.unitsPerBox]);
+  useResetFormOnActivation(isEditing, form.reset, resetValues, packSize.id);
 
   function handleUpdate(data: PackSizeFormData) {
     if (data.unitsPerBox === packSize.unitsPerBox) {

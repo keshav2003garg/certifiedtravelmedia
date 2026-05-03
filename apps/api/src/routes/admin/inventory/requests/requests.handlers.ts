@@ -5,8 +5,11 @@ import { inventoryRequestsService } from './requests.services';
 
 import type { AppContext } from '@repo/server-utils/types/app.types';
 import type {
+  ApproveInventoryRequestContext,
   CreateInventoryRequestContext,
+  InventoryRequestIdContext,
   ListInventoryRequestsContext,
+  RejectInventoryRequestContext,
 } from './requests.validators';
 
 function getAuthenticatedUserId(ctx: AppContext) {
@@ -55,4 +58,49 @@ export async function getInventoryRequestStatsHandler(ctx: AppContext) {
     'Inventory request stats retrieved successfully',
     { stats },
   );
+}
+
+export async function getInventoryRequestByIdHandler(
+  ctx: InventoryRequestIdContext,
+) {
+  const { id } = ctx.req.valid('param');
+  const request = await inventoryRequestsService.getById(id);
+
+  return sendResponse(ctx, 200, 'Inventory request retrieved successfully', {
+    request,
+  });
+}
+
+export async function approveInventoryRequestHandler(
+  ctx: ApproveInventoryRequestContext,
+) {
+  const { id } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+
+  const result = await inventoryRequestsService.approve(
+    id,
+    body,
+    getAuthenticatedUserId(ctx),
+  );
+
+  return sendResponse(ctx, 200, 'Inventory request approved successfully', {
+    request: result.request,
+    item: result.item,
+    transaction: result.transaction,
+  });
+}
+
+export async function rejectInventoryRequestHandler(
+  ctx: RejectInventoryRequestContext,
+) {
+  const { id } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+
+  const request = await inventoryRequestsService.reject(
+    id,
+    body,
+    getAuthenticatedUserId(ctx),
+  );
+
+  return sendResponse(ctx, 200, 'Inventory request rejected', { request });
 }

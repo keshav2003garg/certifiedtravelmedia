@@ -7,9 +7,12 @@ import { api } from '@/lib/api/instances';
 import { ReactQueryKeys } from '@/types/react-query-keys';
 
 import type {
+  ApproveInventoryRequestRequest,
   CreateInventoryRequestRequest,
+  GetInventoryRequestRequest,
   GetInventoryRequestStatsRequest,
   ListInventoryRequestsRequest,
+  RejectInventoryRequestRequest,
 } from './types';
 
 const INVENTORY_REQUESTS_ENDPOINT = '/admin/inventory/requests';
@@ -61,6 +64,21 @@ export function useInventoryRequests() {
       queryFn: getInventoryRequestStats,
     });
 
+  const getInventoryRequestById = useCallback(async (id: string) => {
+    const response = await api<GetInventoryRequestRequest['response']>(
+      `${INVENTORY_REQUESTS_ENDPOINT}/${id}`,
+    );
+
+    return response.data;
+  }, []);
+
+  const inventoryRequestQueryOptions = (id: string) =>
+    queryOptions({
+      queryKey: [ReactQueryKeys.GET_INVENTORY_REQUEST, id],
+      queryFn: () => getInventoryRequestById(id),
+      enabled: id.length > 0,
+    });
+
   const createMutation = useMutation({
     mutationFn: createInventoryRequest,
     meta: {
@@ -72,11 +90,75 @@ export function useInventoryRequests() {
     },
   });
 
+  const approveInventoryRequest = useCallback(
+    async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: ApproveInventoryRequestRequest['payload'];
+    }) => {
+      const response = await api<ApproveInventoryRequestRequest['response']>(
+        `${INVENTORY_REQUESTS_ENDPOINT}/${id}/approve`,
+        { method: 'POST', body: payload },
+      );
+
+      return response.data;
+    },
+    [],
+  );
+
+  const approveMutation = useMutation({
+    mutationFn: approveInventoryRequest,
+    meta: {
+      successMessage: 'Inventory request approved',
+      invalidateQueries: [
+        ReactQueryKeys.GET_INVENTORY_REQUESTS,
+        ReactQueryKeys.GET_INVENTORY_REQUEST,
+        ReactQueryKeys.GET_INVENTORY_REQUEST_STATS,
+      ],
+    },
+  });
+
+  const rejectInventoryRequest = useCallback(
+    async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: RejectInventoryRequestRequest['payload'];
+    }) => {
+      const response = await api<RejectInventoryRequestRequest['response']>(
+        `${INVENTORY_REQUESTS_ENDPOINT}/${id}/reject`,
+        { method: 'POST', body: payload },
+      );
+
+      return response.data;
+    },
+    [],
+  );
+
+  const rejectMutation = useMutation({
+    mutationFn: rejectInventoryRequest,
+    meta: {
+      successMessage: 'Inventory request rejected',
+      invalidateQueries: [
+        ReactQueryKeys.GET_INVENTORY_REQUESTS,
+        ReactQueryKeys.GET_INVENTORY_REQUEST,
+        ReactQueryKeys.GET_INVENTORY_REQUEST_STATS,
+      ],
+    },
+  });
+
   return {
     getInventoryRequests,
     getInventoryRequestStats,
+    getInventoryRequestById,
     inventoryRequestsQueryOptions,
     inventoryRequestStatsQueryOptions,
+    inventoryRequestQueryOptions,
     createMutation,
+    approveMutation,
+    rejectMutation,
   };
 }

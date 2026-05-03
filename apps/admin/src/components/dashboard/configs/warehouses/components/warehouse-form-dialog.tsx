@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -26,6 +26,7 @@ import { Layers3, Loader2 } from '@repo/ui/lib/icons';
 
 import SearchableMultiSelect from '@/components/common/searchable-multi-select';
 
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
 import { useWarehouses, warehouseQueryKeys } from '@/hooks/useWarehouses';
 
@@ -136,11 +137,12 @@ function WarehouseFormDialog({
     enabled: open,
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-    }
-  }, [defaultValues, form, open]);
+  useResetFormOnActivation(
+    open,
+    form.reset,
+    defaultValues,
+    warehouse?.id ?? null,
+  );
 
   function onSubmit(data: WarehouseFormData) {
     if (!warehouse) {

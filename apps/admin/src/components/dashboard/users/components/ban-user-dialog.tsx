@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -22,6 +22,8 @@ import { Input } from '@repo/ui/components/base/input';
 import { NumericInput } from '@repo/ui/components/base/numeric-input';
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import { Ban, Loader2 } from '@repo/ui/lib/icons';
+
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 import { banUserSchema } from '../schema';
 
@@ -55,11 +57,12 @@ function BanUserDialog({
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset({ banReason: '', banExpiresInDays: undefined });
-    }
-  }, [form, open]);
+  useResetFormOnActivation(
+    open,
+    form.reset,
+    { banReason: '', banExpiresInDays: undefined },
+    user?.id ?? null,
+  );
 
   const handleSubmit = useCallback(
     (values: BanUserFormData) => {

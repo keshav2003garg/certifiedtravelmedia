@@ -1,6 +1,6 @@
 import type { ApiData } from '@/lib/api/types';
 
-export type TransactionType = 'Delivery';
+export type TransactionType = 'Delivery' | 'Start Count';
 
 export type InventoryRequestStatus =
   | 'Pending'
@@ -105,4 +105,50 @@ export type ListInventoryRequestsRequest = ApiData<
 export type GetInventoryRequestStatsRequest = ApiData<
   undefined,
   { stats: InventoryRequestStats }
+>;
+
+export type GetInventoryRequestRequest = ApiData<
+  { id: string },
+  { request: InventoryRequest }
+>;
+
+export type ApproveInventoryRequestPayload = {
+  warehouseId: string;
+  brochureTypeId: string;
+  customerId?: string;
+  customerName?: string;
+  brochureName: string;
+  imageUrl?: string;
+  dateReceived: string;
+  boxes: number;
+  unitsPerBox: number;
+  transactionType: TransactionType;
+  notes?: string;
+};
+
+export type ApproveInventoryRequestRequest = ApiData<
+  ApproveInventoryRequestPayload,
+  {
+    request: {
+      id: string;
+      status: 'Approved';
+      reviewedAt: string | null;
+    };
+  }
+>;
+
+export type RejectInventoryRequestPayload = {
+  rejectionReason: string;
+};
+
+export type RejectInventoryRequestRequest = ApiData<
+  RejectInventoryRequestPayload,
+  {
+    request: {
+      id: string;
+      status: 'Rejected';
+      reviewedAt: string | null;
+      rejectionReason: string | null;
+    };
+  }
 >;

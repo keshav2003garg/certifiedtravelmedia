@@ -37,6 +37,7 @@ export const INVENTORY_REQUEST_STATUS_OPTIONS = [
 
 export const INVENTORY_REQUEST_TYPE_OPTIONS = [
   'Delivery',
+  'Start Count',
 ] as const satisfies readonly TransactionType[];
 
 export function useInventoryRequestsFilters() {

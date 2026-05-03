@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -28,6 +28,8 @@ import {
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import { Check, Loader2 } from '@repo/ui/lib/icons';
 
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
+
 import { editUserSchema, ROLES } from '../schema';
 
 import type { UserWithRole } from '@/hooks/useUsers/types';
@@ -56,16 +58,23 @@ function EditUserDialog({
     },
   });
 
-  useEffect(() => {
-    if (open && user) {
-      form.reset({
-        name: user.name ?? '',
-        role: ROLES.includes(user.role as (typeof ROLES)[number])
+  const resetValues = useMemo(
+    () => ({
+      name: user?.name ?? '',
+      role:
+        user && ROLES.includes(user.role as (typeof ROLES)[number])
           ? (user.role as EditUserFormData['role'])
           : 'staff',
-      });
-    }
-  }, [form, open, user]);
+    }),
+    [user],
+  );
+
+  useResetFormOnActivation(
+    open && Boolean(user),
+    form.reset,
+    resetValues,
+    user?.id ?? null,
+  );
 
   const handleSubmit = useCallback(
     (values: EditUserFormData) => {

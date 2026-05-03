@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -25,6 +25,7 @@ import { z } from '@repo/utils/zod';
 import ImageUploadField from '@/components/common/image-upload-field';
 
 import { useBrochures } from '@/hooks/useBrochures';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 import type { BrochureDetail } from '@/hooks/useBrochures/types';
 
@@ -66,11 +67,7 @@ function BrochureImageQuickAddDialog({
     defaultValues: { imageUrl: '', unitsPerBox: 0 },
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset({ imageUrl: '', unitsPerBox: 0 });
-    }
-  }, [open, form]);
+  useResetFormOnActivation(open, form.reset, { imageUrl: '', unitsPerBox: 0 });
 
   function handleSubmit(values: FormData) {
     createImageMutation.mutate(

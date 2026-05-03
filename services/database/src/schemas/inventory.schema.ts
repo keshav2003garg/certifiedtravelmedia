@@ -98,7 +98,9 @@ export const inventoryTransactions = pgTable(
 
     notes: text('notes'),
 
-    createdBy: text('created_by').references(() => userSchema.id),
+    createdBy: text('created_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
 
     createdAt: timestamp('created_at', { mode: 'string' })
       .notNull()
@@ -153,9 +155,13 @@ export const inventoryTransactionRequests = pgTable(
 
     notes: text('notes'),
 
-    requestedBy: text('requested_by').references(() => userSchema.id),
+    requestedBy: text('requested_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
 
-    reviewedBy: text('reviewed_by').references(() => userSchema.id),
+    reviewedBy: text('reviewed_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
     reviewedAt: timestamp('reviewed_at', { mode: 'string' }),
 
     rejectionReason: text('rejection_reason'),

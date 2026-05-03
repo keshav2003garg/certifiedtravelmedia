@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -22,6 +22,7 @@ import { useForm, zodResolver } from '@repo/ui/lib/form';
 import { Loader2 } from '@repo/ui/lib/icons';
 
 import { useCustomers } from '@/hooks/useCustomers';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 import { customerFormSchema, defaultCustomerValues } from '../schema';
 
@@ -71,11 +72,12 @@ function CustomerFormDialog({
     defaultValues,
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset(defaultValues);
-    }
-  }, [defaultValues, form, open]);
+  useResetFormOnActivation(
+    open,
+    form.reset,
+    defaultValues,
+    customer?.id ?? null,
+  );
 
   function onSubmit(data: CustomerFormData) {
     if (!customer) {

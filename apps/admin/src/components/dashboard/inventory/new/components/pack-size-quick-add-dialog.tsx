@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -23,6 +23,7 @@ import { Loader2 } from '@repo/ui/lib/icons';
 import { z } from '@repo/utils/zod';
 
 import { useBrochures } from '@/hooks/useBrochures';
+import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
 const formSchema = z.object({
   unitsPerBox: z
@@ -57,11 +58,7 @@ function PackSizeQuickAddDialog({
     defaultValues: { unitsPerBox: 0 },
   });
 
-  useEffect(() => {
-    if (open) {
-      form.reset({ unitsPerBox: 0 });
-    }
-  }, [open, form]);
+  useResetFormOnActivation(open, form.reset, { unitsPerBox: 0 });
 
   function handleSubmit(values: FormData) {
     createImagePackSizeMutation.mutate(
