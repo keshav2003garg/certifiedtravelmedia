@@ -88,6 +88,10 @@ export function getMetadata(path: AppRoute): Head {
       description:
         'Add stock directly into a warehouse and record a transaction',
     },
+    '/dashboard/reports': {
+      title: 'Reports - CTM Grid Admin',
+      description: 'Generate warehouse inventory reports',
+    },
   };
 
   const metadata = pathMap[path];

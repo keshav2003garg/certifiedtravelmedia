@@ -13,6 +13,7 @@ import chartsRoute from '@/routes/admin/charts/charts.route';
 import configsRoute from '@/routes/admin/configs/configs.route';
 import inventoryRoute from '@/routes/admin/inventory/inventory.route';
 import locationsRoute from '@/routes/admin/locations/locations.route';
+import reportsRoute from '@/routes/admin/reports/reports.route';
 import uploadsRoute from '@/routes/admin/uploads/uploads.route';
 import publicChartsRoute from '@/routes/public/charts/charts.route';
 
@@ -46,6 +47,7 @@ app.route('/api/admin/configs', configsRoute);
 app.route('/api/admin/charts', chartsRoute);
 app.route('/api/admin/inventory', inventoryRoute);
 app.route('/api/admin/locations', locationsRoute);
+app.route('/api/admin/reports', reportsRoute);
 app.route('/api/admin/uploads', uploadsRoute);
 app.route('/api/charts', publicChartsRoute);
 
