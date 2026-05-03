@@ -1,14 +1,48 @@
 import { Hono } from 'hono';
 
-import { isManagerOrAbove } from '@repo/server-utils/middlewares/auth.middleware';
+import {
+  isManagerOrAbove,
+  isStaffOrAbove,
+} from '@repo/server-utils/middlewares/auth.middleware';
 import { validator } from '@repo/server-utils/middlewares/validator.middleware';
 
-import { createInventoryIntakeHandler } from './items.handlers';
-import { createInventoryIntakeValidator } from './items.validators';
+import {
+  createInventoryIntakeHandler,
+  getInventoryItemHandler,
+  listInventoryItemsHandler,
+  listInventoryItemTransactionsHandler,
+} from './items.handlers';
+import {
+  createInventoryIntakeValidator,
+  getInventoryItemValidator,
+  listInventoryItemsValidator,
+  listInventoryItemTransactionsValidator,
+} from './items.validators';
 
 import type { AppBindings } from '@repo/server-utils/types/app.types';
 
 const itemsRoute = new Hono<AppBindings>();
+
+itemsRoute.get(
+  '/',
+  isStaffOrAbove,
+  validator(listInventoryItemsValidator),
+  listInventoryItemsHandler,
+);
+
+itemsRoute.get(
+  '/:id/transactions',
+  isStaffOrAbove,
+  validator(listInventoryItemTransactionsValidator),
+  listInventoryItemTransactionsHandler,
+);
+
+itemsRoute.get(
+  '/:id',
+  isStaffOrAbove,
+  validator(getInventoryItemValidator),
+  getInventoryItemHandler,
+);
 
 itemsRoute.post(
   '/intake',

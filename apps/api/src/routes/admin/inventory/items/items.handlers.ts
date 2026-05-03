@@ -2,7 +2,51 @@ import sendResponse from '@repo/server-utils/utils/response';
 
 import { inventoryItemsService } from './items.services';
 
-import type { CreateInventoryIntakeContext } from './items.validators';
+import type {
+  CreateInventoryIntakeContext,
+  GetInventoryItemContext,
+  ListInventoryItemsContext,
+  ListInventoryItemTransactionsContext,
+} from './items.validators';
+
+export async function listInventoryItemsHandler(
+  ctx: ListInventoryItemsContext,
+) {
+  const query = ctx.req.valid('query');
+  const result = await inventoryItemsService.list(query);
+
+  return sendResponse(ctx, 200, 'Inventory items retrieved successfully', {
+    inventoryItems: result.data,
+    pagination: result.pagination,
+  });
+}
+
+export async function getInventoryItemHandler(ctx: GetInventoryItemContext) {
+  const { id } = ctx.req.valid('param');
+  const item = await inventoryItemsService.getById(id);
+
+  return sendResponse(ctx, 200, 'Inventory item retrieved successfully', {
+    item,
+  });
+}
+
+export async function listInventoryItemTransactionsHandler(
+  ctx: ListInventoryItemTransactionsContext,
+) {
+  const { id } = ctx.req.valid('param');
+  const query = ctx.req.valid('query');
+  const result = await inventoryItemsService.listTransactions(id, query);
+
+  return sendResponse(
+    ctx,
+    200,
+    'Inventory transactions retrieved successfully',
+    {
+      transactions: result.data,
+      pagination: result.pagination,
+    },
+  );
+}
 
 export async function createInventoryIntakeHandler(
   ctx: CreateInventoryIntakeContext,

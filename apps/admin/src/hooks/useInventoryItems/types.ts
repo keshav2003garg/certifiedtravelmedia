@@ -2,7 +2,42 @@ import type { ApiData } from '@/lib/api/types';
 
 export type InventoryStockLevel = 'Low' | 'On Target' | 'Overstock';
 
-export type InventoryIntakeTransactionType = 'Delivery' | 'Start Count';
+export type InventoryTransactionType =
+  | 'Delivery'
+  | 'Distribution'
+  | 'Recycle'
+  | 'Trans In'
+  | 'Trans Out'
+  | 'Return to Client'
+  | 'Adjustment'
+  | 'Start Count';
+
+export type InventoryIntakeTransactionType = Extract<
+  InventoryTransactionType,
+  'Delivery' | 'Start Count'
+>;
+
+export type InventoryItemSortBy =
+  | 'warehouseName'
+  | 'brochureName'
+  | 'brochureTypeName'
+  | 'customerName'
+  | 'boxes'
+  | 'unitsPerBox'
+  | 'stockLevel'
+  | 'createdAt'
+  | 'updatedAt';
+
+export type SortOrder = 'asc' | 'desc';
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
 
 export interface InventoryItem {
   id: string;
@@ -15,16 +50,46 @@ export interface InventoryItem {
   updatedAt: string;
 }
 
+export interface InventoryListItem extends InventoryItem {
+  warehouseName: string;
+  warehouseAcumaticaId: string | null;
+  brochureId: string;
+  brochureName: string;
+  brochureTypeId: string;
+  brochureTypeName: string;
+  customerId: string | null;
+  customerName: string | null;
+  brochureImageId: string;
+  imageUrl: string | null;
+  unitsPerBox: number;
+}
+
+export interface InventoryItemDetail extends InventoryListItem {
+  warehouseAddress: string | null;
+  brochureCreatedAt: string;
+  brochureUpdatedAt: string;
+  brochureImageCreatedAt: string;
+  brochureImageUpdatedAt: string;
+  packSizeCreatedAt: string;
+  packSizeUpdatedAt: string;
+}
+
 export interface InventoryTransaction {
   id: string;
   inventoryItemId: string;
-  transactionType: InventoryIntakeTransactionType;
+  transactionType: InventoryTransactionType;
   transactionDate: string;
   boxes: number;
   balanceBeforeBoxes: number;
   balanceAfterBoxes: number;
+  requestId: string | null;
+  transferGroupId: string | null;
+  sourceWarehouseId: string | null;
+  destinationWarehouseId: string | null;
   notes: string | null;
   createdBy: string | null;
+  createdByName: string | null;
+  createdByEmail: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,6 +107,44 @@ export type CreateInventoryIntakePayload = {
   transactionDate: string;
   notes?: string;
 };
+
+export type ListInventoryItemsRequest = ApiData<
+  {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: InventoryItemSortBy;
+    order?: SortOrder;
+    warehouseId?: string;
+    brochureTypeId?: string;
+    stockLevel?: InventoryStockLevel;
+  },
+  {
+    inventoryItems: InventoryListItem[];
+    pagination: Pagination;
+  }
+>;
+
+export type GetInventoryItemRequest = ApiData<
+  string,
+  {
+    item: InventoryItemDetail;
+  }
+>;
+
+export type ListInventoryItemTransactionsRequest = ApiData<
+  {
+    page?: number;
+    limit?: number;
+    transactionType?: InventoryTransactionType;
+    dateFrom?: string;
+    dateTo?: string;
+  },
+  {
+    transactions: InventoryTransaction[];
+    pagination: Pagination;
+  }
+>;
 
 export type CreateInventoryIntakeRequest = ApiData<
   CreateInventoryIntakePayload,

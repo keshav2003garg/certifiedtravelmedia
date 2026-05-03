@@ -24,9 +24,11 @@ import { Route as DashboardroutesBrochureRouteImport } from './routes/dashboard/
 import { Route as authroutesResetPasswordRouteImport } from './routes/(auth)/(routes)/reset-password'
 import { Route as authroutesLoginRouteImport } from './routes/(auth)/(routes)/login'
 import { Route as authroutesForgotPasswordRouteImport } from './routes/(auth)/(routes)/forgot-password'
+import { Route as DashboardroutesInventoryIndexRouteImport } from './routes/dashboard/(routes)/inventory/index'
 import { Route as DashboardroutesChartsIndexRouteImport } from './routes/dashboard/(routes)/charts/index'
 import { Route as DashboardroutesInventoryNewRouteImport } from './routes/dashboard/(routes)/inventory/new'
 import { Route as DashboardroutesInventoryIntakeRequestRouteImport } from './routes/dashboard/(routes)/inventory/intake-request'
+import { Route as DashboardroutesInventoryIdRouteImport } from './routes/dashboard/(routes)/inventory/$id'
 import { Route as DashboardroutesInventoryRequestQueueIndexRouteImport } from './routes/dashboard/(routes)/inventory/request-queue.index'
 import { Route as DashboardroutesInventoryRequestQueueIdRouteImport } from './routes/dashboard/(routes)/inventory/request-queue.$id'
 
@@ -109,6 +111,12 @@ const authroutesForgotPasswordRoute =
     path: '/forgot-password',
     getParentRoute: () => authRouteRoute,
   } as any)
+const DashboardroutesInventoryIndexRoute =
+  DashboardroutesInventoryIndexRouteImport.update({
+    id: '/(routes)/inventory/',
+    path: '/inventory/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardroutesChartsIndexRoute =
   DashboardroutesChartsIndexRouteImport.update({
     id: '/(routes)/charts/',
@@ -125,6 +133,12 @@ const DashboardroutesInventoryIntakeRequestRoute =
   DashboardroutesInventoryIntakeRequestRouteImport.update({
     id: '/(routes)/inventory/intake-request',
     path: '/inventory/intake-request',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardroutesInventoryIdRoute =
+  DashboardroutesInventoryIdRouteImport.update({
+    id: '/(routes)/inventory/$id',
+    path: '/inventory/$id',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
 const DashboardroutesInventoryRequestQueueIndexRoute =
@@ -155,9 +169,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/users': typeof DashboardroutesUsersRoute
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/': typeof DashboardroutesIndexRoute
+  '/dashboard/inventory/$id': typeof DashboardroutesInventoryIdRoute
   '/dashboard/inventory/intake-request': typeof DashboardroutesInventoryIntakeRequestRoute
   '/dashboard/inventory/new': typeof DashboardroutesInventoryNewRoute
   '/dashboard/charts/': typeof DashboardroutesChartsIndexRoute
+  '/dashboard/inventory/': typeof DashboardroutesInventoryIndexRoute
   '/dashboard/inventory/request-queue/$id': typeof DashboardroutesInventoryRequestQueueIdRoute
   '/dashboard/inventory/request-queue/': typeof DashboardroutesInventoryRequestQueueIndexRoute
 }
@@ -175,9 +191,11 @@ export interface FileRoutesByTo {
   '/dashboard/users': typeof DashboardroutesUsersRoute
   '/dashboard/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard': typeof DashboardroutesIndexRoute
+  '/dashboard/inventory/$id': typeof DashboardroutesInventoryIdRoute
   '/dashboard/inventory/intake-request': typeof DashboardroutesInventoryIntakeRequestRoute
   '/dashboard/inventory/new': typeof DashboardroutesInventoryNewRoute
   '/dashboard/charts': typeof DashboardroutesChartsIndexRoute
+  '/dashboard/inventory': typeof DashboardroutesInventoryIndexRoute
   '/dashboard/inventory/request-queue/$id': typeof DashboardroutesInventoryRequestQueueIdRoute
   '/dashboard/inventory/request-queue': typeof DashboardroutesInventoryRequestQueueIndexRoute
 }
@@ -198,9 +216,11 @@ export interface FileRoutesById {
   '/dashboard/(routes)/users': typeof DashboardroutesUsersRoute
   '/dashboard/(routes)/warehouses': typeof DashboardroutesWarehousesRoute
   '/dashboard/(routes)/': typeof DashboardroutesIndexRoute
+  '/dashboard/(routes)/inventory/$id': typeof DashboardroutesInventoryIdRoute
   '/dashboard/(routes)/inventory/intake-request': typeof DashboardroutesInventoryIntakeRequestRoute
   '/dashboard/(routes)/inventory/new': typeof DashboardroutesInventoryNewRoute
   '/dashboard/(routes)/charts/': typeof DashboardroutesChartsIndexRoute
+  '/dashboard/(routes)/inventory/': typeof DashboardroutesInventoryIndexRoute
   '/dashboard/(routes)/inventory/request-queue/$id': typeof DashboardroutesInventoryRequestQueueIdRoute
   '/dashboard/(routes)/inventory/request-queue/': typeof DashboardroutesInventoryRequestQueueIndexRoute
 }
@@ -221,9 +241,11 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/dashboard/warehouses'
     | '/dashboard/'
+    | '/dashboard/inventory/$id'
     | '/dashboard/inventory/intake-request'
     | '/dashboard/inventory/new'
     | '/dashboard/charts/'
+    | '/dashboard/inventory/'
     | '/dashboard/inventory/request-queue/$id'
     | '/dashboard/inventory/request-queue/'
   fileRoutesByTo: FileRoutesByTo
@@ -241,9 +263,11 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/dashboard/warehouses'
     | '/dashboard'
+    | '/dashboard/inventory/$id'
     | '/dashboard/inventory/intake-request'
     | '/dashboard/inventory/new'
     | '/dashboard/charts'
+    | '/dashboard/inventory'
     | '/dashboard/inventory/request-queue/$id'
     | '/dashboard/inventory/request-queue'
   id:
@@ -263,9 +287,11 @@ export interface FileRouteTypes {
     | '/dashboard/(routes)/users'
     | '/dashboard/(routes)/warehouses'
     | '/dashboard/(routes)/'
+    | '/dashboard/(routes)/inventory/$id'
     | '/dashboard/(routes)/inventory/intake-request'
     | '/dashboard/(routes)/inventory/new'
     | '/dashboard/(routes)/charts/'
+    | '/dashboard/(routes)/inventory/'
     | '/dashboard/(routes)/inventory/request-queue/$id'
     | '/dashboard/(routes)/inventory/request-queue/'
   fileRoutesById: FileRoutesById
@@ -384,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authroutesForgotPasswordRouteImport
       parentRoute: typeof authRouteRoute
     }
+    '/dashboard/(routes)/inventory/': {
+      id: '/dashboard/(routes)/inventory/'
+      path: '/inventory'
+      fullPath: '/dashboard/inventory/'
+      preLoaderRoute: typeof DashboardroutesInventoryIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/(routes)/charts/': {
       id: '/dashboard/(routes)/charts/'
       path: '/charts'
@@ -403,6 +436,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory/intake-request'
       fullPath: '/dashboard/inventory/intake-request'
       preLoaderRoute: typeof DashboardroutesInventoryIntakeRequestRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/(routes)/inventory/$id': {
+      id: '/dashboard/(routes)/inventory/$id'
+      path: '/inventory/$id'
+      fullPath: '/dashboard/inventory/$id'
+      preLoaderRoute: typeof DashboardroutesInventoryIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/(routes)/inventory/request-queue/': {
@@ -447,9 +487,11 @@ interface DashboardRouteRouteChildren {
   DashboardroutesUsersRoute: typeof DashboardroutesUsersRoute
   DashboardroutesWarehousesRoute: typeof DashboardroutesWarehousesRoute
   DashboardroutesIndexRoute: typeof DashboardroutesIndexRoute
+  DashboardroutesInventoryIdRoute: typeof DashboardroutesInventoryIdRoute
   DashboardroutesInventoryIntakeRequestRoute: typeof DashboardroutesInventoryIntakeRequestRoute
   DashboardroutesInventoryNewRoute: typeof DashboardroutesInventoryNewRoute
   DashboardroutesChartsIndexRoute: typeof DashboardroutesChartsIndexRoute
+  DashboardroutesInventoryIndexRoute: typeof DashboardroutesInventoryIndexRoute
   DashboardroutesInventoryRequestQueueIdRoute: typeof DashboardroutesInventoryRequestQueueIdRoute
   DashboardroutesInventoryRequestQueueIndexRoute: typeof DashboardroutesInventoryRequestQueueIndexRoute
 }
@@ -463,10 +505,12 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesUsersRoute: DashboardroutesUsersRoute,
   DashboardroutesWarehousesRoute: DashboardroutesWarehousesRoute,
   DashboardroutesIndexRoute: DashboardroutesIndexRoute,
+  DashboardroutesInventoryIdRoute: DashboardroutesInventoryIdRoute,
   DashboardroutesInventoryIntakeRequestRoute:
     DashboardroutesInventoryIntakeRequestRoute,
   DashboardroutesInventoryNewRoute: DashboardroutesInventoryNewRoute,
   DashboardroutesChartsIndexRoute: DashboardroutesChartsIndexRoute,
+  DashboardroutesInventoryIndexRoute: DashboardroutesInventoryIndexRoute,
   DashboardroutesInventoryRequestQueueIdRoute:
     DashboardroutesInventoryRequestQueueIdRoute,
   DashboardroutesInventoryRequestQueueIndexRoute:

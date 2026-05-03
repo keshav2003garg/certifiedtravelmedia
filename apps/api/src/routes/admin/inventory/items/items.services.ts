@@ -1,8 +1,23 @@
 import db from '@/db';
 
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  isNull,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 
 import HttpError from '@repo/server-utils/errors/http-error';
+import {
+  createPaginatedResult,
+  getPaginationOffset,
+} from '@repo/server-utils/utils/pagination';
 import { roundDecimals } from '@repo/utils/number';
 
 import {
@@ -13,10 +28,23 @@ import {
   customers,
   inventoryItems,
   inventoryTransactions,
+  userSchema,
   warehouses,
 } from '@services/database/schemas';
 
-import type { CreateInventoryIntakeInput } from './items.types';
+import type { SQL } from 'drizzle-orm';
+import type {
+  CreateInventoryIntakeInput,
+  InventoryItemDetail,
+  ListInventoryItemsParams,
+  ListInventoryItemsResult,
+  ListInventoryItemTransactionsParams,
+  ListInventoryItemTransactionsResult,
+} from './items.types';
+
+function escapeLike(value: string) {
+  return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
 
 type InventoryItemWriteTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -35,6 +63,283 @@ class InventoryItemsService {
 
   private normalizeUnitsPerBox(value: number) {
     return roundDecimals(value, 2);
+  }
+
+  private buildListWhereClause(params: ListInventoryItemsParams) {
+    const conditions: SQL[] = [];
+
+    if (params.search) {
+      const pattern = `%${escapeLike(params.search)}%`;
+
+      conditions.push(
+        or(
+          sql`${brochures.name} ILIKE ${pattern} ESCAPE '\\'`,
+          sql`${customers.name} ILIKE ${pattern} ESCAPE '\\'`,
+        )!,
+      );
+    }
+
+    if (params.warehouseId) {
+      conditions.push(eq(inventoryItems.warehouseId, params.warehouseId));
+    }
+
+    if (params.brochureTypeId) {
+      conditions.push(eq(brochures.brochureTypeId, params.brochureTypeId));
+    }
+
+    if (params.stockLevel) {
+      conditions.push(eq(inventoryItems.stockLevel, params.stockLevel));
+    }
+
+    return conditions.length > 0 ? and(...conditions) : undefined;
+  }
+
+  private getListOrderBy(params: ListInventoryItemsParams) {
+    const sortBy = params.sortBy ?? 'brochureName';
+    const column =
+      sortBy === 'warehouseName'
+        ? warehouses.name
+        : sortBy === 'brochureTypeName'
+          ? brochureTypes.name
+          : sortBy === 'customerName'
+            ? customers.name
+            : sortBy === 'boxes'
+              ? inventoryItems.boxes
+              : sortBy === 'unitsPerBox'
+                ? brochureImagePackSizes.unitsPerBox
+                : sortBy === 'stockLevel'
+                  ? inventoryItems.stockLevel
+                  : sortBy === 'createdAt'
+                    ? inventoryItems.createdAt
+                    : sortBy === 'updatedAt'
+                      ? inventoryItems.updatedAt
+                      : brochures.name;
+
+    return params.order === 'desc'
+      ? [desc(column), desc(inventoryItems.id)]
+      : [asc(column), asc(inventoryItems.id)];
+  }
+
+  async list(
+    params: ListInventoryItemsParams,
+  ): Promise<ListInventoryItemsResult> {
+    const whereClause = this.buildListWhereClause(params);
+
+    const [countRows, rows] = await Promise.all([
+      db
+        .select({ total: count(inventoryItems.id) })
+        .from(inventoryItems)
+        .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+        .innerJoin(
+          brochureImagePackSizes,
+          eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+        )
+        .innerJoin(
+          brochureImages,
+          eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+        )
+        .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+        .innerJoin(
+          brochureTypes,
+          eq(brochures.brochureTypeId, brochureTypes.id),
+        )
+        .leftJoin(customers, eq(brochures.customerId, customers.id))
+        .where(whereClause),
+      db
+        .select({
+          id: inventoryItems.id,
+          warehouseId: inventoryItems.warehouseId,
+          brochureImagePackSizeId: inventoryItems.brochureImagePackSizeId,
+          boxes: inventoryItems.boxes,
+          stockLevel: inventoryItems.stockLevel,
+          qrCodeUrl: inventoryItems.qrCodeUrl,
+          createdAt: inventoryItems.createdAt,
+          updatedAt: inventoryItems.updatedAt,
+          warehouseName: warehouses.name,
+          warehouseAcumaticaId: warehouses.acumaticaId,
+          brochureId: brochures.id,
+          brochureName: brochures.name,
+          brochureTypeId: brochures.brochureTypeId,
+          brochureTypeName: brochureTypes.name,
+          customerId: brochures.customerId,
+          customerName: customers.name,
+          brochureImageId: brochureImages.id,
+          imageUrl: brochureImages.imageUrl,
+          unitsPerBox: brochureImagePackSizes.unitsPerBox,
+        })
+        .from(inventoryItems)
+        .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+        .innerJoin(
+          brochureImagePackSizes,
+          eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+        )
+        .innerJoin(
+          brochureImages,
+          eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+        )
+        .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+        .innerJoin(
+          brochureTypes,
+          eq(brochures.brochureTypeId, brochureTypes.id),
+        )
+        .leftJoin(customers, eq(brochures.customerId, customers.id))
+        .where(whereClause)
+        .orderBy(...this.getListOrderBy(params))
+        .limit(params.limit)
+        .offset(getPaginationOffset(params)),
+    ]);
+
+    return createPaginatedResult({
+      data: rows,
+      page: params.page,
+      limit: params.limit,
+      total: countRows[0]?.total ?? 0,
+    });
+  }
+
+  async getById(id: string): Promise<InventoryItemDetail> {
+    const [item] = await db
+      .select({
+        id: inventoryItems.id,
+        warehouseId: inventoryItems.warehouseId,
+        brochureImagePackSizeId: inventoryItems.brochureImagePackSizeId,
+        boxes: inventoryItems.boxes,
+        stockLevel: inventoryItems.stockLevel,
+        qrCodeUrl: inventoryItems.qrCodeUrl,
+        createdAt: inventoryItems.createdAt,
+        updatedAt: inventoryItems.updatedAt,
+        warehouseName: warehouses.name,
+        warehouseAcumaticaId: warehouses.acumaticaId,
+        warehouseAddress: warehouses.address,
+        brochureId: brochures.id,
+        brochureName: brochures.name,
+        brochureTypeId: brochures.brochureTypeId,
+        brochureTypeName: brochureTypes.name,
+        customerId: brochures.customerId,
+        customerName: customers.name,
+        brochureCreatedAt: brochures.createdAt,
+        brochureUpdatedAt: brochures.updatedAt,
+        brochureImageId: brochureImages.id,
+        imageUrl: brochureImages.imageUrl,
+        brochureImageCreatedAt: brochureImages.createdAt,
+        brochureImageUpdatedAt: brochureImages.updatedAt,
+        unitsPerBox: brochureImagePackSizes.unitsPerBox,
+        packSizeCreatedAt: brochureImagePackSizes.createdAt,
+        packSizeUpdatedAt: brochureImagePackSizes.updatedAt,
+      })
+      .from(inventoryItems)
+      .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+      .innerJoin(
+        brochureImagePackSizes,
+        eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+      )
+      .innerJoin(
+        brochureImages,
+        eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+      )
+      .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+      .innerJoin(brochureTypes, eq(brochures.brochureTypeId, brochureTypes.id))
+      .leftJoin(customers, eq(brochures.customerId, customers.id))
+      .where(eq(inventoryItems.id, id))
+      .limit(1);
+
+    if (!item) {
+      throw new HttpError(404, 'Inventory item not found', 'NOT_FOUND');
+    }
+
+    return item;
+  }
+
+  private buildTransactionWhereClause(
+    itemId: string,
+    params: ListInventoryItemTransactionsParams,
+  ) {
+    const conditions: SQL[] = [
+      eq(inventoryTransactions.inventoryItemId, itemId),
+    ];
+
+    if (params.transactionType) {
+      conditions.push(
+        eq(inventoryTransactions.transactionType, params.transactionType),
+      );
+    }
+
+    if (params.dateFrom) {
+      conditions.push(
+        gte(inventoryTransactions.transactionDate, params.dateFrom),
+      );
+    }
+
+    if (params.dateTo) {
+      conditions.push(
+        lte(inventoryTransactions.transactionDate, params.dateTo),
+      );
+    }
+
+    return and(...conditions);
+  }
+
+  async listTransactions(
+    itemId: string,
+    params: ListInventoryItemTransactionsParams,
+  ): Promise<ListInventoryItemTransactionsResult> {
+    const item = await db.query.inventoryItems.findFirst({
+      columns: { id: true },
+      where: eq(inventoryItems.id, itemId),
+    });
+
+    if (!item) {
+      throw new HttpError(404, 'Inventory item not found', 'NOT_FOUND');
+    }
+
+    const whereClause = this.buildTransactionWhereClause(itemId, params);
+
+    const [countRows, rows] = await Promise.all([
+      db
+        .select({ total: count(inventoryTransactions.id) })
+        .from(inventoryTransactions)
+        .where(whereClause),
+      db
+        .select({
+          id: inventoryTransactions.id,
+          inventoryItemId: inventoryTransactions.inventoryItemId,
+          transactionType: inventoryTransactions.transactionType,
+          transactionDate: inventoryTransactions.transactionDate,
+          boxes: inventoryTransactions.boxes,
+          balanceBeforeBoxes: inventoryTransactions.balanceBeforeBoxes,
+          balanceAfterBoxes: inventoryTransactions.balanceAfterBoxes,
+          requestId: inventoryTransactions.requestId,
+          transferGroupId: inventoryTransactions.transferGroupId,
+          sourceWarehouseId: inventoryTransactions.sourceWarehouseId,
+          destinationWarehouseId: inventoryTransactions.destinationWarehouseId,
+          notes: inventoryTransactions.notes,
+          createdBy: inventoryTransactions.createdBy,
+          createdByName: userSchema.name,
+          createdByEmail: userSchema.email,
+          createdAt: inventoryTransactions.createdAt,
+          updatedAt: inventoryTransactions.updatedAt,
+        })
+        .from(inventoryTransactions)
+        .leftJoin(
+          userSchema,
+          eq(inventoryTransactions.createdBy, userSchema.id),
+        )
+        .where(whereClause)
+        .orderBy(
+          desc(inventoryTransactions.transactionDate),
+          desc(inventoryTransactions.createdAt),
+          desc(inventoryTransactions.id),
+        )
+        .limit(params.limit)
+        .offset(getPaginationOffset(params)),
+    ]);
+
+    return createPaginatedResult({
+      data: rows,
+      page: params.page,
+      limit: params.limit,
+      total: countRows[0]?.total ?? 0,
+    });
   }
 
   private async assertIntakeReferences(

@@ -55,6 +55,14 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Warehouses - CTM Grid Admin',
       description: 'Manage warehouse configuration',
     },
+    '/dashboard/inventory': {
+      title: 'Inventory - CTM Grid Admin',
+      description: 'Review current inventory stock across warehouses',
+    },
+    '/dashboard/inventory/$id': {
+      title: 'Inventory Detail - CTM Grid Admin',
+      description: 'Review inventory item details and transactions',
+    },
     '/dashboard/users': {
       title: 'Users - CTM Grid Admin',
       description: 'Manage dashboard user accounts and permissions',

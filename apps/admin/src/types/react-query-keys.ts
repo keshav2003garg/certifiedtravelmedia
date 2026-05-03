@@ -25,6 +25,9 @@ export enum ReactQueryKeys {
   GET_SECTOR_CHART = 'GET::/admin/charts/sectors/:sectorId',
 
   // Inventory
+  GET_INVENTORY_ITEMS = 'GET::/admin/inventory/items',
+  GET_INVENTORY_ITEM = 'GET::/admin/inventory/items/:id',
+  GET_INVENTORY_ITEM_TRANSACTIONS = 'GET::/admin/inventory/items/:id/transactions',
   GET_INVENTORY_REQUESTS = 'GET::/admin/inventory/requests',
   GET_INVENTORY_REQUEST = 'GET::/admin/inventory/requests/:id',
   GET_INVENTORY_REQUEST_STATS = 'GET::/admin/inventory/requests/stats',
