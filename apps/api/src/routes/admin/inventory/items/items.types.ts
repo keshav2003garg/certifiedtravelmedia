@@ -1,11 +1,15 @@
+import type db from '@/db';
+
 import type { PaginatedResponse } from '@repo/server-utils/types/util.types';
 import type { z } from '@repo/utils/zod';
 import type {
   InventoryItem,
   InventoryTransaction,
+  InventoryTransactionInsert,
 } from '@services/database/types';
 import type {
   createInventoryIntakeValidator,
+  createInventoryItemTransactionValidator,
   getInventoryItemValidator,
   listInventoryItemsValidator,
   listInventoryItemTransactionsValidator,
@@ -60,8 +64,42 @@ export type CreateInventoryIntakeInput = z.infer<
   (typeof createInventoryIntakeValidator)['json']
 >;
 
+export type CreateInventoryItemTransactionInput = z.infer<
+  (typeof createInventoryItemTransactionValidator)['json']
+>;
+
+export type InventoryItemWriteTx = Parameters<
+  Parameters<typeof db.transaction>[0]
+>[0];
+
+export type InventoryItemRecord = InventoryItem;
+export type InventoryItemTransactionInsert = InventoryTransactionInsert;
+
+export type TransferInventoryItemTransactionInput = Extract<
+  CreateInventoryItemTransactionInput,
+  { transactionType: 'Transfer' }
+>;
+
+export type DirectInventoryItemTransactionInput = Exclude<
+  CreateInventoryItemTransactionInput,
+  TransferInventoryItemTransactionInput
+>;
+
 export interface InventoryIntakeResult {
   item: InventoryItem;
   transaction: InventoryTransaction;
   created: boolean;
+}
+
+export interface ResolvedIntakeCustomer {
+  id: string | null;
+  name: string | null;
+}
+
+export interface InventoryItemTransactionResult {
+  item: InventoryItem;
+  transaction: InventoryTransaction;
+  destinationItem?: InventoryItem;
+  destinationTransaction?: InventoryTransaction;
+  createdDestinationItem?: boolean;
 }

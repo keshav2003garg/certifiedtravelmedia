@@ -8,12 +8,14 @@ import { validator } from '@repo/server-utils/middlewares/validator.middleware';
 
 import {
   createInventoryIntakeHandler,
+  createInventoryItemTransactionHandler,
   getInventoryItemHandler,
   listInventoryItemsHandler,
   listInventoryItemTransactionsHandler,
 } from './items.handlers';
 import {
   createInventoryIntakeValidator,
+  createInventoryItemTransactionValidator,
   getInventoryItemValidator,
   listInventoryItemsValidator,
   listInventoryItemTransactionsValidator,
@@ -35,6 +37,13 @@ itemsRoute.get(
   isStaffOrAbove,
   validator(listInventoryItemTransactionsValidator),
   listInventoryItemTransactionsHandler,
+);
+
+itemsRoute.post(
+  '/:id/transactions',
+  isManagerOrAbove,
+  validator(createInventoryItemTransactionValidator),
+  createInventoryItemTransactionHandler,
 );
 
 itemsRoute.get(

@@ -26,6 +26,8 @@ const ALLOWED_INTAKE_TRANSACTION_TYPES = [
   (typeof transactionTypeEnum.enumValues)[number]
 >;
 
+const ADJUSTMENT_DIRECTIONS = ['Addition', 'Subtraction'] as const;
+
 const positiveBoxesSchema = z.coerce
   .number()
   .positive('Boxes must be greater than 0')
@@ -65,6 +67,12 @@ const transactionTypeFilterSchema = z
   .enum(transactionTypeEnum.enumValues)
   .optional();
 
+const detailTransactionBaseSchema = z.object({
+  boxes: positiveBoxesSchema,
+  transactionDate: z.iso.date('Transaction date must be a valid date'),
+  notes: optionalTextSchema(2000, 'Notes must be 2000 characters or less'),
+});
+
 const inventoryItemIdParamSchema = z.object({
   id: z.uuid('Invalid inventory item ID'),
 });
@@ -101,6 +109,30 @@ export const listInventoryItemTransactionsValidator = createValidatorSchema({
 });
 export type ListInventoryItemTransactionsContext = TypedContext<
   typeof listInventoryItemTransactionsValidator
+>;
+
+export const createInventoryItemTransactionValidator = createValidatorSchema({
+  param: inventoryItemIdParamSchema,
+  json: z.discriminatedUnion('transactionType', [
+    detailTransactionBaseSchema.extend({
+      transactionType: z.literal('Transfer'),
+      destinationWarehouseId: z.uuid('Destination warehouse is required'),
+    }),
+    detailTransactionBaseSchema.extend({
+      transactionType: z.literal('Return to Client'),
+    }),
+    detailTransactionBaseSchema.extend({
+      transactionType: z.literal('Recycle'),
+    }),
+    detailTransactionBaseSchema.extend({
+      transactionType: z.literal('Adjustment'),
+      adjustmentDirection: z.enum(ADJUSTMENT_DIRECTIONS),
+    }),
+  ]),
+});
+
+export type CreateInventoryItemTransactionContext = TypedContext<
+  typeof createInventoryItemTransactionValidator
 >;
 
 export const createInventoryIntakeValidator = createValidatorSchema({

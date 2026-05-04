@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
@@ -16,6 +18,7 @@ import {
   ExternalLink,
   FileImage,
   Loader2,
+  Plus,
   RefreshCw,
 } from '@repo/ui/lib/icons';
 import { formatShortDate } from '@repo/utils/date';
@@ -25,8 +28,10 @@ import DataPaginationControls from '@/components/common/data-pagination-controls
 
 import { useInventoryItems } from '@/hooks/useInventoryItems';
 import { useInventoryItemTransactionsFilters } from '@/hooks/useInventoryItems/useInventoryItemTransactionsFilters';
+import { useUserRole } from '@/hooks/useUserRole';
 
 import InventoryStockLevelBadge from '../components/inventory-stock-level-badge';
+import CreateInventoryTransactionDialog from './dialogues/create-inventory-transaction-dialog';
 import InventoryDetailSkeleton from './inventory-detail-skeleton';
 import InventoryTransactionsFilterBar from './inventory-transactions-filter-bar';
 import InventoryTransactionsTable from './inventory-transactions-table';
@@ -209,9 +214,13 @@ function InventoryTransactionsEmpty({ hasFilters }: { hasFilters: boolean }) {
 }
 
 function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
+  const { isManager } = useUserRole();
+
+  const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+
+  const transactionFilters = useInventoryItemTransactionsFilters();
   const { inventoryItemQueryOptions, inventoryItemTransactionsQueryOptions } =
     useInventoryItems();
-  const transactionFilters = useInventoryItemTransactionsFilters();
 
   const itemQuery = useQuery(inventoryItemQueryOptions(inventoryId));
   const transactionsQuery = useQuery(
@@ -257,24 +266,44 @@ function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
             Back to inventory
           </Link>
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            void itemQuery.refetch();
-            void transactionsQuery.refetch();
-          }}
-          disabled={itemQuery.isFetching || transactionsQuery.isFetching}
-        >
-          {itemQuery.isFetching || transactionsQuery.isFetching ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4" />
-          )}
-          Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {isManager ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsTransactionDialogOpen(true)}
+            >
+              <Plus className="size-4" />
+              Create transaction
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void itemQuery.refetch();
+              void transactionsQuery.refetch();
+            }}
+            disabled={itemQuery.isFetching || transactionsQuery.isFetching}
+          >
+            {itemQuery.isFetching || transactionsQuery.isFetching ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {isManager ? (
+        <CreateInventoryTransactionDialog
+          open={isTransactionDialogOpen}
+          onOpenChange={setIsTransactionDialogOpen}
+          item={item}
+        />
+      ) : null}
 
       <InventoryOverviewCard item={item} />
       <InventoryMetricCards item={item} />

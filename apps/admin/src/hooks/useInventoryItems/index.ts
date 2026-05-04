@@ -8,6 +8,7 @@ import { ReactQueryKeys } from '@/types/react-query-keys';
 
 import type {
   CreateInventoryIntakeRequest,
+  CreateInventoryItemTransactionRequest,
   GetInventoryItemRequest,
   ListInventoryItemsRequest,
   ListInventoryItemTransactionsRequest,
@@ -44,6 +45,20 @@ export function useInventoryItems() {
         `${INVENTORY_ITEMS_ENDPOINT}/intake`,
         { method: 'POST', body: payload },
       );
+
+      return response.data;
+    },
+    [],
+  );
+
+  const createInventoryItemTransaction = useCallback(
+    async ({ id, body }: CreateInventoryItemTransactionRequest['payload']) => {
+      const response = await api<
+        CreateInventoryItemTransactionRequest['response']
+      >(`${INVENTORY_ITEMS_ENDPOINT}/${id}/transactions`, {
+        method: 'POST',
+        body,
+      });
 
       return response.data;
     },
@@ -109,6 +124,19 @@ export function useInventoryItems() {
     },
   });
 
+  const createTransactionMutation = useMutation({
+    mutationFn: createInventoryItemTransaction,
+    meta: {
+      successMessage: 'Inventory transaction created successfully',
+      invalidateQueries: [
+        ReactQueryKeys.GET_INVENTORY_ITEMS,
+        ReactQueryKeys.GET_INVENTORY_ITEM,
+        ReactQueryKeys.GET_INVENTORY_ITEM_TRANSACTIONS,
+        ReactQueryKeys.GET_INVENTORY_MONTH_END_COUNTS,
+      ],
+    },
+  });
+
   return {
     getInventoryItem,
     getInventoryItemTransactions,
@@ -116,5 +144,6 @@ export function useInventoryItems() {
     inventoryItemQueryOptions,
     inventoryItemTransactionsQueryOptions,
     createIntakeMutation,
+    createTransactionMutation,
   };
 }

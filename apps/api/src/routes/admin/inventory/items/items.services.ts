@@ -1,5 +1,7 @@
 import db from '@/db';
 
+import { randomUUID } from 'node:crypto';
+
 import {
   and,
   asc,
@@ -35,25 +37,28 @@ import {
 import type { SQL } from 'drizzle-orm';
 import type {
   CreateInventoryIntakeInput,
+  CreateInventoryItemTransactionInput,
+  DirectInventoryItemTransactionInput,
   InventoryItemDetail,
+  InventoryItemRecord,
+  InventoryItemTransactionInsert,
+  InventoryItemTransactionResult,
+  InventoryItemWriteTx,
   ListInventoryItemsParams,
   ListInventoryItemsResult,
   ListInventoryItemTransactionsParams,
   ListInventoryItemTransactionsResult,
+  ResolvedIntakeCustomer,
+  TransferInventoryItemTransactionInput,
 } from './items.types';
 
-function escapeLike(value: string) {
-  return value.replace(/[\\%_]/g, (match) => `\\${match}`);
-}
-
-type InventoryItemWriteTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-interface ResolvedIntakeCustomer {
-  id: string | null;
-  name: string | null;
-}
-
 class InventoryItemsService {
+  private static readonly DECIMAL_EPSILON = 0.000_001;
+
+  private escapeLike(value: string) {
+    return value.replace(/[\\_%]/g, (match) => `\\${match}`);
+  }
+
   private normalizeNullableString(value: string | undefined) {
     if (!value) return null;
 
@@ -69,7 +74,7 @@ class InventoryItemsService {
     const conditions: SQL[] = [];
 
     if (params.search) {
-      const pattern = `%${escapeLike(params.search)}%`;
+      const pattern = `%${this.escapeLike(params.search)}%`;
 
       conditions.push(
         or(
@@ -625,6 +630,298 @@ class InventoryItemsService {
     return transaction;
   }
 
+  private async getInventoryItemRecord(
+    tx: InventoryItemWriteTx,
+    itemId: string,
+  ) {
+    const item = await tx.query.inventoryItems.findFirst({
+      where: eq(inventoryItems.id, itemId),
+    });
+
+    if (!item) {
+      throw new HttpError(404, 'Inventory item not found', 'NOT_FOUND');
+    }
+
+    return item;
+  }
+
+  private async assertActiveDestinationWarehouse(
+    tx: InventoryItemWriteTx,
+    warehouseId: string,
+  ) {
+    const warehouse = await tx.query.warehouses.findFirst({
+      columns: { id: true },
+      where: and(eq(warehouses.id, warehouseId), eq(warehouses.isActive, true)),
+    });
+
+    if (!warehouse) {
+      throw new HttpError(404, 'Destination warehouse not found', 'NOT_FOUND');
+    }
+  }
+
+  private assertCanReduceStock(params: {
+    balanceBeforeBoxes: number;
+    boxes: number;
+    action: string;
+  }) {
+    if (
+      params.boxes <=
+      params.balanceBeforeBoxes + InventoryItemsService.DECIMAL_EPSILON
+    ) {
+      return;
+    }
+
+    throw new HttpError(
+      400,
+      `${params.action} boxes cannot exceed the current inventory balance`,
+      'BAD_REQUEST',
+    );
+  }
+
+  private async updateInventoryBalance(params: {
+    tx: InventoryItemWriteTx;
+    itemId: string;
+    balanceAfterBoxes: number;
+  }) {
+    const [item] = await params.tx
+      .update(inventoryItems)
+      .set({
+        boxes: params.balanceAfterBoxes,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(inventoryItems.id, params.itemId))
+      .returning();
+
+    if (!item) {
+      throw new HttpError(
+        500,
+        'Failed to update inventory balance',
+        'INTERNAL_SERVER',
+      );
+    }
+
+    return item;
+  }
+
+  private async recordDetailTransaction(params: {
+    tx: InventoryItemWriteTx;
+    itemId: string;
+    transactionType: InventoryItemTransactionInsert['transactionType'];
+    transactionDate: string;
+    boxes: number;
+    balanceBeforeBoxes: number;
+    balanceAfterBoxes: number;
+    userId: string;
+    notes?: string;
+    transferGroupId?: string;
+    sourceWarehouseId?: string;
+    destinationWarehouseId?: string;
+  }) {
+    const [transaction] = await params.tx
+      .insert(inventoryTransactions)
+      .values({
+        inventoryItemId: params.itemId,
+        transactionType: params.transactionType,
+        transactionDate: params.transactionDate,
+        boxes: params.boxes,
+        balanceBeforeBoxes: params.balanceBeforeBoxes,
+        balanceAfterBoxes: params.balanceAfterBoxes,
+        transferGroupId: params.transferGroupId,
+        sourceWarehouseId: params.sourceWarehouseId,
+        destinationWarehouseId: params.destinationWarehouseId,
+        notes: this.normalizeNullableString(params.notes),
+        createdBy: params.userId,
+      })
+      .returning();
+
+    if (!transaction) {
+      throw new HttpError(
+        500,
+        'Failed to record inventory transaction',
+        'INTERNAL_SERVER',
+      );
+    }
+
+    return transaction;
+  }
+
+  private async createDirectTransaction(params: {
+    tx: InventoryItemWriteTx;
+    item: InventoryItemRecord;
+    values: DirectInventoryItemTransactionInput;
+    boxes: number;
+    userId: string;
+  }): Promise<InventoryItemTransactionResult> {
+    const balanceBefore = params.item.boxes;
+    const isAddition =
+      params.values.transactionType === 'Adjustment' &&
+      params.values.adjustmentDirection === 'Addition';
+
+    if (!isAddition) {
+      this.assertCanReduceStock({
+        balanceBeforeBoxes: balanceBefore,
+        boxes: params.boxes,
+        action: params.values.transactionType,
+      });
+    }
+
+    const balanceAfter = roundDecimals(
+      isAddition ? balanceBefore + params.boxes : balanceBefore - params.boxes,
+    );
+    const item = await this.updateInventoryBalance({
+      tx: params.tx,
+      itemId: params.item.id,
+      balanceAfterBoxes: balanceAfter,
+    });
+    const transaction = await this.recordDetailTransaction({
+      tx: params.tx,
+      itemId: params.item.id,
+      transactionType: params.values.transactionType,
+      transactionDate: params.values.transactionDate,
+      boxes: params.boxes,
+      balanceBeforeBoxes: balanceBefore,
+      balanceAfterBoxes: balanceAfter,
+      notes: params.values.notes,
+      userId: params.userId,
+    });
+
+    return { item, transaction };
+  }
+
+  private async upsertTransferDestination(params: {
+    tx: InventoryItemWriteTx;
+    sourceItem: InventoryItemRecord;
+    destinationWarehouseId: string;
+    boxes: number;
+  }) {
+    const existing = await params.tx.query.inventoryItems.findFirst({
+      where: and(
+        eq(inventoryItems.warehouseId, params.destinationWarehouseId),
+        eq(
+          inventoryItems.brochureImagePackSizeId,
+          params.sourceItem.brochureImagePackSizeId,
+        ),
+      ),
+    });
+
+    const balanceBefore = existing?.boxes ?? 0;
+    const balanceAfter = roundDecimals(balanceBefore + params.boxes);
+
+    if (existing) {
+      const item = await this.updateInventoryBalance({
+        tx: params.tx,
+        itemId: existing.id,
+        balanceAfterBoxes: balanceAfter,
+      });
+
+      return { item, balanceBefore, balanceAfter, created: false };
+    }
+
+    const [item] = await params.tx
+      .insert(inventoryItems)
+      .values({
+        warehouseId: params.destinationWarehouseId,
+        brochureImagePackSizeId: params.sourceItem.brochureImagePackSizeId,
+        boxes: balanceAfter,
+        stockLevel: 'On Target',
+      })
+      .returning();
+
+    if (!item) {
+      throw new HttpError(
+        500,
+        'Failed to create destination inventory item',
+        'INTERNAL_SERVER',
+      );
+    }
+
+    return { item, balanceBefore, balanceAfter, created: true };
+  }
+
+  private async createTransferTransaction(params: {
+    tx: InventoryItemWriteTx;
+    sourceItem: InventoryItemRecord;
+    values: TransferInventoryItemTransactionInput;
+    boxes: number;
+    userId: string;
+  }): Promise<InventoryItemTransactionResult> {
+    if (
+      params.values.destinationWarehouseId === params.sourceItem.warehouseId
+    ) {
+      throw new HttpError(
+        400,
+        'Destination warehouse must be different from the current warehouse',
+        'BAD_REQUEST',
+      );
+    }
+
+    await this.assertActiveDestinationWarehouse(
+      params.tx,
+      params.values.destinationWarehouseId,
+    );
+
+    const sourceBalanceBefore = params.sourceItem.boxes;
+    this.assertCanReduceStock({
+      balanceBeforeBoxes: sourceBalanceBefore,
+      boxes: params.boxes,
+      action: 'Transfer',
+    });
+
+    const sourceBalanceAfter = roundDecimals(
+      sourceBalanceBefore - params.boxes,
+    );
+    const sourceItem = await this.updateInventoryBalance({
+      tx: params.tx,
+      itemId: params.sourceItem.id,
+      balanceAfterBoxes: sourceBalanceAfter,
+    });
+    const destination = await this.upsertTransferDestination({
+      tx: params.tx,
+      sourceItem: params.sourceItem,
+      destinationWarehouseId: params.values.destinationWarehouseId,
+      boxes: params.boxes,
+    });
+    const transferGroupId = randomUUID();
+    const [sourceTransaction, destinationTransaction] = await Promise.all([
+      this.recordDetailTransaction({
+        tx: params.tx,
+        itemId: params.sourceItem.id,
+        transactionType: 'Trans Out',
+        transactionDate: params.values.transactionDate,
+        boxes: params.boxes,
+        balanceBeforeBoxes: sourceBalanceBefore,
+        balanceAfterBoxes: sourceBalanceAfter,
+        transferGroupId,
+        sourceWarehouseId: params.sourceItem.warehouseId,
+        destinationWarehouseId: params.values.destinationWarehouseId,
+        notes: params.values.notes,
+        userId: params.userId,
+      }),
+      this.recordDetailTransaction({
+        tx: params.tx,
+        itemId: destination.item.id,
+        transactionType: 'Trans In',
+        transactionDate: params.values.transactionDate,
+        boxes: params.boxes,
+        balanceBeforeBoxes: destination.balanceBefore,
+        balanceAfterBoxes: destination.balanceAfter,
+        transferGroupId,
+        sourceWarehouseId: params.sourceItem.warehouseId,
+        destinationWarehouseId: params.values.destinationWarehouseId,
+        notes: params.values.notes,
+        userId: params.userId,
+      }),
+    ]);
+
+    return {
+      item: sourceItem,
+      transaction: sourceTransaction,
+      destinationItem: destination.item,
+      destinationTransaction,
+      createdDestinationItem: destination.created,
+    };
+  }
+
   async intake(values: CreateInventoryIntakeInput, userId: string) {
     return db.transaction(async (tx) => {
       await this.assertIntakeReferences(tx, values);
@@ -674,6 +971,35 @@ class InventoryItemsService {
         image,
         packSize,
       };
+    });
+  }
+
+  async createTransaction(
+    itemId: string,
+    values: CreateInventoryItemTransactionInput,
+    userId: string,
+  ): Promise<InventoryItemTransactionResult> {
+    return db.transaction(async (tx) => {
+      const item = await this.getInventoryItemRecord(tx, itemId);
+      const boxes = roundDecimals(values.boxes);
+
+      if (values.transactionType === 'Transfer') {
+        return this.createTransferTransaction({
+          tx,
+          sourceItem: item,
+          values,
+          boxes,
+          userId,
+        });
+      }
+
+      return this.createDirectTransaction({
+        tx,
+        item,
+        values,
+        boxes,
+        userId,
+      });
     });
   }
 }

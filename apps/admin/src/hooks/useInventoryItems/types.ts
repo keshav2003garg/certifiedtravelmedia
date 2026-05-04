@@ -17,6 +17,15 @@ export type InventoryIntakeTransactionType = Extract<
   'Delivery' | 'Start Count'
 >;
 
+export type InventoryItemTransactionActionType =
+  | 'Transfer'
+  | Extract<
+      InventoryTransactionType,
+      'Return to Client' | 'Recycle' | 'Adjustment'
+    >;
+
+export type InventoryAdjustmentDirection = 'Addition' | 'Subtraction';
+
 export type InventoryItemSortBy =
   | 'warehouseName'
   | 'brochureName'
@@ -108,6 +117,27 @@ export type CreateInventoryIntakePayload = {
   notes?: string;
 };
 
+export type CreateInventoryItemTransactionPayload = {
+  boxes: number;
+  transactionDate: string;
+  notes?: string;
+} & (
+  | {
+      transactionType: 'Transfer';
+      destinationWarehouseId: string;
+    }
+  | {
+      transactionType: Extract<
+        InventoryTransactionType,
+        'Return to Client' | 'Recycle'
+      >;
+    }
+  | {
+      transactionType: 'Adjustment';
+      adjustmentDirection: InventoryAdjustmentDirection;
+    }
+);
+
 export type ListInventoryItemsRequest = ApiData<
   {
     page?: number;
@@ -152,5 +182,19 @@ export type CreateInventoryIntakeRequest = ApiData<
     item: InventoryItem;
     transaction: InventoryTransaction;
     created: boolean;
+  }
+>;
+
+export type CreateInventoryItemTransactionRequest = ApiData<
+  {
+    id: string;
+    body: CreateInventoryItemTransactionPayload;
+  },
+  {
+    item: InventoryItem;
+    transaction: InventoryTransaction;
+    destinationItem?: InventoryItem;
+    destinationTransaction?: InventoryTransaction;
+    createdDestinationItem?: boolean;
   }
 >;

@@ -4,6 +4,7 @@ import { inventoryItemsService } from './items.services';
 
 import type {
   CreateInventoryIntakeContext,
+  CreateInventoryItemTransactionContext,
   GetInventoryItemContext,
   ListInventoryItemsContext,
   ListInventoryItemTransactionsContext,
@@ -67,4 +68,25 @@ export async function createInventoryIntakeHandler(
       created: result.created,
     },
   );
+}
+
+export async function createInventoryItemTransactionHandler(
+  ctx: CreateInventoryItemTransactionContext,
+) {
+  const user = ctx.get('user')!;
+  const { id } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+  const result = await inventoryItemsService.createTransaction(
+    id,
+    body,
+    user.id,
+  );
+
+  return sendResponse(ctx, 201, 'Inventory transaction created successfully', {
+    item: result.item,
+    transaction: result.transaction,
+    destinationItem: result.destinationItem,
+    destinationTransaction: result.destinationTransaction,
+    createdDestinationItem: result.createdDestinationItem,
+  });
 }
