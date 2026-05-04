@@ -102,39 +102,70 @@ export interface CustomerYearlyReportPeriod {
   endDate: string;
 }
 
-export type CustomerYearlyReportItem = InventoryMonthlyReportItem;
-
-export interface CustomerYearlyReportMonth {
-  month: number;
-  year: number;
-  label: string;
-  startDate: string;
-  endDate: string;
-  inventoryItemCount: number;
+export interface CustomerYearlyReportVariant {
+  inventoryItemId: string;
+  brochureImagePackSizeId: string;
+  brochureImageId: string;
+  imageUrl: string | null;
+  unitsPerBox: number;
   transactionCount: number;
-  startingBalanceBoxes: number;
-  startingBalanceUnits: number;
-  endingBalanceBoxes: number;
-  endingBalanceUnits: number;
-  netMovementBoxes: number;
-  netMovementUnits: number;
-  items: CustomerYearlyReportItem[];
+  distributionBoxes: number;
+  distributionUnits: number;
+}
+
+export interface CustomerYearlyReportBrochure {
+  id: string;
+  name: string;
+  brochureTypeId: string;
+  brochureTypeName: string;
+  transactionCount: number;
+  variantCount: number;
+  distributionBoxes: number;
+  distributionUnits: number;
+  variants: CustomerYearlyReportVariant[];
+}
+
+export interface CustomerYearlyReportWarehouse {
+  id: string;
+  name: string;
+  acumaticaId: string | null;
+  address: string | null;
+  transactionCount: number;
+  brochureCount: number;
+  variantCount: number;
+  distributionBoxes: number;
+  distributionUnits: number;
+  brochures: CustomerYearlyReportBrochure[];
 }
 
 export interface CustomerYearlyReportSummary {
-  inventoryItemCount: number;
+  warehouseCount: number;
+  brochureCount: number;
+  variantCount: number;
   transactionCount: number;
-  startingBalanceBoxes: number;
-  startingBalanceUnits: number;
-  endingBalanceBoxes: number;
-  endingBalanceUnits: number;
-  netMovementBoxes: number;
-  netMovementUnits: number;
+  distributionBoxes: number;
+  distributionUnits: number;
 }
 
 export interface CustomerYearlyReportResult {
   customer: CustomerYearlyReportCustomer;
   period: CustomerYearlyReportPeriod;
   summary: CustomerYearlyReportSummary;
-  months: CustomerYearlyReportMonth[];
+  warehouses: CustomerYearlyReportWarehouse[];
+}
+
+export interface CustomerYearlyBrochureAggregate extends Omit<
+  CustomerYearlyReportBrochure,
+  'variants'
+> {
+  variants: CustomerYearlyReportVariant[];
+  variantMap: Map<string, CustomerYearlyReportVariant>;
+}
+
+export interface CustomerYearlyWarehouseAggregate extends Omit<
+  CustomerYearlyReportWarehouse,
+  'brochures'
+> {
+  brochures: CustomerYearlyBrochureAggregate[];
+  brochureMap: Map<string, CustomerYearlyBrochureAggregate>;
 }

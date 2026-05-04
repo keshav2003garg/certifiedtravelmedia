@@ -1,11 +1,19 @@
 import PDFDocument from 'pdfkit';
 
-import type { CustomerYearlyReportResult } from '@/routes/admin/reports/reports.types';
+import type {
+  CustomerYearlyReportBrochure,
+  CustomerYearlyReportResult,
+  CustomerYearlyReportVariant,
+  CustomerYearlyReportWarehouse,
+} from '@/routes/admin/reports/reports.types';
 
 const PAGE_WIDTH = 792;
 const PAGE_HEIGHT = 612;
 const MARGIN = 30;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+const TABLE_X = MARGIN + 12;
+const TABLE_WIDTH = CONTENT_WIDTH - 24;
+const VARIANT_COLUMN_WIDTHS = [64, 220, 140, 140, 144] as const;
 
 function finalize(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -24,16 +32,6 @@ function formatNumber(value: number) {
   }).format(value);
 }
 
-function formatMovement(value: number) {
-  if (value > 0) return `+${formatNumber(value)}`;
-  return formatNumber(value);
-}
-
-function formatDate(value: string) {
-  const [year, month, day] = value.split('-');
-  return `${month}/${day}/${year}`;
-}
-
 function safeFilename(value: string) {
   return value.replace(/[^a-zA-Z0-9-_]/g, '_');
 }
@@ -45,6 +43,7 @@ function truncate(value: string, maxLength: number) {
 
 function ensureSpace(doc: PDFKit.PDFDocument, height: number) {
   if (doc.y + height <= PAGE_HEIGHT - MARGIN) return;
+
   doc.addPage();
 }
 
@@ -57,6 +56,92 @@ function drawRule(doc: PDFKit.PDFDocument, y = doc.y) {
     .stroke();
 }
 
+async function loadImageBuffer(url: string | null) {
+  if (!url) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1200);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.startsWith('image/')) return null;
+
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function loadReportImages(report: CustomerYearlyReportResult) {
+  const imageUrls = new Map<string, string | null>();
+
+  for (const warehouse of report.warehouses) {
+    for (const brochure of warehouse.brochures) {
+      for (const variant of brochure.variants) {
+        if (!imageUrls.has(variant.brochureImageId)) {
+          imageUrls.set(variant.brochureImageId, variant.imageUrl);
+        }
+      }
+    }
+  }
+
+  const imageEntries = await Promise.all(
+    Array.from(imageUrls.entries()).map(
+      async ([imageId, imageUrl]) =>
+        [imageId, await loadImageBuffer(imageUrl)] as const,
+    ),
+  );
+
+  return new Map(imageEntries);
+}
+
+function drawImagePlaceholder(
+  doc: PDFKit.PDFDocument,
+  x: number,
+  y: number,
+  size: number,
+) {
+  doc
+    .roundedRect(x, y, size, size, 4)
+    .fillAndStroke('#f3f4f6', '#d1d5db')
+    .font('Helvetica')
+    .fontSize(6.5)
+    .fillColor('#6b7280')
+    .text('No image', x + 3, y + size / 2 - 4, {
+      width: size - 6,
+      align: 'center',
+    });
+}
+
+function drawReportImage(
+  doc: PDFKit.PDFDocument,
+  imageBuffer: Buffer | null | undefined,
+  x: number,
+  y: number,
+  size = 34,
+) {
+  if (!imageBuffer) {
+    drawImagePlaceholder(doc, x, y, size);
+    return;
+  }
+
+  try {
+    doc.roundedRect(x, y, size, size, 4).strokeColor('#d1d5db').stroke();
+    doc.image(imageBuffer, x, y, {
+      fit: [size, size],
+      align: 'center',
+      valign: 'center',
+    });
+  } catch {
+    drawImagePlaceholder(doc, x, y, size);
+  }
+}
+
 function drawHeader(
   doc: PDFKit.PDFDocument,
   report: CustomerYearlyReportResult,
@@ -65,7 +150,7 @@ function drawHeader(
     .font('Helvetica-Bold')
     .fontSize(17)
     .fillColor('#111827')
-    .text('Customer Year-End Inventory Report', MARGIN, MARGIN);
+    .text('Customer Year-End Distribution Report', MARGIN, MARGIN);
 
   doc
     .font('Helvetica')
@@ -98,12 +183,12 @@ function drawSummary(
   report: CustomerYearlyReportResult,
 ) {
   const columns = [
-    ['Items', formatNumber(report.summary.inventoryItemCount)],
+    ['Warehouses', formatNumber(report.summary.warehouseCount)],
+    ['Brochures', formatNumber(report.summary.brochureCount)],
+    ['Image/unit variants', formatNumber(report.summary.variantCount)],
+    ['Distributed boxes', formatNumber(report.summary.distributionBoxes)],
+    ['Distributed units', formatNumber(report.summary.distributionUnits)],
     ['Transactions', formatNumber(report.summary.transactionCount)],
-    ['Year start', formatNumber(report.summary.startingBalanceBoxes)],
-    ['Year end', formatNumber(report.summary.endingBalanceBoxes)],
-    ['Net movement', formatMovement(report.summary.netMovementBoxes)],
-    ['Ending units', formatNumber(report.summary.endingBalanceUnits)],
   ] as const;
   const cellWidth = CONTENT_WIDTH / columns.length;
   const startY = doc.y;
@@ -136,16 +221,16 @@ function drawSummary(
   doc.y = startY + 56;
 }
 
-function drawMonthHeader(
+function drawWarehouseHeader(
   doc: PDFKit.PDFDocument,
-  month: CustomerYearlyReportResult['months'][number],
+  warehouse: CustomerYearlyReportWarehouse,
 ) {
-  ensureSpace(doc, 72);
+  ensureSpace(doc, 74);
 
   const startY = doc.y;
-  doc.roundedRect(MARGIN, startY, CONTENT_WIDTH, 50, 5).fill('#f9fafb');
+  doc.roundedRect(MARGIN, startY, CONTENT_WIDTH, 52, 5).fill('#f9fafb');
   doc
-    .roundedRect(MARGIN, startY, CONTENT_WIDTH, 50, 5)
+    .roundedRect(MARGIN, startY, CONTENT_WIDTH, 52, 5)
     .strokeColor('#e5e7eb')
     .stroke();
 
@@ -153,193 +238,240 @@ function drawMonthHeader(
     .font('Helvetica-Bold')
     .fontSize(11)
     .fillColor('#111827')
-    .text(month.label, MARGIN + 12, startY + 11, { width: 150 });
-  doc
-    .font('Helvetica')
-    .fontSize(8)
-    .fillColor('#6b7280')
-    .text(`${month.transactionCount} transactions`, MARGIN + 12, startY + 29, {
-      width: 150,
-    });
-
-  const metrics = [
-    ['Start', formatNumber(month.startingBalanceBoxes)],
-    ['Movement', formatMovement(month.netMovementBoxes)],
-    ['End', formatNumber(month.endingBalanceBoxes)],
-    ['End units', formatNumber(month.endingBalanceUnits)],
-  ] as const;
-
-  metrics.forEach(([label, value], index) => {
-    const x = MARGIN + 258 + index * 112;
-    doc
-      .font('Helvetica')
-      .fontSize(7.5)
-      .fillColor('#6b7280')
-      .text(label, x, startY + 10, { width: 96, align: 'right' });
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(10.5)
-      .fillColor('#111827')
-      .text(value, x, startY + 27, { width: 96, align: 'right' });
-  });
-
-  doc.y = startY + 62;
-}
-
-function drawTransactionTable(
-  doc: PDFKit.PDFDocument,
-  item: CustomerYearlyReportResult['months'][number]['items'][number],
-) {
-  const tableX = MARGIN + 24;
-  const widths = [58, 90, 68, 68, 68, 298];
-  const headers = ['Date', 'Type', 'Move', 'Before', 'After', 'Notes'];
-
-  let y = doc.y;
-  doc.rect(tableX, y, CONTENT_WIDTH - 24, 19).fill('#eef2ff');
-  doc
-    .strokeColor('#c7d2fe')
-    .rect(tableX, y, CONTENT_WIDTH - 24, 19)
-    .stroke();
-
-  let x = tableX;
-  headers.forEach((header, index) => {
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(7.3)
-      .fillColor('#312e81')
-      .text(header, x + 5, y + 6, { width: widths[index]! - 10 });
-    x += widths[index]!;
-  });
-
-  doc.y = y + 19;
-
-  for (const transaction of item.transactions) {
-    ensureSpace(doc, 24);
-    y = doc.y;
-    doc
-      .rect(tableX, y, CONTENT_WIDTH - 24, 22)
-      .strokeColor('#e5e7eb')
-      .stroke();
-
-    const values = [
-      formatDate(transaction.transactionDate),
-      transaction.transactionType,
-      formatMovement(transaction.movementBoxes),
-      formatNumber(transaction.balanceBeforeBoxes),
-      formatNumber(transaction.balanceAfterBoxes),
-      transaction.notes ? truncate(transaction.notes, 112) : '-',
-    ];
-
-    x = tableX;
-    values.forEach((value, index) => {
-      doc
-        .font(index === 2 ? 'Helvetica-Bold' : 'Helvetica')
-        .fontSize(7.3)
-        .fillColor(index === 2 ? '#111827' : '#374151')
-        .text(value, x + 5, y + 7, {
-          width: widths[index]! - 10,
-          align: index >= 2 && index <= 4 ? 'right' : 'left',
-        });
-      x += widths[index]!;
-    });
-
-    doc.y = y + 22;
-  }
-
-  doc.y += 10;
-}
-
-function drawItemTransactions(
-  doc: PDFKit.PDFDocument,
-  item: CustomerYearlyReportResult['months'][number]['items'][number],
-) {
-  ensureSpace(doc, 58);
-
-  const startY = doc.y;
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(9.2)
-    .fillColor('#111827')
-    .text(truncate(item.brochureName, 54), MARGIN + 24, startY, {
-      width: 265,
+    .text(truncate(warehouse.name, 44), MARGIN + 12, startY + 10, {
+      width: 240,
     });
   doc
     .font('Helvetica')
     .fontSize(7.5)
     .fillColor('#6b7280')
     .text(
-      `${item.warehouseName} - ${item.brochureTypeName} - ${formatNumber(item.unitsPerBox)} units/box`,
-      MARGIN + 24,
-      startY + 14,
-      { width: 335 },
+      warehouse.acumaticaId ? `Acumatica: ${warehouse.acumaticaId}` : '',
+      MARGIN + 12,
+      startY + 28,
+      { width: 240 },
     );
 
-  const balances = [
-    ['Start', formatNumber(item.startingBalanceBoxes)],
-    ['End', formatNumber(item.endingBalanceBoxes)],
-    ['Move', formatMovement(item.netMovementBoxes)],
+  const metrics = [
+    ['Distributed boxes', formatNumber(warehouse.distributionBoxes)],
+    ['Distributed units', formatNumber(warehouse.distributionUnits)],
+    ['Brochures', formatNumber(warehouse.brochureCount)],
+    ['Transactions', formatNumber(warehouse.transactionCount)],
   ] as const;
 
-  balances.forEach(([label, value], index) => {
-    const x = MARGIN + 440 + index * 86;
+  metrics.forEach(([label, value], index) => {
+    const x = MARGIN + 274 + index * 112;
     doc
       .font('Helvetica')
-      .fontSize(7)
+      .fontSize(7.2)
       .fillColor('#6b7280')
-      .text(label, x, startY, { width: 74, align: 'right' });
+      .text(label, x, startY + 10, { width: 96, align: 'right' });
     doc
       .font('Helvetica-Bold')
-      .fontSize(8.5)
+      .fontSize(10)
       .fillColor('#111827')
-      .text(value, x, startY + 13, { width: 74, align: 'right' });
+      .text(value, x, startY + 27, { width: 96, align: 'right' });
   });
 
-  doc.y = startY + 30;
-  drawTransactionTable(doc, item);
+  doc.y = startY + 66;
 }
 
-function drawMonth(
+function drawBrochureHeader(
   doc: PDFKit.PDFDocument,
-  month: CustomerYearlyReportResult['months'][number],
+  brochure: CustomerYearlyReportBrochure,
 ) {
-  drawMonthHeader(doc, month);
+  ensureSpace(doc, 56);
 
-  const transactionItems = month.items.filter(
-    (item) => item.transactionCount > 0,
-  );
+  const startY = doc.y;
+  doc.roundedRect(TABLE_X, startY, TABLE_WIDTH, 34, 4).fill('#eef2ff');
+  doc
+    .roundedRect(TABLE_X, startY, TABLE_WIDTH, 34, 4)
+    .strokeColor('#c7d2fe')
+    .stroke();
 
-  if (transactionItems.length === 0) {
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(9.2)
+    .fillColor('#111827')
+    .text(
+      `${truncate(brochure.name, 58)} - ${formatNumber(brochure.distributionBoxes)} distributed boxes`,
+      TABLE_X + 10,
+      startY + 7,
+      { width: 420 },
+    );
+  doc
+    .font('Helvetica')
+    .fontSize(7.3)
+    .fillColor('#4b5563')
+    .text(
+      `${brochure.brochureTypeName} - ${formatNumber(brochure.variantCount)} image/unit variants`,
+      TABLE_X + 10,
+      startY + 20,
+      { width: 420 },
+    );
+
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(8.5)
+    .fillColor('#312e81')
+    .text(
+      `${formatNumber(brochure.distributionUnits)} units`,
+      TABLE_X + 514,
+      startY + 7,
+      {
+        width: 86,
+        align: 'right',
+      },
+    )
+    .text(
+      `${formatNumber(brochure.transactionCount)} txns`,
+      TABLE_X + 612,
+      startY + 7,
+      {
+        width: 76,
+        align: 'right',
+      },
+    );
+
+  doc.y = startY + 42;
+}
+
+function drawVariantTableHeader(doc: PDFKit.PDFDocument) {
+  ensureSpace(doc, 24);
+
+  const headers = [
+    'Image',
+    'Units per box',
+    'Distributed boxes',
+    'Distributed units',
+    'Transactions',
+  ];
+  const startY = doc.y;
+
+  doc.rect(TABLE_X, startY, TABLE_WIDTH, 18).fill('#f3f4f6');
+  doc.strokeColor('#e5e7eb').rect(TABLE_X, startY, TABLE_WIDTH, 18).stroke();
+
+  let x = TABLE_X;
+  headers.forEach((header, index) => {
     doc
-      .font('Helvetica')
-      .fontSize(8)
-      .fillColor('#6b7280')
-      .text(
-        'No recorded transactions for this customer in this month.',
-        MARGIN + 24,
-        doc.y,
-        {
-          width: CONTENT_WIDTH - 24,
-        },
-      );
-    doc.y += 22;
-    return;
+      .font('Helvetica-Bold')
+      .fontSize(7.2)
+      .fillColor('#374151')
+      .text(header, x + 6, startY + 5.5, {
+        width: VARIANT_COLUMN_WIDTHS[index]! - 12,
+        align: index >= 2 ? 'right' : 'left',
+      });
+    x += VARIANT_COLUMN_WIDTHS[index]!;
+  });
+
+  doc.y = startY + 18;
+}
+
+function drawVariantRow(params: {
+  doc: PDFKit.PDFDocument;
+  variant: CustomerYearlyReportVariant;
+  imageBuffer: Buffer | null | undefined;
+}) {
+  const { doc, imageBuffer, variant } = params;
+  ensureSpace(doc, 50);
+
+  const rowY = doc.y;
+  doc.rect(TABLE_X, rowY, TABLE_WIDTH, 46).fill('#ffffff');
+  doc.strokeColor('#e5e7eb').rect(TABLE_X, rowY, TABLE_WIDTH, 46).stroke();
+
+  let x = TABLE_X;
+  drawReportImage(doc, imageBuffer, x + 15, rowY + 6, 34);
+  x += VARIANT_COLUMN_WIDTHS[0];
+
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(8.4)
+    .fillColor('#111827')
+    .text(`${formatNumber(variant.unitsPerBox)} units/box`, x + 6, rowY + 12, {
+      width: VARIANT_COLUMN_WIDTHS[1] - 12,
+    });
+  doc
+    .font('Helvetica')
+    .fontSize(7.2)
+    .fillColor('#6b7280')
+    .text('Image and pack-size variant', x + 6, rowY + 26, {
+      width: VARIANT_COLUMN_WIDTHS[1] - 12,
+    });
+  x += VARIANT_COLUMN_WIDTHS[1];
+
+  const values = [
+    formatNumber(variant.distributionBoxes),
+    formatNumber(variant.distributionUnits),
+    formatNumber(variant.transactionCount),
+  ];
+
+  values.forEach((value, index) => {
+    const width = VARIANT_COLUMN_WIDTHS[index + 2]!;
+    doc
+      .font(index === 0 ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(8.5)
+      .fillColor(index === 0 ? '#111827' : '#374151')
+      .text(value, x + 6, rowY + 17, {
+        width: width - 12,
+        align: 'right',
+      });
+    x += width;
+  });
+
+  doc.y = rowY + 46;
+}
+
+function drawBrochure(params: {
+  doc: PDFKit.PDFDocument;
+  brochure: CustomerYearlyReportBrochure;
+  images: Map<string, Buffer | null>;
+}) {
+  const { brochure, doc, images } = params;
+
+  drawBrochureHeader(doc, brochure);
+  drawVariantTableHeader(doc);
+
+  for (const variant of brochure.variants) {
+    drawVariantRow({
+      doc,
+      variant,
+      imageBuffer: images.get(variant.brochureImageId),
+    });
   }
 
-  for (const item of transactionItems) {
-    drawItemTransactions(doc, item);
+  doc.y += 12;
+}
+
+function drawWarehouse(params: {
+  doc: PDFKit.PDFDocument;
+  warehouse: CustomerYearlyReportWarehouse;
+  images: Map<string, Buffer | null>;
+}) {
+  const { doc, images, warehouse } = params;
+
+  drawWarehouseHeader(doc, warehouse);
+
+  for (const brochure of warehouse.brochures) {
+    drawBrochure({ doc, brochure, images });
   }
 }
 
 function drawEmptyReport(doc: PDFKit.PDFDocument) {
   ensureSpace(doc, 80);
+
+  const startY = doc.y;
   doc
-    .roundedRect(MARGIN, doc.y, CONTENT_WIDTH, 68, 5)
+    .roundedRect(MARGIN, startY, CONTENT_WIDTH, 68, 5)
     .fillAndStroke('#f9fafb', '#e5e7eb');
   doc
     .font('Helvetica-Bold')
     .fontSize(12)
     .fillColor('#111827')
-    .text('No inventory found for this customer.', MARGIN + 16, doc.y + 18);
+    .text(
+      'No distributions found for this customer in this year.',
+      MARGIN + 16,
+      startY + 18,
+    );
   doc
     .font('Helvetica')
     .fontSize(9)
@@ -347,8 +479,10 @@ function drawEmptyReport(doc: PDFKit.PDFDocument) {
     .text(
       'Choose another customer or year to generate a report.',
       MARGIN + 16,
-      doc.y + 38,
+      startY + 38,
     );
+
+  doc.y = startY + 80;
 }
 
 export async function generateCustomerYearlyReportPDF(
@@ -360,19 +494,20 @@ export async function generateCustomerYearlyReportPDF(
     margin: MARGIN,
     bufferPages: true,
     info: {
-      Title: `Customer Year-End Inventory Report - ${report.customer.name} - ${report.period.year}`,
+      Title: `Customer Year-End Distribution Report - ${report.customer.name} - ${report.period.year}`,
       Author: 'Certified Travel Media',
     },
   });
+  const images = await loadReportImages(report);
 
   drawHeader(doc, report);
   drawSummary(doc, report);
 
-  if (report.summary.inventoryItemCount === 0) {
+  if (report.summary.transactionCount === 0) {
     drawEmptyReport(doc);
   } else {
-    for (const month of report.months) {
-      drawMonth(doc, month);
+    for (const warehouse of report.warehouses) {
+      drawWarehouse({ doc, warehouse, images });
     }
   }
 
@@ -391,6 +526,6 @@ export async function generateCustomerYearlyReportPDF(
 
   return {
     buffer: await finalize(doc),
-    filename: `customer-year-end-report-${safeFilename(report.customer.name)}-${report.period.year}.pdf`,
+    filename: `customer-year-end-distribution-report-${safeFilename(report.customer.name)}-${report.period.year}.pdf`,
   };
 }

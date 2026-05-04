@@ -1,6 +1,6 @@
 import db from '@/db';
 
-import { and, asc, eq, inArray, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import HttpError from '@repo/server-utils/errors/http-error';
 import { roundDecimals } from '@repo/utils/number';
@@ -18,71 +18,15 @@ import {
 } from '@services/database/schemas';
 
 import type {
-  CustomerYearlyReportMonth,
   CustomerYearlyReportParams,
   CustomerYearlyReportResult,
+  CustomerYearlyReportWarehouse,
+  CustomerYearlyWarehouseAggregate,
   InventoryMonthlyReportItem,
   InventoryMonthlyReportParams,
   InventoryMonthlyReportPeriod,
   InventoryMonthlyReportResult,
-  InventoryMonthlyReportTransaction,
 } from './reports.types';
-
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-function toIsoDate(year: number, month: number, day: number) {
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-}
-
-function getReportPeriod(
-  month: number,
-  year: number,
-): InventoryMonthlyReportPeriod {
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-
-  return {
-    month,
-    year,
-    label: `${MONTH_NAMES[month - 1]} ${year}`,
-    startDate: toIsoDate(year, month, 1),
-    endDate: toIsoDate(year, month, lastDay),
-  };
-}
-
-function createEmptySummary(): InventoryMonthlyReportResult['summary'] {
-  return {
-    inventoryItemCount: 0,
-    transactionCount: 0,
-    startingBalanceBoxes: 0,
-    startingBalanceUnits: 0,
-    endingBalanceBoxes: 0,
-    endingBalanceUnits: 0,
-    netMovementBoxes: 0,
-    netMovementUnits: 0,
-  };
-}
-
-function getYearPeriod(year: number): CustomerYearlyReportResult['period'] {
-  return {
-    year,
-    label: String(year),
-    startDate: toIsoDate(year, 1, 1),
-    endDate: toIsoDate(year, 12, 31),
-  };
-}
 
 type ReportInventoryRow = Awaited<
   ReturnType<ReportsService['getReportInventoryRows']>
@@ -92,7 +36,67 @@ type ReportTransactionRow = Awaited<
   ReturnType<ReportsService['getReportTransactionRows']>
 >[number];
 
+type CustomerYearlyDistributionRow = Awaited<
+  ReturnType<ReportsService['getCustomerYearlyDistributionRows']>
+>[number];
+
 class ReportsService {
+  private static readonly MONTH_NAMES = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  private toIsoDate(year: number, month: number, day: number) {
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  private getReportPeriod(
+    month: number,
+    year: number,
+  ): InventoryMonthlyReportPeriod {
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+    return {
+      month,
+      year,
+      label: `${ReportsService.MONTH_NAMES[month - 1]} ${year}`,
+      startDate: this.toIsoDate(year, month, 1),
+      endDate: this.toIsoDate(year, month, lastDay),
+    };
+  }
+
+  private createEmptySummary(): InventoryMonthlyReportResult['summary'] {
+    return {
+      inventoryItemCount: 0,
+      transactionCount: 0,
+      startingBalanceBoxes: 0,
+      startingBalanceUnits: 0,
+      endingBalanceBoxes: 0,
+      endingBalanceUnits: 0,
+      netMovementBoxes: 0,
+      netMovementUnits: 0,
+    };
+  }
+
+  private getYearPeriod(year: number): CustomerYearlyReportResult['period'] {
+    return {
+      year,
+      label: String(year),
+      startDate: this.toIsoDate(year, 1, 1),
+      endDate: this.toIsoDate(year, 12, 31),
+    };
+  }
+
   private async getWarehouse(id: string) {
     const warehouse = await db.query.warehouses.findFirst({
       where: eq(warehouses.id, id),
@@ -158,47 +162,6 @@ class ReportsService {
       );
   }
 
-  private getCustomerReportInventoryRows(customerId: string) {
-    return db
-      .select({
-        id: inventoryItems.id,
-        warehouseId: inventoryItems.warehouseId,
-        warehouseName: warehouses.name,
-        brochureImagePackSizeId: inventoryItems.brochureImagePackSizeId,
-        currentBoxes: inventoryItems.boxes,
-        brochureId: brochures.id,
-        brochureName: brochures.name,
-        brochureTypeId: brochures.brochureTypeId,
-        brochureTypeName: brochureTypes.name,
-        customerId: brochures.customerId,
-        customerName: customers.name,
-        brochureImageId: brochureImages.id,
-        imageUrl: brochureImages.imageUrl,
-        unitsPerBox: brochureImagePackSizes.unitsPerBox,
-      })
-      .from(inventoryItems)
-      .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
-      .innerJoin(
-        brochureImagePackSizes,
-        eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
-      )
-      .innerJoin(
-        brochureImages,
-        eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
-      )
-      .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
-      .innerJoin(brochureTypes, eq(brochures.brochureTypeId, brochureTypes.id))
-      .innerJoin(customers, eq(brochures.customerId, customers.id))
-      .where(eq(brochures.customerId, customerId))
-      .orderBy(
-        asc(warehouses.name),
-        asc(brochures.name),
-        asc(brochureTypes.name),
-        asc(brochureImagePackSizes.unitsPerBox),
-        asc(inventoryItems.id),
-      );
-  }
-
   private getReportTransactionRows(itemIds: string[], endDate: string) {
     return db
       .select({
@@ -231,10 +194,72 @@ class ReportsService {
       );
   }
 
+  private getCustomerYearlyDistributionRows(
+    customerId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    return db
+      .select({
+        transactionId: inventoryTransactions.id,
+        transactionDate: inventoryTransactions.transactionDate,
+        boxes: inventoryTransactions.boxes,
+        inventoryItemId: inventoryItems.id,
+        warehouseId: warehouses.id,
+        warehouseName: warehouses.name,
+        warehouseAcumaticaId: warehouses.acumaticaId,
+        warehouseAddress: warehouses.address,
+        brochureImagePackSizeId: brochureImagePackSizes.id,
+        brochureId: brochures.id,
+        brochureName: brochures.name,
+        brochureTypeId: brochureTypes.id,
+        brochureTypeName: brochureTypes.name,
+        brochureImageId: brochureImages.id,
+        imageUrl: brochureImages.imageUrl,
+        unitsPerBox: brochureImagePackSizes.unitsPerBox,
+        createdAt: inventoryTransactions.createdAt,
+      })
+      .from(inventoryTransactions)
+      .innerJoin(
+        inventoryItems,
+        eq(inventoryTransactions.inventoryItemId, inventoryItems.id),
+      )
+      .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+      .innerJoin(
+        brochureImagePackSizes,
+        eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+      )
+      .innerJoin(
+        brochureImages,
+        eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+      )
+      .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+      .innerJoin(brochureTypes, eq(brochures.brochureTypeId, brochureTypes.id))
+      .innerJoin(customers, eq(brochures.customerId, customers.id))
+      .where(
+        and(
+          eq(brochures.customerId, customerId),
+          eq(inventoryTransactions.transactionType, 'Distribution'),
+          gte(inventoryTransactions.transactionDate, startDate),
+          lte(inventoryTransactions.transactionDate, endDate),
+        ),
+      )
+      .orderBy(
+        asc(warehouses.name),
+        asc(brochures.name),
+        asc(brochureTypes.name),
+        asc(brochureImages.sortOrder),
+        asc(brochureImagePackSizes.unitsPerBox),
+        asc(inventoryTransactions.transactionDate),
+        asc(inventoryTransactions.createdAt),
+        asc(inventoryTransactions.id),
+      );
+  }
+
   private buildReportTransaction(
     row: ReportTransactionRow,
     unitsPerBox: number,
-  ): InventoryMonthlyReportTransaction {
+  ) {
     const movementBoxes = roundDecimals(
       row.balanceAfterBoxes - row.balanceBeforeBoxes,
     );
@@ -346,69 +371,157 @@ class ReportsService {
       );
 
       return summary;
-    }, createEmptySummary());
+    }, this.createEmptySummary());
   }
 
-  private buildCustomerReportMonth(params: {
-    month: number;
-    year: number;
-    inventoryRows: ReportInventoryRow[];
-    transactionsByItemId: Map<string, ReportTransactionRow[]>;
-  }): CustomerYearlyReportMonth {
-    const period = getReportPeriod(params.month, params.year);
-    const items = params.inventoryRows.map((item) => {
-      const rows = params.transactionsByItemId.get(item.id) ?? [];
+  private buildCustomerYearlyDistributionReport(
+    rows: CustomerYearlyDistributionRow[],
+  ) {
+    const warehousesById = new Map<string, CustomerYearlyWarehouseAggregate>();
 
-      return this.buildReportItem({
-        item,
-        rows: rows.filter((row) => row.transactionDate <= period.endDate),
-        period,
-      });
-    });
-    const summary = this.buildSummary(items);
+    for (const row of rows) {
+      const boxes = row.boxes;
+      const units = roundDecimals(boxes * row.unitsPerBox);
 
-    return {
-      ...period,
-      inventoryItemCount: items.length,
-      transactionCount: summary.transactionCount,
-      startingBalanceBoxes: summary.startingBalanceBoxes,
-      startingBalanceUnits: summary.startingBalanceUnits,
-      endingBalanceBoxes: summary.endingBalanceBoxes,
-      endingBalanceUnits: summary.endingBalanceUnits,
-      netMovementBoxes: summary.netMovementBoxes,
-      netMovementUnits: summary.netMovementUnits,
-      items,
-    };
+      let warehouse = warehousesById.get(row.warehouseId);
+      if (!warehouse) {
+        warehouse = {
+          id: row.warehouseId,
+          name: row.warehouseName,
+          acumaticaId: row.warehouseAcumaticaId,
+          address: row.warehouseAddress,
+          transactionCount: 0,
+          brochureCount: 0,
+          variantCount: 0,
+          distributionBoxes: 0,
+          distributionUnits: 0,
+          brochures: [],
+          brochureMap: new Map(),
+        };
+        warehousesById.set(row.warehouseId, warehouse);
+      }
+
+      let brochure = warehouse.brochureMap.get(row.brochureId);
+      if (!brochure) {
+        brochure = {
+          id: row.brochureId,
+          name: row.brochureName,
+          brochureTypeId: row.brochureTypeId,
+          brochureTypeName: row.brochureTypeName,
+          transactionCount: 0,
+          variantCount: 0,
+          distributionBoxes: 0,
+          distributionUnits: 0,
+          variants: [],
+          variantMap: new Map(),
+        };
+        warehouse.brochureMap.set(row.brochureId, brochure);
+        warehouse.brochures.push(brochure);
+      }
+
+      let variant = brochure.variantMap.get(row.brochureImagePackSizeId);
+      if (!variant) {
+        variant = {
+          inventoryItemId: row.inventoryItemId,
+          brochureImagePackSizeId: row.brochureImagePackSizeId,
+          brochureImageId: row.brochureImageId,
+          imageUrl: row.imageUrl,
+          unitsPerBox: row.unitsPerBox,
+          transactionCount: 0,
+          distributionBoxes: 0,
+          distributionUnits: 0,
+        };
+        brochure.variantMap.set(row.brochureImagePackSizeId, variant);
+        brochure.variants.push(variant);
+      }
+
+      variant.transactionCount += 1;
+      variant.distributionBoxes = roundDecimals(
+        variant.distributionBoxes + boxes,
+      );
+      variant.distributionUnits = roundDecimals(
+        variant.distributionUnits + units,
+      );
+
+      brochure.transactionCount += 1;
+      brochure.distributionBoxes = roundDecimals(
+        brochure.distributionBoxes + boxes,
+      );
+      brochure.distributionUnits = roundDecimals(
+        brochure.distributionUnits + units,
+      );
+
+      warehouse.transactionCount += 1;
+      warehouse.distributionBoxes = roundDecimals(
+        warehouse.distributionBoxes + boxes,
+      );
+      warehouse.distributionUnits = roundDecimals(
+        warehouse.distributionUnits + units,
+      );
+    }
+
+    return Array.from(warehousesById.values()).map(
+      ({ brochureMap: _brochureMap, brochures, ...warehouse }) => {
+        const reportBrochures = brochures.map(
+          ({ variantMap: _variantMap, variants, ...brochure }) => ({
+            ...brochure,
+            variantCount: variants.length,
+            variants,
+          }),
+        );
+
+        return {
+          ...warehouse,
+          brochureCount: reportBrochures.length,
+          variantCount: reportBrochures.reduce(
+            (total, brochure) => total + brochure.variantCount,
+            0,
+          ),
+          brochures: reportBrochures,
+        };
+      },
+    );
   }
 
-  private buildCustomerYearlySummary(
-    inventoryItemCount: number,
-    months: CustomerYearlyReportMonth[],
-  ): CustomerYearlyReportResult['summary'] {
-    const firstMonth = months[0];
-    const lastMonth = months.at(-1);
+  private buildCustomerYearlyDistributionSummary(
+    warehouses: CustomerYearlyReportWarehouse[],
+  ) {
+    const brochureIds = new Set<string>();
+
+    for (const warehouse of warehouses) {
+      for (const brochure of warehouse.brochures) {
+        brochureIds.add(brochure.id);
+      }
+    }
 
     return {
-      inventoryItemCount,
-      transactionCount: months.reduce(
-        (total, month) => total + month.transactionCount,
+      warehouseCount: warehouses.length,
+      brochureCount: brochureIds.size,
+      variantCount: warehouses.reduce(
+        (total, warehouse) => total + warehouse.variantCount,
         0,
       ),
-      startingBalanceBoxes: firstMonth?.startingBalanceBoxes ?? 0,
-      startingBalanceUnits: firstMonth?.startingBalanceUnits ?? 0,
-      endingBalanceBoxes: lastMonth?.endingBalanceBoxes ?? 0,
-      endingBalanceUnits: lastMonth?.endingBalanceUnits ?? 0,
-      netMovementBoxes: roundDecimals(
-        months.reduce((total, month) => total + month.netMovementBoxes, 0),
+      transactionCount: warehouses.reduce(
+        (total, warehouse) => total + warehouse.transactionCount,
+        0,
       ),
-      netMovementUnits: roundDecimals(
-        months.reduce((total, month) => total + month.netMovementUnits, 0),
+      distributionBoxes: roundDecimals(
+        warehouses.reduce(
+          (total, warehouse) => total + warehouse.distributionBoxes,
+          0,
+        ),
+      ),
+      distributionUnits: roundDecimals(
+        warehouses.reduce(
+          (total, warehouse) => total + warehouse.distributionUnits,
+          0,
+        ),
       ),
     };
   }
 
   async getInventoryMonthlyReport(params: InventoryMonthlyReportParams) {
-    const period = getReportPeriod(params.month, params.year);
+    const period = this.getReportPeriod(params.month, params.year);
     const [warehouse, inventoryRows] = await Promise.all([
       this.getWarehouse(params.warehouseId),
       this.getReportInventoryRows(params.warehouseId),
@@ -447,35 +560,19 @@ class ReportsService {
     };
   }
 
-  async getCustomerYearlyReport(
-    params: CustomerYearlyReportParams,
-  ): Promise<CustomerYearlyReportResult> {
-    const period = getYearPeriod(params.year);
-    const [customer, inventoryRows] = await Promise.all([
+  async getCustomerYearlyReport(params: CustomerYearlyReportParams) {
+    const period = this.getYearPeriod(params.year);
+
+    const [customer, distributionRows] = await Promise.all([
       this.getCustomer(params.customerId),
-      this.getCustomerReportInventoryRows(params.customerId),
+      this.getCustomerYearlyDistributionRows(
+        params.customerId,
+        period.startDate,
+        period.endDate,
+      ),
     ]);
-    const itemIds = inventoryRows.map((item) => item.id);
-    const transactionRows =
-      itemIds.length > 0
-        ? await this.getReportTransactionRows(itemIds, period.endDate)
-        : [];
-    const transactionsByItemId = new Map<string, ReportTransactionRow[]>();
-
-    for (const row of transactionRows) {
-      const rows = transactionsByItemId.get(row.inventoryItemId) ?? [];
-      rows.push(row);
-      transactionsByItemId.set(row.inventoryItemId, rows);
-    }
-
-    const months = Array.from({ length: 12 }, (_, index) =>
-      this.buildCustomerReportMonth({
-        month: index + 1,
-        year: params.year,
-        inventoryRows,
-        transactionsByItemId,
-      }),
-    );
+    const warehouses =
+      this.buildCustomerYearlyDistributionReport(distributionRows);
 
     return {
       customer: {
@@ -484,8 +581,8 @@ class ReportsService {
         acumaticaId: customer.acumaticaId,
       },
       period,
-      summary: this.buildCustomerYearlySummary(inventoryRows.length, months),
-      months,
+      summary: this.buildCustomerYearlyDistributionSummary(warehouses),
+      warehouses,
     };
   }
 }

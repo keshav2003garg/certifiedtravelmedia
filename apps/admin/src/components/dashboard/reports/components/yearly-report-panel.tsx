@@ -153,7 +153,7 @@ function YearlyReportPanel({
             Customer year-end report
           </CardTitle>
           <CardDescription>
-            Generate the customer ledger report for the selected year.
+            Generate annual Distribution totals for the selected customer.
           </CardDescription>
         </CardHeader>
         <CardContent>
