@@ -70,6 +70,7 @@ export const navigationItems: SidebarItem[] = [
       {
         title: 'Month End Counts',
         url: '/dashboard/inventory/month-end-counts',
+        allowedRoles: ['manager', 'admin'],
       },
     ],
   },

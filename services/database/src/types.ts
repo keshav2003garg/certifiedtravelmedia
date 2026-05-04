@@ -26,6 +26,7 @@ import type {
 import type { customers } from './schemas/customer.schema';
 import type {
   inventoryItems,
+  inventoryMonthEndCounts,
   inventoryTransactionRequests,
   inventoryTransactions,
 } from './schemas/inventory.schema';
@@ -107,6 +108,11 @@ export type InventoryItemInsert = typeof inventoryItems.$inferInsert;
 export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
 export type InventoryTransactionInsert =
   typeof inventoryTransactions.$inferInsert;
+
+export type InventoryMonthEndCount =
+  typeof inventoryMonthEndCounts.$inferSelect;
+export type InventoryMonthEndCountInsert =
+  typeof inventoryMonthEndCounts.$inferInsert;
 
 export type InventoryTransactionRequest =
   typeof inventoryTransactionRequests.$inferSelect;

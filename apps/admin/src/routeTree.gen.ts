@@ -28,6 +28,7 @@ import { Route as authroutesForgotPasswordRouteImport } from './routes/(auth)/(r
 import { Route as DashboardroutesInventoryIndexRouteImport } from './routes/dashboard/(routes)/inventory/index'
 import { Route as DashboardroutesChartsIndexRouteImport } from './routes/dashboard/(routes)/charts/index'
 import { Route as DashboardroutesInventoryNewRouteImport } from './routes/dashboard/(routes)/inventory/new'
+import { Route as DashboardroutesInventoryMonthEndCountsRouteImport } from './routes/dashboard/(routes)/inventory/month-end-counts'
 import { Route as DashboardroutesInventoryIntakeRequestRouteImport } from './routes/dashboard/(routes)/inventory/intake-request'
 import { Route as DashboardroutesInventoryIdRouteImport } from './routes/dashboard/(routes)/inventory/$id'
 import { Route as DashboardroutesInventoryRequestQueueIndexRouteImport } from './routes/dashboard/(routes)/inventory/request-queue.index'
@@ -135,6 +136,12 @@ const DashboardroutesInventoryNewRoute =
     path: '/inventory/new',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
+const DashboardroutesInventoryMonthEndCountsRoute =
+  DashboardroutesInventoryMonthEndCountsRouteImport.update({
+    id: '/(routes)/inventory/month-end-counts',
+    path: '/inventory/month-end-counts',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardroutesInventoryIntakeRequestRoute =
   DashboardroutesInventoryIntakeRequestRouteImport.update({
     id: '/(routes)/inventory/intake-request',
@@ -178,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardroutesIndexRoute
   '/dashboard/inventory/$id': typeof DashboardroutesInventoryIdRoute
   '/dashboard/inventory/intake-request': typeof DashboardroutesInventoryIntakeRequestRoute
+  '/dashboard/inventory/month-end-counts': typeof DashboardroutesInventoryMonthEndCountsRoute
   '/dashboard/inventory/new': typeof DashboardroutesInventoryNewRoute
   '/dashboard/charts/': typeof DashboardroutesChartsIndexRoute
   '/dashboard/inventory/': typeof DashboardroutesInventoryIndexRoute
@@ -201,6 +209,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardroutesIndexRoute
   '/dashboard/inventory/$id': typeof DashboardroutesInventoryIdRoute
   '/dashboard/inventory/intake-request': typeof DashboardroutesInventoryIntakeRequestRoute
+  '/dashboard/inventory/month-end-counts': typeof DashboardroutesInventoryMonthEndCountsRoute
   '/dashboard/inventory/new': typeof DashboardroutesInventoryNewRoute
   '/dashboard/charts': typeof DashboardroutesChartsIndexRoute
   '/dashboard/inventory': typeof DashboardroutesInventoryIndexRoute
@@ -227,6 +236,7 @@ export interface FileRoutesById {
   '/dashboard/(routes)/': typeof DashboardroutesIndexRoute
   '/dashboard/(routes)/inventory/$id': typeof DashboardroutesInventoryIdRoute
   '/dashboard/(routes)/inventory/intake-request': typeof DashboardroutesInventoryIntakeRequestRoute
+  '/dashboard/(routes)/inventory/month-end-counts': typeof DashboardroutesInventoryMonthEndCountsRoute
   '/dashboard/(routes)/inventory/new': typeof DashboardroutesInventoryNewRoute
   '/dashboard/(routes)/charts/': typeof DashboardroutesChartsIndexRoute
   '/dashboard/(routes)/inventory/': typeof DashboardroutesInventoryIndexRoute
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/inventory/$id'
     | '/dashboard/inventory/intake-request'
+    | '/dashboard/inventory/month-end-counts'
     | '/dashboard/inventory/new'
     | '/dashboard/charts/'
     | '/dashboard/inventory/'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/inventory/$id'
     | '/dashboard/inventory/intake-request'
+    | '/dashboard/inventory/month-end-counts'
     | '/dashboard/inventory/new'
     | '/dashboard/charts'
     | '/dashboard/inventory'
@@ -301,6 +313,7 @@ export interface FileRouteTypes {
     | '/dashboard/(routes)/'
     | '/dashboard/(routes)/inventory/$id'
     | '/dashboard/(routes)/inventory/intake-request'
+    | '/dashboard/(routes)/inventory/month-end-counts'
     | '/dashboard/(routes)/inventory/new'
     | '/dashboard/(routes)/charts/'
     | '/dashboard/(routes)/inventory/'
@@ -450,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardroutesInventoryNewRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/(routes)/inventory/month-end-counts': {
+      id: '/dashboard/(routes)/inventory/month-end-counts'
+      path: '/inventory/month-end-counts'
+      fullPath: '/dashboard/inventory/month-end-counts'
+      preLoaderRoute: typeof DashboardroutesInventoryMonthEndCountsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/(routes)/inventory/intake-request': {
       id: '/dashboard/(routes)/inventory/intake-request'
       path: '/inventory/intake-request'
@@ -509,6 +529,7 @@ interface DashboardRouteRouteChildren {
   DashboardroutesIndexRoute: typeof DashboardroutesIndexRoute
   DashboardroutesInventoryIdRoute: typeof DashboardroutesInventoryIdRoute
   DashboardroutesInventoryIntakeRequestRoute: typeof DashboardroutesInventoryIntakeRequestRoute
+  DashboardroutesInventoryMonthEndCountsRoute: typeof DashboardroutesInventoryMonthEndCountsRoute
   DashboardroutesInventoryNewRoute: typeof DashboardroutesInventoryNewRoute
   DashboardroutesChartsIndexRoute: typeof DashboardroutesChartsIndexRoute
   DashboardroutesInventoryIndexRoute: typeof DashboardroutesInventoryIndexRoute
@@ -529,6 +550,8 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardroutesInventoryIdRoute: DashboardroutesInventoryIdRoute,
   DashboardroutesInventoryIntakeRequestRoute:
     DashboardroutesInventoryIntakeRequestRoute,
+  DashboardroutesInventoryMonthEndCountsRoute:
+    DashboardroutesInventoryMonthEndCountsRoute,
   DashboardroutesInventoryNewRoute: DashboardroutesInventoryNewRoute,
   DashboardroutesChartsIndexRoute: DashboardroutesChartsIndexRoute,
   DashboardroutesInventoryIndexRoute: DashboardroutesInventoryIndexRoute,

@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import {
   date,
   index,
+  integer,
   numeric,
   pgEnum,
   pgTable,
@@ -117,6 +118,50 @@ export const inventoryTransactions = pgTable(
   ],
 );
 
+export const inventoryMonthEndCounts = pgTable(
+  'inventory_month_end_counts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    inventoryItemId: uuid('inventory_item_id')
+      .notNull()
+      .references(() => inventoryItems.id, { onDelete: 'cascade' }),
+
+    month: integer('month').notNull(),
+    year: integer('year').notNull(),
+
+    countedBoxes: real('counted_boxes').notNull(),
+    balanceBeforeBoxes: real('balance_before_boxes').notNull(),
+    distributionBoxes: real('distribution_boxes').notNull(),
+    balanceAfterBoxes: real('balance_after_boxes').notNull(),
+
+    distributionTransactionId: uuid('distribution_transaction_id').references(
+      () => inventoryTransactions.id,
+      { onDelete: 'set null' },
+    ),
+
+    countedBy: text('counted_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
+
+    createdAt: timestamp('created_at', { mode: 'string' })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique('inventory_month_end_counts_item_month_year_unique').on(
+      table.inventoryItemId,
+      table.month,
+      table.year,
+    ),
+    index('inventory_month_end_counts_item_id_idx').on(table.inventoryItemId),
+    index('inventory_month_end_counts_period_idx').on(table.year, table.month),
+  ],
+);
+
 export const inventoryRequestStatusEnum = pgEnum('inventory_request_status', [
   'Pending',
   'Approved',
@@ -201,6 +246,7 @@ export const inventoryItemsRelations = relations(
     }),
 
     transactions: many(inventoryTransactions),
+    monthEndCounts: many(inventoryMonthEndCounts),
   }),
 );
 
@@ -221,6 +267,24 @@ export const inventoryTransactionsRelations = relations(
     }),
     createdByUser: one(userSchema, {
       fields: [inventoryTransactions.createdBy],
+      references: [userSchema.id],
+    }),
+  }),
+);
+
+export const inventoryMonthEndCountsRelations = relations(
+  inventoryMonthEndCounts,
+  ({ one }) => ({
+    inventoryItem: one(inventoryItems, {
+      fields: [inventoryMonthEndCounts.inventoryItemId],
+      references: [inventoryItems.id],
+    }),
+    distributionTransaction: one(inventoryTransactions, {
+      fields: [inventoryMonthEndCounts.distributionTransactionId],
+      references: [inventoryTransactions.id],
+    }),
+    countedByUser: one(userSchema, {
+      fields: [inventoryMonthEndCounts.countedBy],
       references: [userSchema.id],
     }),
   }),
