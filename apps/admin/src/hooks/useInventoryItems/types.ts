@@ -73,6 +73,12 @@ export interface InventoryListItem extends InventoryItem {
   unitsPerBox: number;
 }
 
+export interface InventoryItemsSummary {
+  totalItems: number;
+  totalBoxes: number;
+  warehouses: number;
+}
+
 export interface InventoryItemDetail extends InventoryListItem {
   warehouseAddress: string | null;
   brochureCreatedAt: string;
@@ -146,12 +152,14 @@ export type ListInventoryItemsRequest = ApiData<
     sortBy?: InventoryItemSortBy;
     order?: SortOrder;
     warehouseId?: string;
+    brochureId?: string;
     brochureTypeId?: string;
     stockLevel?: InventoryStockLevel;
   },
   {
     inventoryItems: InventoryListItem[];
     pagination: Pagination;
+    summary: InventoryItemsSummary;
   }
 >;
 

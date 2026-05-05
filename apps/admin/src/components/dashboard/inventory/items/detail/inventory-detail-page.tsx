@@ -21,7 +21,6 @@ import {
   Plus,
   RefreshCw,
 } from '@repo/ui/lib/icons';
-import { formatShortDate } from '@repo/utils/date';
 import { formatCount, formatDecimal } from '@repo/utils/number';
 
 import DataPaginationControls from '@/components/common/data-pagination-controls';
@@ -160,24 +159,8 @@ function InventoryReferenceCard({ item }: { item: InventoryItemDetail }) {
     <Card className="shadow-none">
       <CardHeader>
         <CardTitle>Inventory details</CardTitle>
-        <CardDescription>Reference fields for this stock item.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <DetailField label="Inventory ID" value={item.id} />
-        <DetailField label="Brochure ID" value={item.brochureId} />
-        <DetailField label="Brochure type ID" value={item.brochureTypeId} />
-        <DetailField label="Brochure image ID" value={item.brochureImageId} />
-        <DetailField label="Customer ID" value={item.customerId} />
-        <DetailField label="Warehouse address" value={item.warehouseAddress} />
-        <DetailField label="Created" value={formatShortDate(item.createdAt)} />
-        <DetailField
-          label="Brochure updated"
-          value={formatShortDate(item.brochureUpdatedAt)}
-        />
-        <DetailField
-          label="Pack size updated"
-          value={formatShortDate(item.packSizeUpdatedAt)}
-        />
         <div className="space-y-1 rounded-md border p-3 md:col-span-2 xl:col-span-3">
           <p className="text-muted-foreground text-xs font-medium tracking-normal uppercase">
             QR code

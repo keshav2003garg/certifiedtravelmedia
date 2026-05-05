@@ -88,6 +88,10 @@ class InventoryItemsService {
       conditions.push(eq(inventoryItems.warehouseId, params.warehouseId));
     }
 
+    if (params.brochureId) {
+      conditions.push(eq(brochures.id, params.brochureId));
+    }
+
     if (params.brochureTypeId) {
       conditions.push(eq(brochures.brochureTypeId, params.brochureTypeId));
     }
@@ -130,9 +134,31 @@ class InventoryItemsService {
   ): Promise<ListInventoryItemsResult> {
     const whereClause = this.buildListWhereClause(params);
 
-    const [countRows, rows] = await Promise.all([
+    const [countRows, summaryRows, rows] = await Promise.all([
       db
         .select({ total: count(inventoryItems.id) })
+        .from(inventoryItems)
+        .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+        .innerJoin(
+          brochureImagePackSizes,
+          eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+        )
+        .innerJoin(
+          brochureImages,
+          eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+        )
+        .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+        .innerJoin(
+          brochureTypes,
+          eq(brochures.brochureTypeId, brochureTypes.id),
+        )
+        .leftJoin(customers, eq(brochures.customerId, customers.id))
+        .where(whereClause),
+      db
+        .select({
+          totalBoxes: sql<number>`coalesce(sum(${inventoryItems.boxes}), 0)`,
+          warehouses: sql<number>`count(distinct ${inventoryItems.warehouseId})`,
+        })
         .from(inventoryItems)
         .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
         .innerJoin(
@@ -193,13 +219,22 @@ class InventoryItemsService {
         .limit(params.limit)
         .offset(getPaginationOffset(params)),
     ]);
+    const totalItems = countRows[0]?.total ?? 0;
+    const summary = summaryRows[0];
 
-    return createPaginatedResult({
-      data: rows,
-      page: params.page,
-      limit: params.limit,
-      total: countRows[0]?.total ?? 0,
-    });
+    return {
+      ...createPaginatedResult({
+        data: rows,
+        page: params.page,
+        limit: params.limit,
+        total: totalItems,
+      }),
+      summary: {
+        totalItems,
+        totalBoxes: Number(summary?.totalBoxes ?? 0),
+        warehouses: Number(summary?.warehouses ?? 0),
+      },
+    };
   }
 
   async getById(id: string): Promise<InventoryItemDetail> {

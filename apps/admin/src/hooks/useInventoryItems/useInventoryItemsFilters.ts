@@ -57,6 +57,10 @@ export function useInventoryItemsFilters() {
     'warehouseId',
     parseAsString,
   );
+  const [brochureId, setBrochureId] = useQueryState(
+    'brochureId',
+    parseAsString,
+  );
   const [brochureTypeId, setBrochureTypeId] = useQueryState(
     'brochureTypeId',
     parseAsString,
@@ -98,6 +102,14 @@ export function useInventoryItemsFilters() {
     [setBrochureTypeId, handlePageChange],
   );
 
+  const handleBrochureChange = useCallback(
+    (value: string | null) => {
+      setBrochureId(value);
+      handlePageChange(1);
+    },
+    [setBrochureId, handlePageChange],
+  );
+
   const handleStockLevelChange = useCallback(
     (value: InventoryStockLevel | null) => {
       setStockLevel(value);
@@ -111,6 +123,7 @@ export function useInventoryItemsFilters() {
     setSortBy(null);
     setOrder(null);
     setWarehouseId(null);
+    setBrochureId(null);
     setBrochureTypeId(null);
     setStockLevel(null);
     handlePageChange(1);
@@ -119,6 +132,7 @@ export function useInventoryItemsFilters() {
     setSortBy,
     setOrder,
     setWarehouseId,
+    setBrochureId,
     setBrochureTypeId,
     setStockLevel,
     handlePageChange,
@@ -131,10 +145,19 @@ export function useInventoryItemsFilters() {
         sortBy ||
         order ||
         warehouseId ||
+        brochureId ||
         brochureTypeId ||
         stockLevel,
       ),
-    [search, sortBy, order, warehouseId, brochureTypeId, stockLevel],
+    [
+      search,
+      sortBy,
+      order,
+      warehouseId,
+      brochureId,
+      brochureTypeId,
+      stockLevel,
+    ],
   );
 
   const params = useMemo(
@@ -143,6 +166,7 @@ export function useInventoryItemsFilters() {
       sortBy: sortBy ?? undefined,
       order: order ?? undefined,
       warehouseId: warehouseId ?? undefined,
+      brochureId: brochureId ?? undefined,
       brochureTypeId: brochureTypeId ?? undefined,
       stockLevel: stockLevel ?? undefined,
       page,
@@ -153,6 +177,7 @@ export function useInventoryItemsFilters() {
       sortBy,
       order,
       warehouseId,
+      brochureId,
       brochureTypeId,
       stockLevel,
       page,
@@ -166,12 +191,14 @@ export function useInventoryItemsFilters() {
     sortBy,
     order,
     warehouseId,
+    brochureId,
     brochureTypeId,
     stockLevel,
     setSearch,
     handleSortByChange,
     handleOrderChange,
     handleWarehouseChange,
+    handleBrochureChange,
     handleBrochureTypeChange,
     handleStockLevelChange,
     page,

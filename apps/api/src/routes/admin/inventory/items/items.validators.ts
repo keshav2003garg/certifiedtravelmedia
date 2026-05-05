@@ -84,6 +84,7 @@ export const listInventoryItemsValidator = createValidatorSchema({
     .extend({
       search: optionalInventoryTextSchema('Search'),
       warehouseId: z.uuid('Invalid warehouse ID').optional(),
+      brochureId: z.uuid('Invalid brochure ID').optional(),
       brochureTypeId: z.uuid('Invalid brochure type ID').optional(),
       stockLevel: stockLevelFilterSchema,
     }),

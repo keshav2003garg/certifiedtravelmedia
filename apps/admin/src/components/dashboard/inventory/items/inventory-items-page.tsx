@@ -1,10 +1,18 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
-import { AlertCircle, Loader2, RefreshCw } from '@repo/ui/lib/icons';
+import {
+  AlertCircle,
+  Boxes,
+  Loader2,
+  Package,
+  RefreshCw,
+  Warehouse,
+} from '@repo/ui/lib/icons';
+import { cn } from '@repo/ui/lib/utils';
 import { formatCount, formatDecimal } from '@repo/utils/number';
 
 import DataPaginationControls from '@/components/common/data-pagination-controls';
@@ -17,73 +25,66 @@ import InventoryItemsFilterBar from './components/inventory-items-filter-bar';
 import InventoryItemsSkeleton from './components/inventory-items-skeleton';
 import InventoryItemsTable from './components/inventory-items-table';
 
-import type { InventoryListItem } from '@/hooks/useInventoryItems/types';
+import type { InventoryItemsSummary } from '@/hooks/useInventoryItems/types';
 
 interface InventorySummaryCardsProps {
-  items: InventoryListItem[];
-  matchingTotal: number;
+  summary?: InventoryItemsSummary;
 }
 
 function formatQuantity(value: number) {
   return formatDecimal(value, { maxDecimals: 2, minDecimals: 0 });
 }
 
-function InventorySummaryCards({
-  items,
-  matchingTotal,
-}: InventorySummaryCardsProps) {
-  const summary = useMemo(() => {
-    const warehouseIds = new Set<string>();
-
-    const totals = items.reduce(
-      (acc, item) => {
-        warehouseIds.add(item.warehouseId);
-
-        return {
-          boxes: acc.boxes + item.boxes,
-          lowStock: acc.lowStock + (item.stockLevel === 'Low' ? 1 : 0),
-        };
-      },
-      { boxes: 0, lowStock: 0 },
-    );
-
-    return { ...totals, warehouses: warehouseIds.size };
-  }, [items]);
+function InventorySummaryCards({ summary }: InventorySummaryCardsProps) {
+  const cards = [
+    {
+      label: 'Total Items',
+      value: formatCount(summary?.totalItems ?? 0),
+      icon: Package,
+      iconClassName: 'bg-blue-100 text-blue-600',
+    },
+    {
+      label: 'Total Boxes',
+      value: formatQuantity(summary?.totalBoxes ?? 0),
+      icon: Boxes,
+      iconClassName: 'bg-amber-100 text-amber-600',
+    },
+    {
+      label: 'Warehouses',
+      value: formatCount(summary?.warehouses ?? 0),
+      icon: Warehouse,
+      iconClassName: 'bg-purple-100 text-purple-600',
+    },
+  ] as const;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <Card className="shadow-none">
-        <CardContent className="p-4">
-          <p className="text-muted-foreground text-sm">Matching items</p>
-          <p className="mt-2 text-2xl font-semibold tracking-normal">
-            {formatCount(matchingTotal)}
-          </p>
-        </CardContent>
-      </Card>
-      <Card className="shadow-none">
-        <CardContent className="p-4">
-          <p className="text-muted-foreground text-sm">Boxes on page</p>
-          <p className="mt-2 text-2xl font-semibold tracking-normal">
-            {formatQuantity(summary.boxes)}
-          </p>
-        </CardContent>
-      </Card>
-      <Card className="shadow-none">
-        <CardContent className="p-4">
-          <p className="text-muted-foreground text-sm">Warehouses on page</p>
-          <p className="mt-2 text-2xl font-semibold tracking-normal">
-            {formatCount(summary.warehouses)}
-          </p>
-        </CardContent>
-      </Card>
-      <Card className="shadow-none">
-        <CardContent className="p-4">
-          <p className="text-muted-foreground text-sm">Low stock on page</p>
-          <p className="mt-2 text-2xl font-semibold tracking-normal">
-            {formatCount(summary.lowStock)}
-          </p>
-        </CardContent>
-      </Card>
+    <div className="grid gap-4 md:grid-cols-3">
+      {cards.map((card) => {
+        const Icon = card.icon;
+
+        return (
+          <Card key={card.label} className="shadow-sm">
+            <CardContent className="flex items-center gap-4 p-5">
+              <span
+                className={cn(
+                  'flex size-12 shrink-0 items-center justify-center rounded-md',
+                  card.iconClassName,
+                )}
+              >
+                <Icon className="size-6" />
+              </span>
+              <span className="min-w-0">
+                <span className="text-muted-foreground block text-sm font-semibold">
+                  {card.label}
+                </span>
+                <span className="text-foreground mt-1 block text-2xl font-bold tracking-normal">
+                  {card.value}
+                </span>
+              </span>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
@@ -98,6 +99,7 @@ function InventoryItemsPage() {
 
   const inventoryItems = data?.inventoryItems ?? [];
   const pagination = data?.pagination;
+  const summary = data?.summary;
 
   return (
     <div className="space-y-6">
@@ -129,10 +131,7 @@ function InventoryItemsPage() {
         </div>
       </div>
 
-      <InventorySummaryCards
-        items={inventoryItems}
-        matchingTotal={pagination?.total ?? 0}
-      />
+      <InventorySummaryCards summary={summary} />
 
       <Card className="shadow-none">
         <CardContent className="space-y-5 p-5">

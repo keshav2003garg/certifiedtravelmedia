@@ -56,7 +56,15 @@ export type InventoryTransactionListItem = InventoryTransaction & {
   createdByEmail: string | null;
 };
 
-export type ListInventoryItemsResult = PaginatedResponse<InventoryListItem>;
+export interface InventoryItemsSummary {
+  totalItems: number;
+  totalBoxes: number;
+  warehouses: number;
+}
+
+export type ListInventoryItemsResult = PaginatedResponse<InventoryListItem> & {
+  summary: InventoryItemsSummary;
+};
 export type ListInventoryItemTransactionsResult =
   PaginatedResponse<InventoryTransactionListItem>;
 

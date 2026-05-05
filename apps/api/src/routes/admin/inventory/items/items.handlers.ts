@@ -19,6 +19,7 @@ export async function listInventoryItemsHandler(
   return sendResponse(ctx, 200, 'Inventory items retrieved successfully', {
     inventoryItems: result.data,
     pagination: result.pagination,
+    summary: result.summary,
   });
 }
 
