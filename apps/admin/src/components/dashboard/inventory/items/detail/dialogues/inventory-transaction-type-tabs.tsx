@@ -20,7 +20,14 @@ function InventoryTransactionTypeTabs({
   value,
 }: InventoryTransactionTypeTabsProps) {
   return (
-    <Tabs value={value} onValueChange={(nextValue) => onValueChange(nextValue)}>
+    <Tabs
+      value={value}
+      onValueChange={(nextValue) =>
+        onValueChange(
+          nextValue as CreateInventoryTransactionFormData['transactionType'],
+        )
+      }
+    >
       <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
         {inventoryTransactionTypeOptions.map((option) => {
           const Icon = option.icon;

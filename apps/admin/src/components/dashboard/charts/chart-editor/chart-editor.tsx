@@ -4,6 +4,7 @@ import { cn } from '@repo/ui/lib/utils';
 
 import { InteractiveGrid } from './grid/interactive-grid';
 import {
+  canPlaceNewTileAt,
   canPlaceTileAt,
   findFirstOpenSlot,
   type GridSlot,
@@ -98,6 +99,9 @@ function ChartEditorInner({
 }: ChartEditorProps) {
   const [tiles, setTiles] = useState<ChartTile[]>(chart.tiles);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
+  const [draggedInventoryItemId, setDraggedInventoryItemId] = useState<
+    string | null
+  >(null);
 
   const [generalNotes, setGeneralNotes] = useState(chart.generalNotes ?? '');
 
@@ -128,14 +132,12 @@ function ChartEditorInner({
     return { paid, inventory, empty: Math.max(total - used, 0), total };
   }, [tiles, chart.gridSize]);
 
-  const placedInventoryItemIds = useMemo(
+  const draggedInventoryItem = useMemo(
     () =>
-      new Set(
-        tiles
-          .map((tile) => tile.inventoryItemId)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    [tiles],
+      chart.availableInventory.find(
+        (item) => item.id === draggedInventoryItemId,
+      ) ?? null,
+    [chart.availableInventory, draggedInventoryItemId],
   );
 
   const handleSelectTile = useCallback((tile: ChartTile | null) => {
@@ -155,23 +157,84 @@ function ChartEditorInner({
     [chart.gridSize, tiles],
   );
 
-  const handleAddInventoryItem = useCallback(
-    (item: ChartInventoryItem) => {
-      if (isReadOnly || placedInventoryItemIds.has(item.id)) return;
-
-      const slot = findFirstOpenSlot(
+  const canPlaceInventoryItemAt = useCallback(
+    (item: ChartInventoryItem, col: number, row: number) =>
+      canPlaceNewTileAt(
         tiles,
         chart.gridSize.width,
         chart.gridSize.height,
         item.colSpan,
-      );
-      if (!slot) return;
+        col,
+        row,
+      ),
+    [chart.gridSize, tiles],
+  );
 
-      const tile = createInventoryTile(item, slot);
-      setTiles((prev) => [...prev, tile]);
-      setSelectedTileId(tile.id);
+  const handleAddInventoryItem = useCallback(
+    (item: ChartInventoryItem) => {
+      if (isReadOnly) return;
+
+      setTiles((prev) => {
+        const slot = findFirstOpenSlot(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          item.colSpan,
+        );
+        if (!slot) return prev;
+
+        const tile = createInventoryTile(item, slot);
+        setSelectedTileId(tile.id);
+
+        return [...prev, tile];
+      });
     },
-    [chart.gridSize, isReadOnly, placedInventoryItemIds, tiles],
+    [chart.gridSize, isReadOnly],
+  );
+
+  const handleInventoryDragStart = useCallback(
+    (item: ChartInventoryItem) => {
+      if (isReadOnly || !canPlaceInventoryItem(item)) return;
+
+      setDraggedInventoryItemId(item.id);
+    },
+    [canPlaceInventoryItem, isReadOnly],
+  );
+
+  const handleInventoryDragEnd = useCallback(() => {
+    setDraggedInventoryItemId(null);
+  }, []);
+
+  const handlePlaceInventoryItem = useCallback(
+    (item: ChartInventoryItem, col: number, row: number) => {
+      if (isReadOnly) return;
+
+      setTiles((prev) => {
+        if (
+          !canPlaceNewTileAt(
+            prev,
+            chart.gridSize.width,
+            chart.gridSize.height,
+            item.colSpan,
+            col,
+            row,
+          )
+        ) {
+          return prev;
+        }
+
+        const tile = createInventoryTile(item, {
+          col,
+          row,
+          colSpan: item.colSpan,
+        });
+        setSelectedTileId(tile.id);
+
+        return [...prev, tile];
+      });
+      setDraggedInventoryItemId(null);
+    },
+    [chart.gridSize, isReadOnly],
   );
 
   const handleFlag = useCallback((tileId: string, flagNote: string) => {
@@ -288,6 +351,7 @@ function ChartEditorInner({
           width={chart.gridSize.width}
           height={chart.gridSize.height}
           tiles={tiles}
+          draggedInventoryItem={draggedInventoryItem}
           selectedTileId={selectedTileId}
           isLocked={isReadOnly}
           hasEmptyCells={stats.empty > 0}
@@ -295,6 +359,10 @@ function ChartEditorInner({
           onDeleteTile={isReadOnly ? undefined : handleRemove}
           onCloneTile={isReadOnly ? undefined : handleCopy}
           onMoveTile={isReadOnly ? undefined : handleMove}
+          onCanPlaceInventoryItem={canPlaceInventoryItemAt}
+          onPlaceInventoryItem={
+            isReadOnly ? undefined : handlePlaceInventoryItem
+          }
           onFlagTile={isReadOnly ? undefined : handleFlag}
           onUnflagTile={isReadOnly ? undefined : handleUnflag}
         />
@@ -308,10 +376,11 @@ function ChartEditorInner({
           isFullscreen={isFullscreen}
           hasEmptyCells={stats.empty > 0}
           generalNotes={generalNotes}
-          placedInventoryItemIds={placedInventoryItemIds}
           canPlaceInventoryItem={canPlaceInventoryItem}
           onGeneralNotesChange={setGeneralNotes}
           onAddInventoryItem={handleAddInventoryItem}
+          onInventoryItemDragStart={handleInventoryDragStart}
+          onInventoryItemDragEnd={handleInventoryDragEnd}
           onSelectTileId={setSelectedTileId}
           onFlag={handleFlag}
           onUnflag={handleUnflag}

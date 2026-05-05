@@ -183,7 +183,7 @@ export function useLocationsFilters() {
     searchInputValue,
     sortBy,
     order,
-    view: viewParam ?? 'sector',
+    view: viewParam ?? 'list',
     sectorId,
     width,
     height,

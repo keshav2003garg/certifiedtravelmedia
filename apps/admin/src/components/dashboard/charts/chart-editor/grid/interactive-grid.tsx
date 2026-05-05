@@ -12,13 +12,21 @@ import {
 } from './menus/tile-context-menu';
 import { canPlaceTileAt } from './utils/grid-placement';
 
-import type { MouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import type { ChartTile } from '@/hooks/useChartEditor/types';
+import type {
+  DragEvent,
+  MouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react';
+import type {
+  ChartInventoryItem,
+  ChartTile,
+} from '@/hooks/useChartEditor/types';
 
 interface InteractiveGridProps {
   width: number;
   height: number;
   tiles: ChartTile[];
+  draggedInventoryItem: ChartInventoryItem | null;
   selectedTileId: string | null;
   isLocked: boolean;
   hasEmptyCells: boolean;
@@ -26,6 +34,16 @@ interface InteractiveGridProps {
   onDeleteTile?: (tileId: string) => void;
   onCloneTile?: (tileId: string) => void;
   onMoveTile?: (tileId: string, col: number, row: number) => void;
+  onCanPlaceInventoryItem?: (
+    item: ChartInventoryItem,
+    col: number,
+    row: number,
+  ) => boolean;
+  onPlaceInventoryItem?: (
+    item: ChartInventoryItem,
+    col: number,
+    row: number,
+  ) => void;
   onFlagTile?: (tileId: string, flagNote: string) => void;
   onUnflagTile?: (tileId: string) => void;
 }
@@ -73,6 +91,7 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   width,
   height,
   tiles,
+  draggedInventoryItem,
   selectedTileId,
   isLocked,
   hasEmptyCells,
@@ -80,11 +99,15 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   onDeleteTile,
   onCloneTile,
   onMoveTile,
+  onCanPlaceInventoryItem,
+  onPlaceInventoryItem,
   onFlagTile,
   onUnflagTile,
 }: InteractiveGridProps) {
   const [dragState, setDragState] = useState<TileDragState | null>(null);
   const [dragOverCell, setDragOverCell] = useState<CellPosition | null>(null);
+  const [inventoryDragOverCell, setInventoryDragOverCell] =
+    useState<CellPosition | null>(null);
   const [contextMenu, setContextMenu] = useState<TileContextMenuState | null>(
     null,
   );
@@ -169,6 +192,10 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   const clearDragState = useCallback(() => {
     setDragState(null);
     setDragOverCell(null);
+  }, []);
+
+  const clearInventoryDragTarget = useCallback(() => {
+    setInventoryDragOverCell(null);
   }, []);
 
   const handleTileContextMenu = useCallback(
@@ -256,6 +283,75 @@ export const InteractiveGrid = memo(function InteractiveGrid({
     };
   }, [canDropTile, clearDragState, dragState, onMoveTile]);
 
+  useEffect(() => {
+    if (!draggedInventoryItem) clearInventoryDragTarget();
+  }, [clearInventoryDragTarget, draggedInventoryItem]);
+
+  const canDropInventoryItem = useCallback(
+    (col: number, row: number) =>
+      Boolean(
+        draggedInventoryItem &&
+        onCanPlaceInventoryItem?.(draggedInventoryItem, col, row),
+      ),
+    [draggedInventoryItem, onCanPlaceInventoryItem],
+  );
+
+  const handleInventoryDragOver = useCallback(
+    (col: number, row: number, event: DragEvent<HTMLDivElement>) => {
+      if (isLocked || !draggedInventoryItem || !onPlaceInventoryItem) return;
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = canDropInventoryItem(col, row)
+        ? 'copy'
+        : 'none';
+      setInventoryDragOverCell((current) =>
+        current?.col === col && current.row === row ? current : { col, row },
+      );
+    },
+    [
+      canDropInventoryItem,
+      draggedInventoryItem,
+      isLocked,
+      onPlaceInventoryItem,
+    ],
+  );
+
+  const handleInventoryDragLeave = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      const nextTarget = event.relatedTarget;
+
+      if (
+        nextTarget instanceof Node &&
+        event.currentTarget.contains(nextTarget)
+      ) {
+        return;
+      }
+
+      clearInventoryDragTarget();
+    },
+    [clearInventoryDragTarget],
+  );
+
+  const handleInventoryDrop = useCallback(
+    (col: number, row: number, event: DragEvent<HTMLDivElement>) => {
+      if (!draggedInventoryItem || !onPlaceInventoryItem) return;
+
+      event.preventDefault();
+
+      if (canDropInventoryItem(col, row)) {
+        onPlaceInventoryItem(draggedInventoryItem, col, row);
+      }
+
+      clearInventoryDragTarget();
+    },
+    [
+      canDropInventoryItem,
+      clearInventoryDragTarget,
+      draggedInventoryItem,
+      onPlaceInventoryItem,
+    ],
+  );
+
   const runContextAction = useCallback(
     (action: TileContextMenuAction) => {
       if (!contextMenu) return;
@@ -326,11 +422,21 @@ export const InteractiveGrid = memo(function InteractiveGrid({
             // Skip cells occupied by a multi-column tile
             if (occupiedCells.has(key)) return null;
             const tile = tileMap.get(key) ?? null;
-            const isDragTarget =
+            const isTileDragTarget =
               dragOverCell?.col === cell.col && dragOverCell.row === cell.row;
-            const canDropHere = draggedTileId
+            const canDropMovedTile = draggedTileId
               ? canDropTile(draggedTileId, cell.col, cell.row)
               : false;
+            const isInventoryDragTarget =
+              inventoryDragOverCell?.col === cell.col &&
+              inventoryDragOverCell.row === cell.row;
+            const canDropInventoryHere = isInventoryDragTarget
+              ? canDropInventoryItem(cell.col, cell.row)
+              : false;
+            const isDragTarget = isTileDragTarget || isInventoryDragTarget;
+            const canDropHere = isInventoryDragTarget
+              ? canDropInventoryHere
+              : canDropMovedTile;
 
             return (
               <GridCell
@@ -346,6 +452,9 @@ export const InteractiveGrid = memo(function InteractiveGrid({
                 onSelectTile={onSelectTile}
                 onTileDragStart={handleTileDragStart}
                 onTileContextMenu={handleTileContextMenu}
+                onInventoryDragOver={handleInventoryDragOver}
+                onInventoryDragLeave={handleInventoryDragLeave}
+                onInventoryDrop={handleInventoryDrop}
               />
             );
           }),

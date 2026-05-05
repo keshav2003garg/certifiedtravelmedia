@@ -48,6 +48,28 @@ export function canPlaceTileAt(
   return true;
 }
 
+export function canPlaceNewTileAt(
+  tiles: ChartTile[],
+  width: number,
+  height: number,
+  requestedColSpan: number,
+  col: number,
+  row: number,
+) {
+  const colSpan = Math.max(requestedColSpan, 1);
+  if (col < 0 || row < 0 || row >= height || col + colSpan > width) {
+    return false;
+  }
+
+  const occupied = getOccupiedCells(tiles);
+
+  for (let offset = 0; offset < colSpan; offset += 1) {
+    if (occupied.has(`${col + offset}:${row}`)) return false;
+  }
+
+  return true;
+}
+
 export function findFirstOpenSlot(
   tiles: ChartTile[],
   width: number,

@@ -22,10 +22,11 @@ interface ChartEditorSidePanelProps {
   isFullscreen: boolean;
   hasEmptyCells: boolean;
   generalNotes: string;
-  placedInventoryItemIds: Set<string>;
   canPlaceInventoryItem: (item: ChartInventoryItem) => boolean;
   onGeneralNotesChange: (value: string) => void;
   onAddInventoryItem: (item: ChartInventoryItem) => void;
+  onInventoryItemDragStart: (item: ChartInventoryItem) => void;
+  onInventoryItemDragEnd: () => void;
   onSelectTileId: (tileId: string | null) => void;
   onFlag: (tileId: string, flagNote: string) => void;
   onUnflag: (tileId: string) => void;
@@ -42,10 +43,11 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
   isFullscreen,
   hasEmptyCells,
   generalNotes,
-  placedInventoryItemIds,
   canPlaceInventoryItem,
   onGeneralNotesChange,
   onAddInventoryItem,
+  onInventoryItemDragStart,
+  onInventoryItemDragEnd,
   onSelectTileId,
   onFlag,
   onUnflag,
@@ -109,9 +111,10 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
         isLocked={isReadOnly}
         isCompact={isFullscreen}
         hasEmptyCells={hasEmptyCells}
-        placedInventoryItemIds={placedInventoryItemIds}
         canPlaceItem={canPlaceInventoryItem}
         onAddInventoryItem={onAddInventoryItem}
+        onInventoryItemDragStart={onInventoryItemDragStart}
+        onInventoryItemDragEnd={onInventoryItemDragEnd}
       />
     </div>
   );

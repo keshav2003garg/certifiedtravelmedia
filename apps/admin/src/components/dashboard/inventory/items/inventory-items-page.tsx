@@ -1,24 +1,16 @@
 import { memo, useMemo } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
-import {
-  AlertCircle,
-  Loader2,
-  PackagePlus,
-  Plus,
-  RefreshCw,
-} from '@repo/ui/lib/icons';
+import { AlertCircle, Loader2, RefreshCw } from '@repo/ui/lib/icons';
 import { formatCount, formatDecimal } from '@repo/utils/number';
 
 import DataPaginationControls from '@/components/common/data-pagination-controls';
 
 import { useInventoryItems } from '@/hooks/useInventoryItems';
 import { useInventoryItemsFilters } from '@/hooks/useInventoryItems/useInventoryItemsFilters';
-import { useUserRole } from '@/hooks/useUserRole';
 
 import InventoryItemsEmpty from './components/inventory-items-empty';
 import InventoryItemsFilterBar from './components/inventory-items-filter-bar';
@@ -97,8 +89,6 @@ function InventorySummaryCards({
 }
 
 function InventoryItemsPage() {
-  const { role } = useUserRole();
-  const isManagerOrAdmin = role === 'manager' || role === 'admin';
   const { inventoryItemsQueryOptions } = useInventoryItems();
   const filters = useInventoryItemsFilters();
 
@@ -136,20 +126,6 @@ function InventoryItemsPage() {
               <RefreshCw className="size-4" />
             )}
           </Button>
-          <Button asChild variant="outline">
-            <Link to="/dashboard/inventory/intake-request">
-              <PackagePlus className="size-4" />
-              New intake
-            </Link>
-          </Button>
-          {isManagerOrAdmin ? (
-            <Button asChild>
-              <Link to="/dashboard/inventory/new">
-                <Plus className="size-4" />
-                New inventory
-              </Link>
-            </Button>
-          ) : null}
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import { cn } from '@repo/ui/lib/utils';
 
 import { TileCard } from './tile-card';
 
-import type { MouseEvent, PointerEvent } from 'react';
+import type { DragEvent, MouseEvent, PointerEvent } from 'react';
 import type { ChartTile } from '@/hooks/useChartEditor/types';
 
 interface GridCellProps {
@@ -25,6 +25,17 @@ interface GridCellProps {
     tile: ChartTile,
     event: MouseEvent<HTMLButtonElement>,
   ) => void;
+  onInventoryDragOver?: (
+    col: number,
+    row: number,
+    event: DragEvent<HTMLDivElement>,
+  ) => void;
+  onInventoryDragLeave?: (event: DragEvent<HTMLDivElement>) => void;
+  onInventoryDrop?: (
+    col: number,
+    row: number,
+    event: DragEvent<HTMLDivElement>,
+  ) => void;
 }
 
 export const GridCell = memo(function GridCell({
@@ -39,6 +50,9 @@ export const GridCell = memo(function GridCell({
   onSelectTile,
   onTileDragStart,
   onTileContextMenu,
+  onInventoryDragOver,
+  onInventoryDragLeave,
+  onInventoryDrop,
 }: GridCellProps) {
   return (
     <div
@@ -53,6 +67,9 @@ export const GridCell = memo(function GridCell({
       data-chart-cell="true"
       data-col={col}
       data-row={row}
+      onDragOver={(event) => onInventoryDragOver?.(col, row, event)}
+      onDragLeave={onInventoryDragLeave}
+      onDrop={(event) => onInventoryDrop?.(col, row, event)}
     >
       {tile ? (
         <TileCard
