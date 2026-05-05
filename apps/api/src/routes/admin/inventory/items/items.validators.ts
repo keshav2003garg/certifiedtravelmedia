@@ -67,6 +67,14 @@ const transactionTypeFilterSchema = z
   .enum(transactionTypeEnum.enumValues)
   .optional();
 
+const inventoryItemFilterSchema = z.object({
+  search: optionalInventoryTextSchema('Search'),
+  warehouseId: z.uuid('Invalid warehouse ID').optional(),
+  brochureId: z.uuid('Invalid brochure ID').optional(),
+  brochureTypeId: z.uuid('Invalid brochure type ID').optional(),
+  stockLevel: stockLevelFilterSchema,
+});
+
 const detailTransactionBaseSchema = z.object({
   boxes: positiveBoxesSchema,
   transactionDate: z.iso.date('Transaction date must be a valid date'),
@@ -81,16 +89,24 @@ export const listInventoryItemsValidator = createValidatorSchema({
   query: paginationSchema
     .extend(searchFilterSchema.shape)
     .extend(inventoryItemSortSchema.shape)
-    .extend({
-      search: optionalInventoryTextSchema('Search'),
-      warehouseId: z.uuid('Invalid warehouse ID').optional(),
-      brochureId: z.uuid('Invalid brochure ID').optional(),
-      brochureTypeId: z.uuid('Invalid brochure type ID').optional(),
-      stockLevel: stockLevelFilterSchema,
-    }),
+    .extend(inventoryItemFilterSchema.shape),
 });
 export type ListInventoryItemsContext = TypedContext<
   typeof listInventoryItemsValidator
+>;
+
+export const downloadInventoryBulkQrLabelsValidator = createValidatorSchema({
+  query: inventoryItemFilterSchema.extend(inventoryItemSortSchema.shape),
+});
+export type DownloadInventoryBulkQrLabelsContext = TypedContext<
+  typeof downloadInventoryBulkQrLabelsValidator
+>;
+
+export const exportInventoryItemsValidator = createValidatorSchema({
+  query: inventoryItemFilterSchema.extend(inventoryItemSortSchema.shape),
+});
+export type ExportInventoryItemsContext = TypedContext<
+  typeof exportInventoryItemsValidator
 >;
 
 export const getInventoryItemValidator = createValidatorSchema({

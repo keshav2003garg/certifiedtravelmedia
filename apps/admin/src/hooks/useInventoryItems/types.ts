@@ -1,4 +1,4 @@
-import type { ApiData } from '@/lib/api/types';
+import type { ApiData, ExternalApiData } from '@/lib/api/types';
 
 export type InventoryStockLevel = 'Low' | 'On Target' | 'Overstock';
 
@@ -161,6 +161,27 @@ export type ListInventoryItemsRequest = ApiData<
     pagination: Pagination;
     summary: InventoryItemsSummary;
   }
+>;
+
+export type InventoryItemsDownloadFilters = Pick<
+  ListInventoryItemsRequest['payload'],
+  | 'search'
+  | 'sortBy'
+  | 'order'
+  | 'warehouseId'
+  | 'brochureId'
+  | 'brochureTypeId'
+  | 'stockLevel'
+>;
+
+export type DownloadInventoryBulkQrLabelsRequest = ExternalApiData<
+  InventoryItemsDownloadFilters,
+  Blob
+>;
+
+export type ExportInventoryItemsRequest = ExternalApiData<
+  InventoryItemsDownloadFilters,
+  Blob
 >;
 
 export type GetInventoryItemRequest = ApiData<

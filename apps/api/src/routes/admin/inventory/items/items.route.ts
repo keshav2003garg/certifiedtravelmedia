@@ -9,6 +9,8 @@ import { validator } from '@repo/server-utils/middlewares/validator.middleware';
 import {
   createInventoryIntakeHandler,
   createInventoryItemTransactionHandler,
+  downloadInventoryBulkQrLabelsHandler,
+  exportInventoryItemsHandler,
   getInventoryItemHandler,
   listInventoryItemsHandler,
   listInventoryItemTransactionsHandler,
@@ -16,6 +18,8 @@ import {
 import {
   createInventoryIntakeValidator,
   createInventoryItemTransactionValidator,
+  downloadInventoryBulkQrLabelsValidator,
+  exportInventoryItemsValidator,
   getInventoryItemValidator,
   listInventoryItemsValidator,
   listInventoryItemTransactionsValidator,
@@ -30,6 +34,20 @@ itemsRoute.get(
   isStaffOrAbove,
   validator(listInventoryItemsValidator),
   listInventoryItemsHandler,
+);
+
+itemsRoute.get(
+  '/bulk-qr-labels',
+  isStaffOrAbove,
+  validator(downloadInventoryBulkQrLabelsValidator),
+  downloadInventoryBulkQrLabelsHandler,
+);
+
+itemsRoute.get(
+  '/export',
+  isStaffOrAbove,
+  validator(exportInventoryItemsValidator),
+  exportInventoryItemsHandler,
 );
 
 itemsRoute.get(

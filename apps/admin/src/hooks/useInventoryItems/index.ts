@@ -9,12 +9,70 @@ import { ReactQueryKeys } from '@/types/react-query-keys';
 import type {
   CreateInventoryIntakeRequest,
   CreateInventoryItemTransactionRequest,
+  DownloadInventoryBulkQrLabelsRequest,
+  ExportInventoryItemsRequest,
   GetInventoryItemRequest,
   ListInventoryItemsRequest,
   ListInventoryItemTransactionsRequest,
 } from './types';
 
 const INVENTORY_ITEMS_ENDPOINT = '/admin/inventory/items';
+
+function getDownloadFilename(
+  contentDisposition: string | null,
+  fallback: string,
+) {
+  if (!contentDisposition) return fallback;
+
+  const filenameMatch = /filename="?([^";]+)"?/i.exec(contentDisposition);
+  return filenameMatch?.[1] ? decodeURIComponent(filenameMatch[1]) : fallback;
+}
+
+async function getBlobErrorMessage(blob: Blob | undefined, fallback: string) {
+  if (!blob) return fallback;
+
+  try {
+    const payload = JSON.parse(await blob.text()) as unknown;
+
+    if (
+      typeof payload === 'object' &&
+      payload !== null &&
+      'message' in payload &&
+      typeof payload.message === 'string'
+    ) {
+      return payload.message;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  try {
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function cleanDownloadQuery<T extends Record<string, unknown>>(params?: T) {
+  if (!params) return undefined;
+
+  const query = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+
+  return Object.keys(query).length > 0 ? query : undefined;
+}
 
 export const inventoryItemsQueryKeys = {
   list: (params?: ListInventoryItemsRequest['payload']) =>
@@ -47,6 +105,72 @@ export function useInventoryItems() {
       );
 
       return response.data;
+    },
+    [],
+  );
+
+  const downloadBulkQrLabels = useCallback(
+    async (params?: DownloadInventoryBulkQrLabelsRequest['payload']) => {
+      const response = await api.raw<Blob, 'blob'>(
+        `${INVENTORY_ITEMS_ENDPOINT}/bulk-qr-labels`,
+        {
+          query: cleanDownloadQuery(params),
+          responseType: 'blob',
+        },
+      );
+      const blob = response._data;
+      const contentType =
+        response.headers.get('content-type') ?? blob?.type ?? '';
+
+      if (!blob || !contentType.includes('application/pdf')) {
+        throw new Error(
+          await getBlobErrorMessage(
+            blob,
+            'Bulk QR labels could not be downloaded',
+          ),
+        );
+      }
+
+      downloadBlob(
+        blob,
+        getDownloadFilename(
+          response.headers.get('content-disposition'),
+          'inventory-bulk-qr-labels.pdf',
+        ),
+      );
+    },
+    [],
+  );
+
+  const exportInventoryItems = useCallback(
+    async (params?: ExportInventoryItemsRequest['payload']) => {
+      const response = await api.raw<Blob, 'blob'>(
+        `${INVENTORY_ITEMS_ENDPOINT}/export`,
+        {
+          query: cleanDownloadQuery(params),
+          responseType: 'blob',
+        },
+      );
+      const blob = response._data;
+      const contentType =
+        response.headers.get('content-type') ?? blob?.type ?? '';
+
+      if (!blob || !contentType.includes('text/csv')) {
+        throw new Error(
+          await getBlobErrorMessage(
+            blob,
+            'Inventory export could not be downloaded',
+          ),
+        );
+      }
+
+      downloadBlob(
+        blob,
+        getDownloadFilename(
+          response.headers.get('content-disposition'),
+          'inventory-items-export.csv',
+        ),
+      );
     },
     [],
   );
@@ -124,6 +248,14 @@ export function useInventoryItems() {
     },
   });
 
+  const downloadBulkQrLabelsMutation = useMutation({
+    mutationFn: downloadBulkQrLabels,
+  });
+
+  const exportInventoryItemsMutation = useMutation({
+    mutationFn: exportInventoryItems,
+  });
+
   const createTransactionMutation = useMutation({
     mutationFn: createInventoryItemTransaction,
     meta: {
@@ -143,6 +275,8 @@ export function useInventoryItems() {
     inventoryItemsQueryOptions,
     inventoryItemQueryOptions,
     inventoryItemTransactionsQueryOptions,
+    downloadBulkQrLabelsMutation,
+    exportInventoryItemsMutation,
     createIntakeMutation,
     createTransactionMutation,
   };

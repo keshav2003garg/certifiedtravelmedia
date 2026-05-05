@@ -10,6 +10,8 @@ import type {
 import type {
   createInventoryIntakeValidator,
   createInventoryItemTransactionValidator,
+  downloadInventoryBulkQrLabelsValidator,
+  exportInventoryItemsValidator,
   getInventoryItemValidator,
   listInventoryItemsValidator,
   listInventoryItemTransactionsValidator,
@@ -17,6 +19,14 @@ import type {
 
 export type ListInventoryItemsParams = z.infer<
   (typeof listInventoryItemsValidator)['query']
+>;
+
+export type DownloadInventoryBulkQrLabelsParams = z.infer<
+  (typeof downloadInventoryBulkQrLabelsValidator)['query']
+>;
+
+export type ExportInventoryItemsParams = z.infer<
+  (typeof exportInventoryItemsValidator)['query']
 >;
 
 export type GetInventoryItemParams = z.infer<
@@ -62,9 +72,18 @@ export interface InventoryItemsSummary {
   warehouses: number;
 }
 
+export interface InventoryBulkQrLabelItem {
+  brochureName: string;
+  qrCodeUrl: string;
+  coverPhotoUrl: string | null;
+  boxes: number;
+  unitsPerBox: number;
+}
+
 export type ListInventoryItemsResult = PaginatedResponse<InventoryListItem> & {
   summary: InventoryItemsSummary;
 };
+export type DownloadInventoryBulkQrLabelsResult = InventoryBulkQrLabelItem[];
 export type ListInventoryItemTransactionsResult =
   PaginatedResponse<InventoryTransactionListItem>;
 

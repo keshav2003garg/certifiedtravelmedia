@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
@@ -7,8 +7,10 @@ import { Card, CardContent } from '@repo/ui/components/base/card';
 import {
   AlertCircle,
   Boxes,
+  Download,
   Loader2,
   Package,
+  Printer,
   RefreshCw,
   Warehouse,
 } from '@repo/ui/lib/icons';
@@ -20,12 +22,16 @@ import DataPaginationControls from '@/components/common/data-pagination-controls
 import { useInventoryItems } from '@/hooks/useInventoryItems';
 import { useInventoryItemsFilters } from '@/hooks/useInventoryItems/useInventoryItemsFilters';
 
+import BulkQrLabelsDialog from './components/bulk-qr-labels-dialog';
 import InventoryItemsEmpty from './components/inventory-items-empty';
 import InventoryItemsFilterBar from './components/inventory-items-filter-bar';
 import InventoryItemsSkeleton from './components/inventory-items-skeleton';
 import InventoryItemsTable from './components/inventory-items-table';
 
-import type { InventoryItemsSummary } from '@/hooks/useInventoryItems/types';
+import type {
+  InventoryItemsDownloadFilters,
+  InventoryItemsSummary,
+} from '@/hooks/useInventoryItems/types';
 
 interface InventorySummaryCardsProps {
   summary?: InventoryItemsSummary;
@@ -90,8 +96,14 @@ function InventorySummaryCards({ summary }: InventorySummaryCardsProps) {
 }
 
 function InventoryItemsPage() {
-  const { inventoryItemsQueryOptions } = useInventoryItems();
+  const [bulkQrDialogOpen, setBulkQrDialogOpen] = useState(false);
+
   const filters = useInventoryItemsFilters();
+  const {
+    downloadBulkQrLabelsMutation,
+    exportInventoryItemsMutation,
+    inventoryItemsQueryOptions,
+  } = useInventoryItems();
 
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
     inventoryItemsQueryOptions(filters.params),
@@ -100,6 +112,39 @@ function InventoryItemsPage() {
   const inventoryItems = data?.inventoryItems ?? [];
   const pagination = data?.pagination;
   const summary = data?.summary;
+  const inventoryDownloadFilters = useMemo<InventoryItemsDownloadFilters>(
+    () => ({
+      search: filters.params.search,
+      warehouseId: filters.params.warehouseId,
+      brochureId: filters.params.brochureId,
+      brochureTypeId: filters.params.brochureTypeId,
+      stockLevel: filters.params.stockLevel,
+      sortBy: filters.params.sortBy,
+      order: filters.params.order,
+    }),
+    [
+      filters.params.search,
+      filters.params.warehouseId,
+      filters.params.brochureId,
+      filters.params.brochureTypeId,
+      filters.params.stockLevel,
+      filters.params.sortBy,
+      filters.params.order,
+    ],
+  );
+
+  const handleDownloadBulkQrLabels = useCallback(
+    (payload: InventoryItemsDownloadFilters) => {
+      downloadBulkQrLabelsMutation.mutate(payload, {
+        onSuccess: () => setBulkQrDialogOpen(false),
+      });
+    },
+    [downloadBulkQrLabelsMutation],
+  );
+
+  const handleExportInventoryItems = useCallback(() => {
+    exportInventoryItemsMutation.mutate(inventoryDownloadFilters);
+  }, [exportInventoryItemsMutation, inventoryDownloadFilters]);
 
   return (
     <div className="space-y-6">
@@ -114,6 +159,32 @@ function InventoryItemsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportInventoryItems}
+            disabled={exportInventoryItemsMutation.isPending}
+          >
+            {exportInventoryItemsMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            Export CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setBulkQrDialogOpen(true)}
+            disabled={downloadBulkQrLabelsMutation.isPending}
+          >
+            {downloadBulkQrLabelsMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Printer className="size-4" />
+            )}
+            Print Bulk QR
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -182,6 +253,16 @@ function InventoryItemsPage() {
           )}
         </CardContent>
       </Card>
+
+      {bulkQrDialogOpen ? (
+        <BulkQrLabelsDialog
+          open={bulkQrDialogOpen}
+          initialFilters={inventoryDownloadFilters}
+          isDownloading={downloadBulkQrLabelsMutation.isPending}
+          onOpenChange={setBulkQrDialogOpen}
+          onDownload={handleDownloadBulkQrLabels}
+        />
+      ) : null}
     </div>
   );
 }

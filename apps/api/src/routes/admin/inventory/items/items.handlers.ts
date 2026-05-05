@@ -1,10 +1,14 @@
 import sendResponse from '@repo/server-utils/utils/response';
 
+import { generateInventoryBulkQrLabelsPDF } from '@/utils/pdf/inventory-bulk-qr-labels-pdf';
+
 import { inventoryItemsService } from './items.services';
 
 import type {
   CreateInventoryIntakeContext,
   CreateInventoryItemTransactionContext,
+  DownloadInventoryBulkQrLabelsContext,
+  ExportInventoryItemsContext,
   GetInventoryItemContext,
   ListInventoryItemsContext,
   ListInventoryItemTransactionsContext,
@@ -30,6 +34,39 @@ export async function getInventoryItemHandler(ctx: GetInventoryItemContext) {
   return sendResponse(ctx, 200, 'Inventory item retrieved successfully', {
     item,
   });
+}
+
+export async function downloadInventoryBulkQrLabelsHandler(
+  ctx: DownloadInventoryBulkQrLabelsContext,
+) {
+  const query = ctx.req.valid('query');
+  const items = await inventoryItemsService.listBulkQrLabels(query);
+  const { buffer, filename } = await generateInventoryBulkQrLabelsPDF({
+    items,
+  });
+
+  return new Response(buffer, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    },
+  });
+}
+
+export async function exportInventoryItemsHandler(
+  ctx: ExportInventoryItemsContext,
+) {
+  const query = ctx.req.valid('query');
+  const csv = await inventoryItemsService.exportCSV(query);
+  const generatedDate = new Date().toISOString().slice(0, 10);
+
+  ctx.header('Content-Type', 'text/csv; charset=utf-8');
+  ctx.header(
+    'Content-Disposition',
+    `attachment; filename="inventory-items-export-${generatedDate}.csv"`,
+  );
+
+  return ctx.body(csv);
 }
 
 export async function listInventoryItemTransactionsHandler(

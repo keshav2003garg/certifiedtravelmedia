@@ -9,6 +9,7 @@ import {
   desc,
   eq,
   gte,
+  isNotNull,
   isNull,
   lte,
   or,
@@ -20,6 +21,7 @@ import {
   createPaginatedResult,
   getPaginationOffset,
 } from '@repo/server-utils/utils/pagination';
+import { escapeCsv } from '@repo/utils/csv';
 import { roundDecimals } from '@repo/utils/number';
 
 import {
@@ -39,6 +41,9 @@ import type {
   CreateInventoryIntakeInput,
   CreateInventoryItemTransactionInput,
   DirectInventoryItemTransactionInput,
+  DownloadInventoryBulkQrLabelsParams,
+  DownloadInventoryBulkQrLabelsResult,
+  ExportInventoryItemsParams,
   InventoryItemDetail,
   InventoryItemRecord,
   InventoryItemTransactionInsert,
@@ -51,6 +56,36 @@ import type {
   ResolvedIntakeCustomer,
   TransferInventoryItemTransactionInput,
 } from './items.types';
+
+type InventoryItemsListQuery = Pick<
+  ListInventoryItemsParams,
+  | 'search'
+  | 'warehouseId'
+  | 'brochureId'
+  | 'brochureTypeId'
+  | 'stockLevel'
+  | 'sortBy'
+  | 'order'
+>;
+
+const INVENTORY_ITEMS_EXPORT_HEADERS = [
+  'Brochure Name',
+  'Brochure Type',
+  'Customer',
+  'Warehouse',
+  'Warehouse ID',
+  'No. of Boxes',
+  'Units per Box',
+  'Stock',
+  'Last Updated',
+  'Image URL',
+  'QR Code URL',
+] as const;
+
+type InventoryItemsExportCsvRow = Record<
+  (typeof INVENTORY_ITEMS_EXPORT_HEADERS)[number],
+  string
+>;
 
 class InventoryItemsService {
   private static readonly DECIMAL_EPSILON = 0.000_001;
@@ -70,7 +105,15 @@ class InventoryItemsService {
     return roundDecimals(value, 2);
   }
 
-  private buildListWhereClause(params: ListInventoryItemsParams) {
+  private formatCsvNumber(value: number) {
+    const rounded = roundDecimals(value, 2);
+
+    return Number.isInteger(rounded)
+      ? rounded.toString()
+      : rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  private buildListWhereClause(params: InventoryItemsListQuery) {
     const conditions: SQL[] = [];
 
     if (params.search) {
@@ -103,7 +146,7 @@ class InventoryItemsService {
     return conditions.length > 0 ? and(...conditions) : undefined;
   }
 
-  private getListOrderBy(params: ListInventoryItemsParams) {
+  private getListOrderBy(params: InventoryItemsListQuery) {
     const sortBy = params.sortBy ?? 'brochureName';
     const column =
       sortBy === 'warehouseName'
@@ -235,6 +278,105 @@ class InventoryItemsService {
         warehouses: Number(summary?.warehouses ?? 0),
       },
     };
+  }
+
+  async listBulkQrLabels(
+    params: DownloadInventoryBulkQrLabelsParams,
+  ): Promise<DownloadInventoryBulkQrLabelsResult> {
+    const whereClause = this.buildListWhereClause(params);
+    const qrWhereClause = whereClause
+      ? and(whereClause, isNotNull(inventoryItems.qrCodeUrl))
+      : isNotNull(inventoryItems.qrCodeUrl);
+
+    const rows = await db
+      .select({
+        brochureName: brochures.name,
+        qrCodeUrl: inventoryItems.qrCodeUrl,
+        coverPhotoUrl: brochureImages.imageUrl,
+        boxes: inventoryItems.boxes,
+        unitsPerBox: brochureImagePackSizes.unitsPerBox,
+      })
+      .from(inventoryItems)
+      .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+      .innerJoin(
+        brochureImagePackSizes,
+        eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+      )
+      .innerJoin(
+        brochureImages,
+        eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+      )
+      .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+      .innerJoin(brochureTypes, eq(brochures.brochureTypeId, brochureTypes.id))
+      .leftJoin(customers, eq(brochures.customerId, customers.id))
+      .where(qrWhereClause)
+      .orderBy(...this.getListOrderBy(params));
+
+    const labelItems = rows.flatMap((row) => {
+      if (!row.qrCodeUrl) return [];
+
+      return [
+        {
+          brochureName: row.brochureName,
+          qrCodeUrl: row.qrCodeUrl,
+          coverPhotoUrl: row.coverPhotoUrl,
+          boxes: row.boxes,
+          unitsPerBox: row.unitsPerBox,
+        },
+      ];
+    });
+
+    return labelItems;
+  }
+
+  async exportCSV(params: ExportInventoryItemsParams): Promise<string> {
+    const whereClause = this.buildListWhereClause(params);
+
+    const rows = await db
+      .select({
+        brochureName: brochures.name,
+        brochureTypeName: brochureTypes.name,
+        customerName: customers.name,
+        warehouseName: warehouses.name,
+        warehouseAcumaticaId: warehouses.acumaticaId,
+        boxes: inventoryItems.boxes,
+        unitsPerBox: brochureImagePackSizes.unitsPerBox,
+        stockLevel: inventoryItems.stockLevel,
+        updatedAt: inventoryItems.updatedAt,
+        imageUrl: brochureImages.imageUrl,
+        qrCodeUrl: inventoryItems.qrCodeUrl,
+      })
+      .from(inventoryItems)
+      .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+      .innerJoin(
+        brochureImagePackSizes,
+        eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+      )
+      .innerJoin(
+        brochureImages,
+        eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+      )
+      .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+      .innerJoin(brochureTypes, eq(brochures.brochureTypeId, brochureTypes.id))
+      .leftJoin(customers, eq(brochures.customerId, customers.id))
+      .where(whereClause)
+      .orderBy(...this.getListOrderBy(params));
+
+    const csvRows: InventoryItemsExportCsvRow[] = rows.map((row) => ({
+      'Brochure Name': row.brochureName,
+      'Brochure Type': row.brochureTypeName,
+      Customer: row.customerName ?? 'Unassigned',
+      Warehouse: row.warehouseName,
+      'Warehouse ID': row.warehouseAcumaticaId ?? '',
+      'No. of Boxes': this.formatCsvNumber(row.boxes),
+      'Units per Box': this.formatCsvNumber(row.unitsPerBox),
+      Stock: row.stockLevel,
+      'Last Updated': row.updatedAt,
+      'Image URL': row.imageUrl ?? '',
+      'QR Code URL': row.qrCodeUrl ?? '',
+    }));
+
+    return serializeInventoryItemsCsv(csvRows);
   }
 
   async getById(id: string): Promise<InventoryItemDetail> {
@@ -1037,6 +1179,19 @@ class InventoryItemsService {
       });
     });
   }
+}
+
+function serializeInventoryItemsCsv(rows: InventoryItemsExportCsvRow[]) {
+  const lines = [
+    INVENTORY_ITEMS_EXPORT_HEADERS.map(escapeCsv).join(','),
+    ...rows.map((row) =>
+      INVENTORY_ITEMS_EXPORT_HEADERS.map((header) =>
+        escapeCsv(row[header]),
+      ).join(','),
+    ),
+  ];
+
+  return lines.join('\n');
 }
 
 export const inventoryItemsService = new InventoryItemsService();
