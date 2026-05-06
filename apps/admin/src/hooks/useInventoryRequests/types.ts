@@ -57,6 +57,7 @@ export interface InventoryRequestStats {
   approved: number;
   rejected: number;
   cancelled: number;
+  pendingBoxes: number;
 }
 
 export type CreateInventoryRequestPayload = {
@@ -94,6 +95,7 @@ export type ListInventoryRequestsRequest = ApiData<
     transactionType?: TransactionType;
     warehouseId?: string;
     brochureTypeId?: string;
+    brochureId?: string;
     requestedBy?: string;
   },
   {

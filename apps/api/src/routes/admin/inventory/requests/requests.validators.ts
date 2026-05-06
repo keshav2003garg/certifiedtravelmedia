@@ -102,6 +102,7 @@ export const listInventoryRequestsValidator = createValidatorSchema({
       transactionType: inventoryRequestTypeFilterSchema,
       warehouseId: z.uuid('Invalid warehouse ID').optional(),
       brochureTypeId: z.uuid('Invalid brochure type ID').optional(),
+      brochureId: z.uuid('Invalid brochure ID').optional(),
       requestedBy: z.string().trim().min(1).max(255).optional(),
     }),
 });

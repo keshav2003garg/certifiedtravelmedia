@@ -78,6 +78,10 @@ export function useInventoryRequestsFilters() {
     'warehouseId',
     parseAsString,
   );
+  const [brochureId, setBrochureId] = useQueryState(
+    'brochureId',
+    parseAsString,
+  );
   const [brochureTypeId, setBrochureTypeId] = useQueryState(
     'brochureTypeId',
     parseAsString,
@@ -123,6 +127,14 @@ export function useInventoryRequestsFilters() {
     [setWarehouseId, handlePageChange],
   );
 
+  const handleBrochureChange = useCallback(
+    (value: string | null) => {
+      setBrochureId(value);
+      handlePageChange(1);
+    },
+    [setBrochureId, handlePageChange],
+  );
+
   const handleBrochureTypeChange = useCallback(
     (value: string | null) => {
       setBrochureTypeId(value);
@@ -137,6 +149,7 @@ export function useInventoryRequestsFilters() {
     setOrder(null);
     setTransactionType(null);
     setWarehouseId(null);
+    setBrochureId(null);
     setBrochureTypeId(null);
     handlePageChange(1);
   }, [
@@ -145,6 +158,7 @@ export function useInventoryRequestsFilters() {
     setOrder,
     setTransactionType,
     setWarehouseId,
+    setBrochureId,
     setBrochureTypeId,
     handlePageChange,
   ]);
@@ -157,9 +171,18 @@ export function useInventoryRequestsFilters() {
         order ||
         transactionType ||
         warehouseId ||
+        brochureId ||
         brochureTypeId,
       ),
-    [search, sortBy, order, transactionType, warehouseId, brochureTypeId],
+    [
+      search,
+      sortBy,
+      order,
+      transactionType,
+      warehouseId,
+      brochureId,
+      brochureTypeId,
+    ],
   );
 
   const params = useMemo(
@@ -173,6 +196,7 @@ export function useInventoryRequestsFilters() {
           : ((status ?? 'Pending') as InventoryRequestStatus),
       transactionType: transactionType ?? undefined,
       warehouseId: warehouseId ?? undefined,
+      brochureId: brochureId ?? undefined,
       brochureTypeId: brochureTypeId ?? undefined,
       page,
       limit,
@@ -184,6 +208,7 @@ export function useInventoryRequestsFilters() {
       status,
       transactionType,
       warehouseId,
+      brochureId,
       brochureTypeId,
       page,
       limit,
@@ -198,6 +223,7 @@ export function useInventoryRequestsFilters() {
     status,
     transactionType,
     warehouseId,
+    brochureId,
     brochureTypeId,
     setSearch,
     handleSortByChange,
@@ -205,6 +231,7 @@ export function useInventoryRequestsFilters() {
     handleStatusChange,
     handleTransactionTypeChange,
     handleWarehouseChange,
+    handleBrochureChange,
     handleBrochureTypeChange,
     page,
     limit,

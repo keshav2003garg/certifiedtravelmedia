@@ -11,7 +11,6 @@ import {
   Loader2,
   Package,
   Printer,
-  RefreshCw,
   Warehouse,
 } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
@@ -70,20 +69,20 @@ function InventorySummaryCards({ summary }: InventorySummaryCardsProps) {
 
         return (
           <Card key={card.label} className="shadow-sm">
-            <CardContent className="flex items-center gap-4 p-5">
+            <CardContent className="flex items-center gap-3 p-4">
               <span
                 className={cn(
-                  'flex size-12 shrink-0 items-center justify-center rounded-md',
+                  'flex size-9 shrink-0 items-center justify-center rounded-md',
                   card.iconClassName,
                 )}
               >
-                <Icon className="size-6" />
+                <Icon className="size-5" />
               </span>
               <span className="min-w-0">
-                <span className="text-muted-foreground block text-sm font-semibold">
+                <span className="text-muted-foreground block text-xs font-semibold">
                   {card.label}
                 </span>
-                <span className="text-foreground mt-1 block text-2xl font-bold tracking-normal">
+                <span className="text-foreground mt-0.5 block text-xl font-bold tracking-normal">
                   {card.value}
                 </span>
               </span>
@@ -184,20 +183,6 @@ function InventoryItemsPage() {
               <Printer className="size-4" />
             )}
             Print Bulk QR
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            aria-label="Refresh inventory"
-          >
-            {isFetching ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
           </Button>
         </div>
       </div>

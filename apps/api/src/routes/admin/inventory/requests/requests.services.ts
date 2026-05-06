@@ -1,6 +1,7 @@
 import db from '@/db';
 
 import { and, asc, count, desc, eq, isNull, or, sql } from 'drizzle-orm';
+import { exists } from 'drizzle-orm';
 
 import HttpError from '@repo/server-utils/errors/http-error';
 import {
@@ -145,6 +146,22 @@ class InventoryRequestsService {
       );
     }
 
+    if (params.brochureId) {
+      conditions.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(brochures)
+            .where(
+              and(
+                eq(brochures.id, params.brochureId),
+                sql`${inventoryTransactionRequests.brochureName} ILIKE ${brochures.name}`,
+              ),
+            ),
+        ),
+      );
+    }
+
     if (params.requestedBy) {
       conditions.push(
         eq(inventoryTransactionRequests.requestedBy, params.requestedBy),
@@ -254,6 +271,10 @@ class InventoryRequestsService {
           sql<number>`COUNT(*) FILTER (WHERE ${inventoryTransactionRequests.status} = 'Cancelled')`.mapWith(
             Number,
           ),
+        pendingBoxes:
+          sql<number>`COALESCE(SUM(${inventoryTransactionRequests.boxes}) FILTER (WHERE ${inventoryTransactionRequests.status} = 'Pending'), 0)`.mapWith(
+            Number,
+          ),
       })
       .from(inventoryTransactionRequests);
 
@@ -263,6 +284,7 @@ class InventoryRequestsService {
       approved: rows?.approved ?? 0,
       rejected: rows?.rejected ?? 0,
       cancelled: rows?.cancelled ?? 0,
+      pendingBoxes: rows?.pendingBoxes ?? 0,
     };
   }
 

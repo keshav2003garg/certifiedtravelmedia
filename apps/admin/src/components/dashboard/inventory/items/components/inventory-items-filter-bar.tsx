@@ -154,7 +154,7 @@ function InventoryItemsFilterBar({ filters }: InventoryItemsFilterBarProps) {
         </Select>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:grid-cols-[minmax(200px,350px)_minmax(200px,350px)_auto]">
+      <div className="flex flex-wrap items-center gap-6">
         <Select
           value={sortBy ?? DEFAULT_INVENTORY_ITEM_SORT_BY}
           onValueChange={(value) =>
@@ -165,7 +165,7 @@ function InventoryItemsFilterBar({ filters }: InventoryItemsFilterBarProps) {
             )
           }
         >
-          <SelectTrigger className="h-11" aria-label="Sort type">
+          <SelectTrigger className="h-9 w-47.5" aria-label="Sort type">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -187,7 +187,7 @@ function InventoryItemsFilterBar({ filters }: InventoryItemsFilterBarProps) {
             )
           }
         >
-          <SelectTrigger className="h-11" aria-label="Sort order">
+          <SelectTrigger className="h-9 w-40" aria-label="Sort order">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -202,7 +202,8 @@ function InventoryItemsFilterBar({ filters }: InventoryItemsFilterBarProps) {
         <Button
           type="button"
           variant="outline"
-          className="h-11"
+          size="sm"
+          className="ml-auto"
           disabled={!hasActiveFilters}
           onClick={clearFilters}
         >
