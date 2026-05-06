@@ -12,14 +12,7 @@ import {
 } from '@repo/ui/components/base/card';
 import { Label } from '@repo/ui/components/base/label';
 import { NumericInput } from '@repo/ui/components/base/numeric-input';
-import {
-  CalendarDays,
-  ExternalLink,
-  FileText,
-  Loader2,
-  UserRound,
-  X,
-} from '@repo/ui/lib/icons';
+import { ExternalLink, Loader2, UserRound, X } from '@repo/ui/lib/icons';
 
 import SearchableSelect from '@/components/common/searchable-select';
 
@@ -101,8 +94,6 @@ function YearlyReportPanel({
     baseOptions: selectedCustomerOption ? [selectedCustomerOption] : [],
   });
 
-  const selectedCustomerName =
-    selectedCustomerOption?.label ?? 'Select customer';
   const canGenerate = Boolean(filters.customerId) && !isOpening;
 
   const handleSubmit = useCallback(
@@ -117,36 +108,6 @@ function YearlyReportPanel({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="bg-card rounded-md border p-4">
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <UserRound className="size-4" />
-            Customer
-          </div>
-          <p className="mt-2 truncate text-lg font-semibold tracking-normal">
-            {selectedCustomerName}
-          </p>
-        </div>
-
-        <div className="bg-card rounded-md border p-4">
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <CalendarDays className="size-4" />
-            Year
-          </div>
-          <p className="mt-2 text-lg font-semibold tracking-normal">
-            {filters.year}
-          </p>
-        </div>
-
-        <div className="bg-card rounded-md border p-4">
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <FileText className="size-4" />
-            Output
-          </div>
-          <p className="mt-2 text-lg font-semibold tracking-normal">PDF</p>
-        </div>
-      </div>
-
       <Card className="shadow-none">
         <CardHeader>
           <CardTitle className="text-xl tracking-normal">

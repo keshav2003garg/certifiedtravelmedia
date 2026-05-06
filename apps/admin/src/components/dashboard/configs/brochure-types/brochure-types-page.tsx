@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
-import { AlertCircle, Loader2, Plus, RefreshCw } from '@repo/ui/lib/icons';
+import { AlertCircle, Loader2, Plus } from '@repo/ui/lib/icons';
 
 import DataPaginationControls from '@/components/common/data-pagination-controls';
 
@@ -107,20 +107,6 @@ function BrochureTypesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            aria-label="Refresh brochure types"
-          >
-            {isFetching ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
-          </Button>
           <Button type="button" onClick={openCreateDialog}>
             <Plus className="size-4" />
             New type

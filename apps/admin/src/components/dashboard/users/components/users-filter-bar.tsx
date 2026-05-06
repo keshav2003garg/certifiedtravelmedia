@@ -12,12 +12,7 @@ import {
 } from '@repo/ui/components/base/select';
 import { Search, X } from '@repo/ui/lib/icons';
 
-import type {
-  SortOrder,
-  UserFilter,
-  UserSearchField,
-  UserSortBy,
-} from '@/hooks/useUsers/types';
+import type { UserFilter, UserSearchField } from '@/hooks/useUsers/types';
 import type { useUsersFilters } from '@/hooks/useUsers/useUsersFilters';
 
 type UsersFilters = ReturnType<typeof useUsersFilters>;
@@ -53,32 +48,6 @@ const filterLabels: Record<UserFilter, string> = {
   'status:banned': 'Banned',
 };
 
-const sortOptions = [
-  { value: 'name', label: 'Name' },
-  { value: 'email', label: 'Email' },
-  { value: 'role', label: 'Role' },
-  { value: 'createdAt', label: 'Created date' },
-  { value: 'updatedAt', label: 'Updated date' },
-] as const;
-
-const sortLabels: Record<UserSortBy, string> = {
-  name: 'Name',
-  email: 'Email',
-  role: 'Role',
-  createdAt: 'Created date',
-  updatedAt: 'Updated date',
-};
-
-const orderOptions = [
-  { value: 'asc', label: 'Ascending' },
-  { value: 'desc', label: 'Descending' },
-] as const;
-
-const orderLabels: Record<SortOrder, string> = {
-  asc: 'Ascending',
-  desc: 'Descending',
-};
-
 function UsersFilterBar({ filters }: UsersFilterBarProps) {
   const activeFilters = useMemo<ActiveFilter[]>(() => {
     const items: ActiveFilter[] = [];
@@ -104,26 +73,12 @@ function UsersFilterBar({ filters }: UsersFilterBarProps) {
       });
     }
 
-    if (filters.sortBy !== 'name') {
-      items.push({
-        label: `Sort: ${sortLabels[filters.sortBy]}`,
-        onClear: () => filters.handleSortByChange(null),
-      });
-    }
-
-    if (filters.order !== 'asc') {
-      items.push({
-        label: `Order: ${orderLabels[filters.order]}`,
-        onClear: () => filters.handleOrderChange(null),
-      });
-    }
-
     return items;
   }, [filters]);
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 xl:grid-cols-[1fr_130px_150px_170px_150px_auto]">
+      <div className="grid gap-3 xl:grid-cols-[1fr_130px_150px_100px_auto]">
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
@@ -165,42 +120,6 @@ function UsersFilterBar({ filters }: UsersFilterBarProps) {
           </SelectTrigger>
           <SelectContent>
             {filterOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.sortBy}
-          onValueChange={(value) =>
-            filters.handleSortByChange(value as UserSortBy)
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {sortOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.order}
-          onValueChange={(value) =>
-            filters.handleOrderChange(value as SortOrder)
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {orderOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

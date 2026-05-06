@@ -19,14 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@repo/ui/components/base/select';
-import {
-  CalendarDays,
-  ExternalLink,
-  FileText,
-  Loader2,
-  Warehouse,
-  X,
-} from '@repo/ui/lib/icons';
+import { ExternalLink, Loader2, Warehouse, X } from '@repo/ui/lib/icons';
 
 import SearchableSelect from '@/components/common/searchable-select';
 
@@ -63,12 +56,6 @@ interface MonthlyReportPanelProps {
   filters: ReportsFilters;
   isOpening: boolean;
   onGenerate: () => void;
-}
-
-function getMonthLabel(month: number) {
-  return (
-    MONTH_OPTIONS.find((option) => option.value === month)?.label ?? 'Unknown'
-  );
 }
 
 function MonthlyReportPanel({
@@ -126,9 +113,6 @@ function MonthlyReportPanel({
     baseOptions: selectedWarehouseOption ? [selectedWarehouseOption] : [],
   });
 
-  const selectedWarehouseName =
-    selectedWarehouseOption?.label ?? 'Select warehouse';
-  const periodLabel = `${getMonthLabel(filters.month)} ${filters.year}`;
   const canGenerate = Boolean(filters.warehouseId) && !isOpening;
 
   const handleSubmit = useCallback(
@@ -143,36 +127,6 @@ function MonthlyReportPanel({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="bg-card rounded-md border p-4">
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <Warehouse className="size-4" />
-            Warehouse
-          </div>
-          <p className="mt-2 truncate text-lg font-semibold tracking-normal">
-            {selectedWarehouseName}
-          </p>
-        </div>
-
-        <div className="bg-card rounded-md border p-4">
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <CalendarDays className="size-4" />
-            Period
-          </div>
-          <p className="mt-2 text-lg font-semibold tracking-normal">
-            {periodLabel}
-          </p>
-        </div>
-
-        <div className="bg-card rounded-md border p-4">
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <FileText className="size-4" />
-            Output
-          </div>
-          <p className="mt-2 text-lg font-semibold tracking-normal">PDF</p>
-        </div>
-      </div>
-
       <Card className="shadow-none">
         <CardHeader>
           <CardTitle className="text-xl tracking-normal">

@@ -4,13 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
-import {
-  AlertCircle,
-  Grid2X2,
-  List,
-  Loader2,
-  RefreshCw,
-} from '@repo/ui/lib/icons';
+import { AlertCircle, Grid2X2, List, Loader2 } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
 
 import DataPaginationControls from '@/components/common/data-pagination-controls';
@@ -124,7 +118,8 @@ function LocationsPage() {
               size="sm"
               className={cn(
                 'h-8 gap-1.5 px-3',
-                view === 'list' && 'bg-background text-foreground shadow-sm',
+                view === 'list' &&
+                  'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground shadow-sm',
               )}
               onClick={() => filters.handleViewChange('list')}
             >
@@ -146,24 +141,6 @@ function LocationsPage() {
               By Sector
             </Button>
           </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => {
-              activeQuery.refetch();
-              statsQuery.refetch();
-            }}
-            disabled={activeQuery.isFetching || statsQuery.isFetching}
-            aria-label="Refresh locations"
-          >
-            {activeQuery.isFetching || statsQuery.isFetching ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
-          </Button>
         </div>
       </div>
 

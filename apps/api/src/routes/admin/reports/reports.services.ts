@@ -18,10 +18,9 @@ import {
 } from '@services/database/schemas';
 
 import type {
+  CustomerYearlyBrochureAggregate,
   CustomerYearlyReportParams,
   CustomerYearlyReportResult,
-  CustomerYearlyReportWarehouse,
-  CustomerYearlyWarehouseAggregate,
   InventoryMonthlyReportItem,
   InventoryMonthlyReportParams,
   InventoryMonthlyReportPeriod,
@@ -201,14 +200,7 @@ class ReportsService {
   ) {
     return db
       .select({
-        transactionId: inventoryTransactions.id,
-        transactionDate: inventoryTransactions.transactionDate,
         boxes: inventoryTransactions.boxes,
-        inventoryItemId: inventoryItems.id,
-        warehouseId: warehouses.id,
-        warehouseName: warehouses.name,
-        warehouseAcumaticaId: warehouses.acumaticaId,
-        warehouseAddress: warehouses.address,
         brochureImagePackSizeId: brochureImagePackSizes.id,
         brochureId: brochures.id,
         brochureName: brochures.name,
@@ -217,14 +209,12 @@ class ReportsService {
         brochureImageId: brochureImages.id,
         imageUrl: brochureImages.imageUrl,
         unitsPerBox: brochureImagePackSizes.unitsPerBox,
-        createdAt: inventoryTransactions.createdAt,
       })
       .from(inventoryTransactions)
       .innerJoin(
         inventoryItems,
         eq(inventoryTransactions.inventoryItemId, inventoryItems.id),
       )
-      .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
       .innerJoin(
         brochureImagePackSizes,
         eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
@@ -245,7 +235,6 @@ class ReportsService {
         ),
       )
       .orderBy(
-        asc(warehouses.name),
         asc(brochures.name),
         asc(brochureTypes.name),
         asc(brochureImages.sortOrder),
@@ -377,31 +366,13 @@ class ReportsService {
   private buildCustomerYearlyDistributionReport(
     rows: CustomerYearlyDistributionRow[],
   ) {
-    const warehousesById = new Map<string, CustomerYearlyWarehouseAggregate>();
+    const brochuresById = new Map<string, CustomerYearlyBrochureAggregate>();
 
     for (const row of rows) {
       const boxes = row.boxes;
       const units = roundDecimals(boxes * row.unitsPerBox);
 
-      let warehouse = warehousesById.get(row.warehouseId);
-      if (!warehouse) {
-        warehouse = {
-          id: row.warehouseId,
-          name: row.warehouseName,
-          acumaticaId: row.warehouseAcumaticaId,
-          address: row.warehouseAddress,
-          transactionCount: 0,
-          brochureCount: 0,
-          variantCount: 0,
-          distributionBoxes: 0,
-          distributionUnits: 0,
-          brochures: [],
-          brochureMap: new Map(),
-        };
-        warehousesById.set(row.warehouseId, warehouse);
-      }
-
-      let brochure = warehouse.brochureMap.get(row.brochureId);
+      let brochure = brochuresById.get(row.brochureId);
       if (!brochure) {
         brochure = {
           id: row.brochureId,
@@ -415,14 +386,12 @@ class ReportsService {
           variants: [],
           variantMap: new Map(),
         };
-        warehouse.brochureMap.set(row.brochureId, brochure);
-        warehouse.brochures.push(brochure);
+        brochuresById.set(row.brochureId, brochure);
       }
 
       let variant = brochure.variantMap.get(row.brochureImagePackSizeId);
       if (!variant) {
         variant = {
-          inventoryItemId: row.inventoryItemId,
           brochureImagePackSizeId: row.brochureImagePackSizeId,
           brochureImageId: row.brochureImageId,
           imageUrl: row.imageUrl,
@@ -450,70 +419,39 @@ class ReportsService {
       brochure.distributionUnits = roundDecimals(
         brochure.distributionUnits + units,
       );
-
-      warehouse.transactionCount += 1;
-      warehouse.distributionBoxes = roundDecimals(
-        warehouse.distributionBoxes + boxes,
-      );
-      warehouse.distributionUnits = roundDecimals(
-        warehouse.distributionUnits + units,
-      );
     }
 
-    return Array.from(warehousesById.values()).map(
-      ({ brochureMap: _brochureMap, brochures, ...warehouse }) => {
-        const reportBrochures = brochures.map(
-          ({ variantMap: _variantMap, variants, ...brochure }) => ({
-            ...brochure,
-            variantCount: variants.length,
-            variants,
-          }),
-        );
-
-        return {
-          ...warehouse,
-          brochureCount: reportBrochures.length,
-          variantCount: reportBrochures.reduce(
-            (total, brochure) => total + brochure.variantCount,
-            0,
-          ),
-          brochures: reportBrochures,
-        };
-      },
+    return Array.from(brochuresById.values()).map(
+      ({ variantMap: _variantMap, variants, ...brochure }) => ({
+        ...brochure,
+        variantCount: variants.length,
+        variants,
+      }),
     );
   }
 
   private buildCustomerYearlyDistributionSummary(
-    warehouses: CustomerYearlyReportWarehouse[],
+    brochures: CustomerYearlyReportResult['brochures'],
   ) {
-    const brochureIds = new Set<string>();
-
-    for (const warehouse of warehouses) {
-      for (const brochure of warehouse.brochures) {
-        brochureIds.add(brochure.id);
-      }
-    }
-
     return {
-      warehouseCount: warehouses.length,
-      brochureCount: brochureIds.size,
-      variantCount: warehouses.reduce(
-        (total, warehouse) => total + warehouse.variantCount,
+      brochureCount: brochures.length,
+      variantCount: brochures.reduce(
+        (total, brochure) => total + brochure.variantCount,
         0,
       ),
-      transactionCount: warehouses.reduce(
-        (total, warehouse) => total + warehouse.transactionCount,
+      transactionCount: brochures.reduce(
+        (total, brochure) => total + brochure.transactionCount,
         0,
       ),
       distributionBoxes: roundDecimals(
-        warehouses.reduce(
-          (total, warehouse) => total + warehouse.distributionBoxes,
+        brochures.reduce(
+          (total, brochure) => total + brochure.distributionBoxes,
           0,
         ),
       ),
       distributionUnits: roundDecimals(
-        warehouses.reduce(
-          (total, warehouse) => total + warehouse.distributionUnits,
+        brochures.reduce(
+          (total, brochure) => total + brochure.distributionUnits,
           0,
         ),
       ),
@@ -571,7 +509,7 @@ class ReportsService {
         period.endDate,
       ),
     ]);
-    const warehouses =
+    const brochures =
       this.buildCustomerYearlyDistributionReport(distributionRows);
 
     return {
@@ -581,8 +519,8 @@ class ReportsService {
         acumaticaId: customer.acumaticaId,
       },
       period,
-      summary: this.buildCustomerYearlyDistributionSummary(warehouses),
-      warehouses,
+      summary: this.buildCustomerYearlyDistributionSummary(brochures),
+      brochures,
     };
   }
 }

@@ -13,7 +13,6 @@ import {
   LayoutGrid,
   MapPin,
   Package,
-  Settings,
   Settings2,
   Users,
 } from '@repo/ui/lib/icons';
@@ -100,13 +99,7 @@ export const navigationItems: SidebarItem[] = [
   },
 ];
 
-export const accountItems: SidebarGroupProps['items'] = [
-  {
-    title: 'Settings',
-    url: '/dashboard/settings',
-    icon: Settings,
-  },
-];
+export const accountItems: SidebarGroupProps['items'] = [];
 
 function AppSidebar() {
   const { pathname } = useLocation();
@@ -148,20 +141,6 @@ function AppSidebar() {
         <SidebarGroup
           title="Navigation"
           items={filteredNavItems}
-          currentPath={pathname}
-          LinkComponent={({ to, children, className }) => (
-            <Link
-              to={to}
-              className={className}
-              onClick={() => isMobile && setOpenMobile(false)}
-            >
-              {children}
-            </Link>
-          )}
-        />
-        <SidebarGroup
-          title="Account"
-          items={accountItems}
           currentPath={pathname}
           LinkComponent={({ to, children, className }) => (
             <Link

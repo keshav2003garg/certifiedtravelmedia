@@ -33,7 +33,11 @@ function LocationSectorBadges({ location }: { location: Location }) {
   return (
     <div className="flex max-w-sm flex-wrap gap-1.5">
       {visibleSectors.map((sector) => (
-        <Badge key={sector.id} variant="secondary" className="rounded-md">
+        <Badge
+          key={sector.id}
+          variant="secondary"
+          className="bg-primary/10 text-primary rounded-md hover:bg-blue-100"
+        >
           {sector.acumaticaId ? `${sector.acumaticaId}` : null}
         </Badge>
       ))}
@@ -69,9 +73,6 @@ function LocationsTable({ locations }: LocationsTableProps) {
               <TableCell>
                 <div className="space-y-1">
                   <p className="leading-none font-medium">{location.name}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {location.locationId ?? location.airtableId ?? location.id}
-                  </p>
                   <p className="text-muted-foreground text-xs md:hidden">
                     {formatAddress(location)} {location.zip}
                   </p>
@@ -94,7 +95,13 @@ function LocationsTable({ locations }: LocationsTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
-                <Button type="button" variant="ghost" size="sm" asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary hover:text-primary"
+                  asChild
+                >
                   <a
                     href={location.chartUrl}
                     target="_blank"

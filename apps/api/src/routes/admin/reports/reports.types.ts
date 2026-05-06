@@ -103,7 +103,6 @@ export interface CustomerYearlyReportPeriod {
 }
 
 export interface CustomerYearlyReportVariant {
-  inventoryItemId: string;
   brochureImagePackSizeId: string;
   brochureImageId: string;
   imageUrl: string | null;
@@ -125,21 +124,7 @@ export interface CustomerYearlyReportBrochure {
   variants: CustomerYearlyReportVariant[];
 }
 
-export interface CustomerYearlyReportWarehouse {
-  id: string;
-  name: string;
-  acumaticaId: string | null;
-  address: string | null;
-  transactionCount: number;
-  brochureCount: number;
-  variantCount: number;
-  distributionBoxes: number;
-  distributionUnits: number;
-  brochures: CustomerYearlyReportBrochure[];
-}
-
 export interface CustomerYearlyReportSummary {
-  warehouseCount: number;
   brochureCount: number;
   variantCount: number;
   transactionCount: number;
@@ -151,7 +136,7 @@ export interface CustomerYearlyReportResult {
   customer: CustomerYearlyReportCustomer;
   period: CustomerYearlyReportPeriod;
   summary: CustomerYearlyReportSummary;
-  warehouses: CustomerYearlyReportWarehouse[];
+  brochures: CustomerYearlyReportBrochure[];
 }
 
 export interface CustomerYearlyBrochureAggregate extends Omit<
@@ -160,12 +145,4 @@ export interface CustomerYearlyBrochureAggregate extends Omit<
 > {
   variants: CustomerYearlyReportVariant[];
   variantMap: Map<string, CustomerYearlyReportVariant>;
-}
-
-export interface CustomerYearlyWarehouseAggregate extends Omit<
-  CustomerYearlyReportWarehouse,
-  'brochures'
-> {
-  brochures: CustomerYearlyBrochureAggregate[];
-  brochureMap: Map<string, CustomerYearlyBrochureAggregate>;
 }

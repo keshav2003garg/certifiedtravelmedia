@@ -8,7 +8,6 @@ import type {
   CustomerYearlyReportBrochure,
   CustomerYearlyReportResult,
   CustomerYearlyReportVariant,
-  CustomerYearlyReportWarehouse,
 } from '@/routes/admin/reports/reports.types';
 
 const PAGE_WIDTH = 792;
@@ -275,12 +274,10 @@ function getVariantImageKey(variant: CustomerYearlyReportVariant) {
 async function loadReportImages(report: CustomerYearlyReportResult) {
   const imageUrls = new Map<string, string | null>();
 
-  for (const warehouse of report.warehouses) {
-    for (const brochure of warehouse.brochures) {
-      for (const variant of brochure.variants) {
-        const key = getVariantImageKey(variant);
-        if (!imageUrls.has(key)) imageUrls.set(key, variant.imageUrl);
-      }
+  for (const brochure of report.brochures) {
+    for (const variant of brochure.variants) {
+      const key = getVariantImageKey(variant);
+      if (!imageUrls.has(key)) imageUrls.set(key, variant.imageUrl);
     }
   }
 
@@ -510,8 +507,8 @@ function drawSummary(
   report: CustomerYearlyReportResult,
 ) {
   const columns = [
-    ['Warehouses', formatNumber(report.summary.warehouseCount)],
     ['Brochures', formatNumber(report.summary.brochureCount)],
+    ['Image / pack rows', formatNumber(report.summary.variantCount)],
     ['Distributed boxes', formatNumber(report.summary.distributionBoxes)],
     ['Distributed units', formatNumber(report.summary.distributionUnits)],
   ] as const;
@@ -554,84 +551,6 @@ function drawSummary(
   doc.y = startY + 68;
 }
 
-function drawWarehouseHeader(
-  doc: PDFKit.PDFDocument,
-  warehouse: CustomerYearlyReportWarehouse,
-) {
-  ensureSpace(doc, 86);
-
-  const startY = doc.y;
-  doc.rect(MARGIN, startY, CONTENT_WIDTH, 28).fill(COLORS.navy);
-  doc.rect(MARGIN, startY, 5, 28).fill(COLORS.accent);
-  doc
-    .rect(MARGIN, startY, CONTENT_WIDTH, 28)
-    .lineWidth(0.8)
-    .strokeColor(COLORS.navy)
-    .stroke();
-
-  drawText(doc, {
-    text: truncate(warehouse.name, 68),
-    x: MARGIN + 14,
-    y: startY + 8,
-    width: 430,
-    font: 'Helvetica-Bold',
-    size: 10.5,
-    color: COLORS.white,
-  });
-  drawText(doc, {
-    text: warehouse.address ? truncate(warehouse.address, 78) : '',
-    x: MARGIN + 455,
-    y: startY + 9,
-    width: CONTENT_WIDTH - 470,
-    size: 7.4,
-    color: COLORS.infoMuted,
-    align: 'right',
-  });
-
-  const metrics = [
-    ['Warehouse ID', warehouse.acumaticaId || 'N/A', 224],
-    ['Brochures', formatNumber(warehouse.brochureCount), 168],
-    ['Distributed boxes', formatNumber(warehouse.distributionBoxes), 168],
-    ['Distributed units', formatNumber(warehouse.distributionUnits), 168],
-  ] as const;
-  let x = MARGIN;
-
-  for (const [label, value, width] of metrics) {
-    drawCell({
-      doc,
-      x,
-      y: startY + 28,
-      width,
-      height: 38,
-      fill: COLORS.white,
-      stroke: COLORS.border,
-    });
-    drawText(doc, {
-      text: label.toUpperCase(),
-      x: x + 9,
-      y: startY + 36,
-      width: width - 18,
-      font: 'Helvetica-Bold',
-      size: 6.5,
-      color: COLORS.mutedForeground,
-      align: label === 'Warehouse ID' ? 'left' : 'right',
-    });
-    drawText(doc, {
-      text: truncate(value, 30),
-      x: x + 9,
-      y: startY + 51,
-      width: width - 18,
-      font: 'Helvetica-Bold',
-      size: 9,
-      color: COLORS.foreground,
-      align: label === 'Warehouse ID' ? 'left' : 'right',
-    });
-    x += width;
-  }
-
-  doc.y = startY + 78;
-}
-
 function drawBrochureHeader(
   doc: PDFKit.PDFDocument,
   brochure: CustomerYearlyReportBrochure,
@@ -658,7 +577,7 @@ function drawBrochureHeader(
     color: COLORS.navy,
   });
   drawText(doc, {
-    text: `${brochure.brochureTypeName} | ${formatNumber(brochure.variants.length)} image/unit-per-box ${brochure.variants.length === 1 ? 'row' : 'rows'}`,
+    text: `${brochure.brochureTypeName} | ${formatNumber(brochure.variants.length)} image/pack ${brochure.variants.length === 1 ? 'row' : 'rows'}`,
     x: TABLE_X + 12,
     y: startY + 22,
     width: 390,
@@ -712,10 +631,28 @@ function drawVariantRow(params: {
   drawReportImage(doc, imageBuffer, rowX + 8, startY + 7);
 
   drawText(doc, {
-    text: 'IMAGE / UNIT PER BOX',
+    text: 'PACK ID',
     x: rowX + 104,
-    y: startY + 14,
-    width: 220,
+    y: startY + 10,
+    width: 292,
+    font: 'Helvetica-Bold',
+    size: 6.5,
+    color: COLORS.mutedForeground,
+  });
+  drawText(doc, {
+    text: variant.brochureImagePackSizeId,
+    x: rowX + 104,
+    y: startY + 22,
+    width: 292,
+    font: 'Helvetica-Bold',
+    size: 6.8,
+    color: COLORS.foreground,
+  });
+  drawText(doc, {
+    text: 'UNIT PER BOX',
+    x: rowX + 104,
+    y: startY + 41,
+    width: 292,
     font: 'Helvetica-Bold',
     size: 6.5,
     color: COLORS.mutedForeground,
@@ -723,10 +660,10 @@ function drawVariantRow(params: {
   drawText(doc, {
     text: `${formatNumber(variant.unitsPerBox)} units per box`,
     x: rowX + 104,
-    y: startY + 29,
-    width: 220,
+    y: startY + 52,
+    width: 292,
     font: 'Helvetica-Bold',
-    size: 9,
+    size: 8.2,
     color: COLORS.foreground,
   });
 
@@ -819,33 +756,6 @@ function drawBrochure(params: {
   doc.y += 10;
 }
 
-function drawWarehouse(params: {
-  doc: PDFKit.PDFDocument;
-  warehouse: CustomerYearlyReportWarehouse;
-  images: Map<string, Buffer | null>;
-}) {
-  const { doc, images, warehouse } = params;
-
-  drawWarehouseHeader(doc, warehouse);
-
-  if (warehouse.brochures.length === 0) {
-    drawEmptyTableRow(
-      doc,
-      'No brochures were distributed from this warehouse during the report period.',
-    );
-    doc.y += 16;
-    return;
-  }
-
-  for (const brochure of warehouse.brochures) {
-    drawBrochure({
-      doc,
-      brochure,
-      images,
-    });
-  }
-}
-
 function drawEmptyReport(
   doc: PDFKit.PDFDocument,
   report: CustomerYearlyReportResult,
@@ -932,14 +842,11 @@ export async function generateCustomerYearlyReportPDF(
   drawHeader(doc, report, logoBuffer);
   drawSummary(doc, report);
 
-  if (
-    report.summary.distributionUnits === 0 ||
-    report.warehouses.length === 0
-  ) {
+  if (report.summary.distributionUnits === 0 || report.brochures.length === 0) {
     drawEmptyReport(doc, report);
   } else {
-    for (const warehouse of report.warehouses) {
-      drawWarehouse({ doc, warehouse, images: brochureImages });
+    for (const brochure of report.brochures) {
+      drawBrochure({ doc, brochure, images: brochureImages });
     }
   }
 
