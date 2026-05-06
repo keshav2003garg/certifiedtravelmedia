@@ -4,12 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
-import {
-  AlertCircle,
-  LayoutGrid,
-  Loader2,
-  RefreshCw,
-} from '@repo/ui/lib/icons';
+import { AlertCircle, LayoutGrid, Loader2 } from '@repo/ui/lib/icons';
 
 import { useChartEditor } from '@/hooks/useChartEditor';
 import { useChartEditorFilters } from '@/hooks/useChartEditor/useChartEditorFilters';
@@ -71,21 +66,6 @@ function ChartsPage() {
             location coverage.
           </p>
         </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          aria-label="Refresh charts"
-        >
-          {isFetching ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4" />
-          )}
-        </Button>
       </div>
 
       <Card className="shadow-none">

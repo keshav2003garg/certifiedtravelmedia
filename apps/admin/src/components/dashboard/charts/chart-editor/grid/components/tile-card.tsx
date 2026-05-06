@@ -36,25 +36,36 @@ export const TileCard = memo(function TileCard({
   const isInventory = Boolean(tile.inventoryItemId);
 
   const tooltipContent = useMemo(() => {
-    if (!isPaid && !isInventory) return null;
+    if (!isPaid && !isInventory && !tile.isFlagged) return null;
+
+    const hasDetails = isPaid || isInventory;
 
     return (
       <div className="flex flex-col gap-0.5">
-        {tile.label ? (
+        {hasDetails && tile.label ? (
           <span className="font-semibold">{tile.label}</span>
         ) : null}
-        {tile.customerName ? <span>{tile.customerName}</span> : null}
-        {tile.acumaticaContractId ? (
+        {hasDetails && tile.customerName ? (
+          <span>{tile.customerName}</span>
+        ) : null}
+        {hasDetails && tile.acumaticaContractId ? (
           <span>Contract: {tile.acumaticaContractId}</span>
         ) : null}
-        {tile.contractEndDate ? (
+        {hasDetails && tile.contractEndDate ? (
           <span>Ends: {tile.contractEndDate}</span>
         ) : null}
-        {tile.warehouseName ? (
+        {hasDetails && tile.warehouseName ? (
           <span>Warehouse: {tile.warehouseName}</span>
         ) : null}
-        {tile.boxes !== null ? <span>Boxes: {tile.boxes}</span> : null}
-        {tile.stockLevel ? <span>Stock: {tile.stockLevel}</span> : null}
+        {hasDetails && tile.boxes !== null ? (
+          <span>Boxes: {tile.boxes}</span>
+        ) : null}
+        {hasDetails && tile.stockLevel ? (
+          <span>Stock: {tile.stockLevel}</span>
+        ) : null}
+        {tile.isFlagged && tile.flagNote ? (
+          <span className="text-red-300">⚑ {tile.flagNote}</span>
+        ) : null}
       </div>
     );
   }, [isInventory, isPaid, tile]);
@@ -94,7 +105,7 @@ export const TileCard = memo(function TileCard({
       {tile.isFlagged ? (
         <Flag
           className={cn(
-            'absolute top-0.5 right-0.5 size-3',
+            'absolute top-0.5 right-0.5 size-4',
             isFiller && !isInventory ? 'text-red-500' : 'text-red-100',
           )}
         />

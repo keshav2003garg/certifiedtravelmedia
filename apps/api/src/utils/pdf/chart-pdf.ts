@@ -22,6 +22,13 @@ interface ChartPDFInput {
   sectorLabel: string;
 }
 
+interface ChartsPDFInput {
+  charts: ChartResult[];
+  sectorLabel: string;
+  title: string;
+  filename: string;
+}
+
 interface CellData {
   label: string;
   colSpan: number;
@@ -58,7 +65,27 @@ function formatDate(dateStr: string) {
   return `${MONTH_NAMES[parseInt(m!, 10) - 1]} ${String(parseInt(d!, 10)).padStart(2, '0')}, ${y}`;
 }
 
-export async function generateChartPDF({ chart, sectorLabel }: ChartPDFInput) {
+function getChartPageLayout(chart: ChartResult) {
+  return chart.location.pockets.width > 6 ? 'landscape' : 'portrait';
+}
+
+function createChartPDFDocument(chart: ChartResult, title: string) {
+  return new PDFDocument({
+    size: 'LETTER',
+    layout: getChartPageLayout(chart),
+    margin: 30,
+    bufferPages: true,
+    info: {
+      Title: title,
+      Author: 'CTM Media',
+    },
+  });
+}
+
+function drawChartPDFPage(
+  doc: PDFKit.PDFDocument,
+  { chart, sectorLabel }: ChartPDFInput,
+) {
   const { month, year } = chart;
   const gridW = chart.location.pockets.width;
   const gridH = chart.location.pockets.height;
@@ -106,20 +133,8 @@ export async function generateChartPDF({ chart, sectorLabel }: ChartPDFInput) {
     }
   }
 
-  const isLandscape = gridW > 6;
-  const doc = new PDFDocument({
-    size: 'LETTER',
-    layout: isLandscape ? 'landscape' : 'portrait',
-    margin: 30,
-    bufferPages: true,
-    info: {
-      Title: `CTM Fill Chart - ${chart.location.name}`,
-      Author: 'CTM Media',
-    },
-  });
-
-  const pageW = isLandscape ? 792 : 612;
-  const pageH = isLandscape ? 612 : 792;
+  const pageW = doc.page.width;
+  const pageH = doc.page.height;
   const margin = 30;
   const contentW = pageW - margin * 2;
 
@@ -375,11 +390,48 @@ export async function generateChartPDF({ chart, sectorLabel }: ChartPDFInput) {
     finalPrintDateY,
     { align: 'right', width: contentW },
   );
+}
+
+export async function generateChartPDF({ chart, sectorLabel }: ChartPDFInput) {
+  const doc = createChartPDFDocument(
+    chart,
+    `CTM Fill Chart - ${chart.location.name}`,
+  );
+
+  drawChartPDFPage(doc, { chart, sectorLabel });
 
   const buffer = await finalize(doc);
 
   return {
     buffer,
-    filename: `fill-chart-${chart.location.name.replace(/[^a-zA-Z0-9-_]/g, '_')}-${MONTH_NAMES[month - 1]}-${year}.pdf`,
+    filename: `fill-chart-${chart.location.name.replace(/[^a-zA-Z0-9-_]/g, '_')}-${MONTH_NAMES[chart.month - 1]}-${chart.year}.pdf`,
+  };
+}
+
+export async function generateChartsPDF({
+  charts,
+  sectorLabel,
+  title,
+  filename,
+}: ChartsPDFInput) {
+  const firstChart = charts[0];
+
+  if (!firstChart) {
+    throw new Error('At least one chart is required to generate a PDF');
+  }
+
+  const doc = createChartPDFDocument(firstChart, title);
+
+  charts.forEach((chart, index) => {
+    if (index > 0) {
+      doc.addPage({ layout: getChartPageLayout(chart) });
+    }
+
+    drawChartPDFPage(doc, { chart, sectorLabel });
+  });
+
+  return {
+    buffer: await finalize(doc),
+    filename,
   };
 }

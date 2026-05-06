@@ -22,11 +22,16 @@ interface ChartEditorSidePanelProps {
   isFullscreen: boolean;
   hasEmptyCells: boolean;
   generalNotes: string;
+  paidTiles: ChartTile[];
   canPlaceInventoryItem: (item: ChartInventoryItem) => boolean;
+  canPlacePaidTile: (tile: ChartTile) => boolean;
   onGeneralNotesChange: (value: string) => void;
   onAddInventoryItem: (item: ChartInventoryItem) => void;
+  onAddPaidTile: (tile: ChartTile) => void;
   onInventoryItemDragStart: (item: ChartInventoryItem) => void;
   onInventoryItemDragEnd: () => void;
+  onPaidTileDragStart: (tile: ChartTile) => void;
+  onPaidTileDragEnd: () => void;
   onSelectTileId: (tileId: string | null) => void;
   onFlag: (tileId: string, flagNote: string) => void;
   onUnflag: (tileId: string) => void;
@@ -43,11 +48,16 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
   isFullscreen,
   hasEmptyCells,
   generalNotes,
+  paidTiles,
   canPlaceInventoryItem,
+  canPlacePaidTile,
   onGeneralNotesChange,
   onAddInventoryItem,
+  onAddPaidTile,
   onInventoryItemDragStart,
   onInventoryItemDragEnd,
+  onPaidTileDragStart,
+  onPaidTileDragEnd,
   onSelectTileId,
   onFlag,
   onUnflag,
@@ -100,9 +110,16 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
       ) : null}
 
       <PaidTilesSidebar
-        tiles={tiles}
+        tiles={paidTiles}
+        placedTiles={tiles}
+        isLocked={isReadOnly}
         isCompact={isFullscreen}
+        hasEmptyCells={hasEmptyCells}
         selectedTileId={selectedTileId}
+        canPlaceTile={canPlacePaidTile}
+        onAddTile={onAddPaidTile}
+        onTileDragStart={onPaidTileDragStart}
+        onTileDragEnd={onPaidTileDragEnd}
         onSelectTile={(tile) => onSelectTileId(tile.id)}
       />
 

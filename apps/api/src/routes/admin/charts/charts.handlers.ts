@@ -1,5 +1,7 @@
 import sendResponse from '@repo/server-utils/utils/response';
 
+import { generateChartsPDF } from '@/utils/pdf/chart-pdf';
+
 import { chartsService } from './charts.services';
 
 import type {
@@ -33,6 +35,21 @@ export async function getSectorChartHandler(ctx: GetSectorChartContext) {
   const chart = await chartsService.getSectorChart(sectorId, params);
 
   return sendResponse(ctx, 200, 'Chart retrieved successfully', { chart });
+}
+
+export async function getSectorChartsPdfHandler(ctx: GetSectorChartContext) {
+  const { sectorId } = ctx.req.valid('param');
+  const params = ctx.req.valid('query');
+
+  const pdfData = await chartsService.getSectorChartsPdfData(sectorId, params);
+  const { buffer, filename } = await generateChartsPDF(pdfData);
+
+  return new Response(buffer, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+    },
+  });
 }
 
 export async function initializeSectorChartHandler(

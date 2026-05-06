@@ -126,6 +126,7 @@ export interface ChartLayoutResult {
   persisted: boolean;
   locationCount: number;
   availableInventory: ChartInventoryItemResult[];
+  paidTiles: ChartTileResult[];
   tiles: ChartTileResult[];
 }
 
@@ -147,7 +148,7 @@ export interface ArchiveListItem {
 export interface ArchiveSnapshot {
   layout: Omit<
     ChartLayoutResult,
-    'tiles' | 'persisted' | 'locationCount' | 'availableInventory'
+    'tiles' | 'persisted' | 'locationCount' | 'availableInventory' | 'paidTiles'
   >;
   tiles: ChartTileResult[];
   metadata: {

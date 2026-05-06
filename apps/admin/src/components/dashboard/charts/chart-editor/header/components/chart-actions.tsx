@@ -1,38 +1,57 @@
 import { memo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
-import { CheckCircle, Copy, Loader2, Save } from '@repo/ui/lib/icons';
+import { CheckCircle, Copy, Loader2, Printer, Save } from '@repo/ui/lib/icons';
 
 interface ChartActionsProps {
+  isPersisted: boolean;
   isLocked: boolean;
   isDraft: boolean;
   isPastMonth: boolean;
   isSaving: boolean;
   isCompleting: boolean;
   isCloning: boolean;
+  isPrinting: boolean;
   isManager: boolean;
   onSave: () => void;
   onComplete: () => void;
   onClone: () => void;
+  onPrint: () => void;
 }
 
 export const ChartActions = memo(function ChartActions({
+  isPersisted,
   isLocked,
   isDraft,
   isPastMonth,
   isSaving,
   isCompleting,
   isCloning,
+  isPrinting,
   isManager,
   onSave,
   onComplete,
   onClone,
+  onPrint,
 }: ChartActionsProps) {
-  if (!isManager) return null;
-
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {!isLocked && !isPastMonth && (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onPrint}
+        disabled={isPrinting}
+        className="gap-1.5"
+      >
+        {isPrinting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Printer className="h-4 w-4" />
+        )}
+        {isPrinting ? 'Opening...' : 'Print'}
+      </Button>
+
+      {isPersisted && isManager && !isLocked && !isPastMonth && (
         <>
           <Button onClick={onSave} disabled={isSaving} className="gap-1.5">
             {isSaving ? (
@@ -61,7 +80,7 @@ export const ChartActions = memo(function ChartActions({
         </>
       )}
 
-      {!isPastMonth && (
+      {isPersisted && isManager && !isPastMonth && (
         <Button
           variant="outline"
           onClick={onClone}

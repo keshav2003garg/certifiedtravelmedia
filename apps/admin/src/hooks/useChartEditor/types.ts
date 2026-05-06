@@ -95,6 +95,7 @@ export interface ChartLayout {
   persisted: boolean;
   locationCount: number;
   availableInventory: ChartInventoryItem[];
+  paidTiles: ChartTile[];
   tiles: ChartTile[];
 }
 
@@ -137,6 +138,17 @@ export type GetSectorChartRequest = ApiData<
     year: number;
   },
   { chart: ChartLayout }
+>;
+
+export type OpenSectorChartsPdfRequest = ApiData<
+  {
+    sectorId: string;
+    width: number;
+    height: number;
+    month: number;
+    year: number;
+  },
+  Blob
 >;
 
 export interface TilePayload {

@@ -22,6 +22,11 @@ import {
 
 import * as schema from '@services/database/schemas';
 
+import type {
+  ChartResult as PublicChartResult,
+  ChartTile as PublicChartTile,
+} from '@/routes/public/charts/charts.types';
+
 import { getFillChart, type Placement } from '../../../utils/fill-chart';
 
 import type { SQL } from 'drizzle-orm';
@@ -415,8 +420,11 @@ class ChartsService {
       locationCount?: number;
       inventoryById: Map<string, ChartInventoryItemResult>;
       availableInventory: ChartInventoryItemResult[];
+      paidTiles: ChartTileResult[];
     },
   ): ChartLayoutResult {
+    const tiles = this.formatTiles(layout.tiles, options.inventoryById);
+
     return {
       id: layout.id,
       sectorId: layout.sectorId,
@@ -441,23 +449,77 @@ class ChartsService {
       persisted: true,
       locationCount: options.locationCount ?? 0,
       availableInventory: options.availableInventory,
-      tiles: this.formatTiles(layout.tiles, options.inventoryById),
+      paidTiles: options.paidTiles,
+      tiles,
     };
+  }
+
+  private getPaidTileKey(tile: ChartTileResult) {
+    return (
+      tile.contractId ??
+      tile.acumaticaContractId ??
+      `${tile.label ?? 'paid'}:${tile.colSpan}`
+    );
+  }
+
+  private mergePaidTileCatalog(...sources: ChartTileResult[][]) {
+    const tilesByKey = new Map<string, ChartTileResult>();
+
+    for (const source of sources) {
+      for (const tile of source) {
+        if (tile.tileType !== 'Paid') continue;
+        tilesByKey.set(this.getPaidTileKey(tile), tile);
+      }
+    }
+
+    return Array.from(tilesByKey.values()).sort(
+      (a, b) =>
+        a.row - b.row ||
+        a.col - b.col ||
+        a.label?.localeCompare(b.label ?? '') ||
+        0,
+    );
+  }
+
+  private async getGeneratedPaidTileCatalog(
+    layout: Pick<
+      ChartLayoutWithRelations,
+      'sectorId' | 'standWidth' | 'standHeight' | 'month' | 'year'
+    >,
+  ) {
+    const [primaryLocation] = await this.getMatchingSectorLocations(
+      layout.sectorId,
+      layout.standWidth,
+      layout.standHeight,
+    );
+
+    if (!primaryLocation) return [];
+
+    return this.buildPreviewTiles(
+      primaryLocation.id,
+      layout.sectorId,
+      layout.month,
+      layout.year,
+    );
   }
 
   private async formatResponse(
     layout: ChartLayoutWithRelations,
     extra: { locationCount?: number } = {},
   ): Promise<ChartLayoutResult> {
-    const [inventoryById, availableInventory] = await Promise.all([
-      this.getInventoryDetailsByIds(this.getInventoryItemIds(layout.tiles)),
-      this.getSectorInventoryItems(layout.sectorId),
-    ]);
+    const [inventoryById, availableInventory, generatedPaidTiles] =
+      await Promise.all([
+        this.getInventoryDetailsByIds(this.getInventoryItemIds(layout.tiles)),
+        this.getSectorInventoryItems(layout.sectorId),
+        this.getGeneratedPaidTileCatalog(layout),
+      ]);
+    const formattedTiles = this.formatTiles(layout.tiles, inventoryById);
 
     return this.buildChartLayoutResult(layout, {
       ...extra,
       inventoryById,
       availableInventory,
+      paidTiles: this.mergePaidTileCatalog(generatedPaidTiles, formattedTiles),
     });
   }
 
@@ -620,6 +682,8 @@ class ChartsService {
         id: schema.locations.id,
         locationId: schema.locations.locationId,
         name: schema.locations.name,
+        address: schema.locations.address,
+        pockets: schema.locations.pockets,
       })
       .from(schema.locations)
       .innerJoin(
@@ -725,6 +789,140 @@ class ChartsService {
     );
   }
 
+  private safeFilename(value: string) {
+    return value.replace(/[^a-zA-Z0-9-_]/g, '_');
+  }
+
+  private formatPublicChartTile(tile: ChartTileWithRelations): PublicChartTile {
+    return {
+      id: tile.id,
+      col: tile.col,
+      row: tile.row,
+      colSpan: tile.colSpan,
+      tileType: tile.tileType,
+      label: tile.label,
+      coverPhotoUrl: tile.coverPhotoUrl,
+      brochureTypeName: null,
+      contractId: tile.contract?.acumaticaContractId ?? null,
+      contractEndDate: tile.contract?.endDate ?? null,
+      tier: tile.contract?.tier ?? null,
+      isNew: tile.isNew,
+      isFlagged: tile.isFlagged,
+      flagNote: tile.flagNote,
+    };
+  }
+
+  private buildPersistedChartForLocation(
+    layout: ChartLayoutWithRelations,
+    location: {
+      id: string;
+      name: string;
+      address: string;
+      pockets: { width: number; height: number };
+    },
+  ): PublicChartResult {
+    return {
+      location: {
+        id: location.id,
+        name: location.name,
+        address: location.address,
+        pockets: {
+          width: layout.standWidth,
+          height: layout.standHeight,
+        },
+      },
+      month: layout.month,
+      year: layout.year,
+      persisted: true,
+      generalNotes: layout.generalNotes ?? null,
+      tiles: layout.tiles.map((tile) => this.formatPublicChartTile(tile)),
+      removals: [],
+    };
+  }
+
+  private buildGeneratedChartResult(
+    fillChart: Awaited<ReturnType<typeof getFillChart>>,
+  ): PublicChartResult {
+    return {
+      location: fillChart.location,
+      month: fillChart.month,
+      year: fillChart.year,
+      persisted: false,
+      generalNotes: null,
+      tiles: fillChart.placements.map(
+        (placement, index): PublicChartTile => ({
+          id: `algo-${index}`,
+          col: placement.position.col,
+          row: placement.position.row,
+          colSpan: placement.size.cols,
+          tileType: 'Paid',
+          label: placement.brochureName,
+          coverPhotoUrl: null,
+          brochureTypeName: null,
+          contractId: placement.contractId || null,
+          contractEndDate: placement.contractEndDate,
+          tier: placement.tier,
+          isNew: placement.isNew,
+          isFlagged: false,
+          flagNote: null,
+        }),
+      ),
+      removals: fillChart.removals,
+    };
+  }
+
+  async getSectorChartsPdfData(sectorId: string, params: GetSectorChartParams) {
+    const sector = await this.getSectorOrThrow(sectorId);
+    const matchingLocations = await this.getMatchingSectorLocations(
+      sectorId,
+      params.width,
+      params.height,
+    );
+
+    if (matchingLocations.length === 0) {
+      throw new HttpError(
+        404,
+        'No locations match this sector and stand size',
+        'NOT_FOUND',
+      );
+    }
+
+    const layout = await this.getSectorLayout(
+      sectorId,
+      params.width,
+      params.height,
+      params.month,
+      params.year,
+    );
+
+    const charts = layout
+      ? matchingLocations.map((location) =>
+          this.buildPersistedChartForLocation(layout, location),
+        )
+      : await Promise.all(
+          matchingLocations.map(async (location) =>
+            this.buildGeneratedChartResult(
+              await getFillChart(
+                location.id,
+                params.month,
+                params.year,
+                sectorId,
+              ),
+            ),
+          ),
+        );
+
+    const sectorLabel = sector.acumaticaId;
+    const filename = `sector-charts-${this.safeFilename(sectorLabel)}-${params.width}x${params.height}-${params.month}-${params.year}.pdf`;
+
+    return {
+      charts,
+      sectorLabel,
+      title: `CTM Fill Charts - ${sectorLabel} - ${params.width}x${params.height}`,
+      filename,
+    };
+  }
+
   private async buildGeneratedTilesForLayout(
     chartLayoutId: string,
     locationId: string,
@@ -756,6 +954,7 @@ class ChartsService {
     const chart = this.buildChartLayoutResult(layout, {
       inventoryById,
       availableInventory: [],
+      paidTiles: [],
     });
     const totalPaid = chart.tiles.filter(
       (tile) => tile.tileType === 'Paid',
@@ -1045,6 +1244,7 @@ class ChartsService {
       persisted: false,
       locationCount: matchingLocations.length,
       availableInventory,
+      paidTiles: tiles,
       tiles,
     };
   }

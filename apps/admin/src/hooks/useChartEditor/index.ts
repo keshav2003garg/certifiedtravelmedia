@@ -1,3 +1,5 @@
+import { env } from '@repo/env/client';
+
 import { useCallback } from 'react';
 
 import { queryOptions, useMutation } from '@tanstack/react-query';
@@ -13,6 +15,7 @@ import type {
   GetSectorChartRequest,
   InitializeSectorChartRequest,
   ListSectorStandSizesRequest,
+  OpenSectorChartsPdfRequest,
   SaveChartRequest,
   TilePayload,
   UpsertTileRequest,
@@ -41,6 +44,20 @@ function normalizeTile(tile: TilePayload): TilePayload {
 }
 
 export function useChartEditor() {
+  const openPdfUrl = useCallback(async (url: string) => {
+    if (typeof window === 'undefined') {
+      throw new Error('Chart PDFs can only be opened in the browser');
+    }
+
+    const pdfWindow = window.open(url, '_blank');
+
+    if (!pdfWindow) {
+      throw new Error('Allow pop-ups to open the chart PDF');
+    }
+
+    pdfWindow.opener = null;
+  }, []);
+
   const listSectorStandSizes = useCallback(
     async (params?: ListSectorStandSizesRequest['payload']) => {
       const response = await api<ListSectorStandSizesRequest['response']>(
@@ -63,6 +80,29 @@ export function useChartEditor() {
       return response.data;
     },
     [],
+  );
+
+  const getSectorChartsPdfUrl = useCallback(
+    (params: OpenSectorChartsPdfRequest['payload']) => {
+      const url = new URL(
+        `${env.VITE_API_URL}/api${CHARTS_ENDPOINT}/sectors/${encodeURIComponent(params.sectorId)}/pdf`,
+      );
+
+      url.searchParams.set('width', String(params.width));
+      url.searchParams.set('height', String(params.height));
+      url.searchParams.set('month', String(params.month));
+      url.searchParams.set('year', String(params.year));
+
+      return url.toString();
+    },
+    [],
+  );
+
+  const openSectorChartsPdf = useCallback(
+    async (params: OpenSectorChartsPdfRequest['payload']) => {
+      await openPdfUrl(getSectorChartsPdfUrl(params));
+    },
+    [getSectorChartsPdfUrl, openPdfUrl],
   );
 
   const saveChart = useCallback(
@@ -224,7 +264,16 @@ export function useChartEditor() {
     },
   });
 
+  const openSectorChartsPdfMutation = useMutation({
+    mutationFn: openSectorChartsPdf,
+    meta: {
+      errorMessage: 'Chart PDF could not be opened',
+      errorDescription: 'Allow pop-ups for this site and try again.',
+    },
+  });
+
   return {
+    getSectorChartsPdfUrl,
     sectorStandSizesQueryOptions,
     sectorChartQueryOptions,
     saveChartMutation,
@@ -233,5 +282,6 @@ export function useChartEditor() {
     completeChartMutation,
     cloneChartMutation,
     initializeSectorChartMutation,
+    openSectorChartsPdfMutation,
   };
 }

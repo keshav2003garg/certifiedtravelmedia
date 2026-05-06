@@ -4,10 +4,11 @@ import { cn } from '@repo/ui/lib/utils';
 
 import { InteractiveGrid } from './grid/interactive-grid';
 import {
-  canPlaceNewTileAt,
-  canPlaceTileAt,
+  canPlaceTileWithDisplacement,
+  findFirstDisplacingSlot,
   findFirstOpenSlot,
   type GridSlot,
+  placeTileWithDisplacement,
 } from './grid/utils/grid-placement';
 import { ChartEditorHeader } from './header/chart-editor-header';
 import { ChartEditorSidePanel } from './side-panel/chart-editor-side-panel';
@@ -26,10 +27,12 @@ interface ChartEditorProps {
   isCompleting: boolean;
   isCloning: boolean;
   isInitializing: boolean;
+  isPrinting: boolean;
   onSave: (tiles: ChartTile[], generalNotes: string | null) => void;
   onComplete: () => void;
   onClone: () => void;
   onInitialize: () => void;
+  onPrint: () => void;
   onMonthChange: (month: number, year: number) => void;
 }
 
@@ -45,12 +48,24 @@ function getChartKey(chart: ChartLayout) {
   ].join(':');
 }
 
+function createTempTileId(prefix: string) {
+  return `temp-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function getPaidTileKey(tile: ChartTile) {
+  return (
+    tile.contractId ??
+    tile.acumaticaContractId ??
+    `${tile.label ?? 'paid'}:${tile.colSpan}`
+  );
+}
+
 function createInventoryTile(
   item: ChartInventoryItem,
   slot: GridSlot,
 ): ChartTile {
   return {
-    id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id: createTempTileId('inventory'),
     col: slot.col,
     row: slot.row,
     colSpan: slot.colSpan,
@@ -79,6 +94,27 @@ function createInventoryTile(
   };
 }
 
+function createPaidTile(tile: ChartTile, slot: GridSlot): ChartTile {
+  return {
+    ...tile,
+    id: createTempTileId('paid'),
+    col: slot.col,
+    row: slot.row,
+    colSpan: slot.colSpan,
+    tileType: 'Paid',
+    warehouseId: null,
+    warehouseName: null,
+    warehouseAcumaticaId: null,
+    brochureTypeId: null,
+    brochureTypeName: null,
+    brochureId: null,
+    brochureName: null,
+    inventoryItemId: null,
+    boxes: null,
+    stockLevel: null,
+  };
+}
+
 export function ChartEditor(props: ChartEditorProps) {
   return <ChartEditorInner key={getChartKey(props.chart)} {...props} />;
 }
@@ -91,10 +127,12 @@ function ChartEditorInner({
   isCompleting,
   isCloning,
   isInitializing,
+  isPrinting,
   onSave,
   onComplete,
   onClone,
   onInitialize,
+  onPrint,
   onMonthChange,
 }: ChartEditorProps) {
   const [tiles, setTiles] = useState<ChartTile[]>(chart.tiles);
@@ -102,6 +140,9 @@ function ChartEditorInner({
   const [draggedInventoryItemId, setDraggedInventoryItemId] = useState<
     string | null
   >(null);
+  const [draggedPaidTileKey, setDraggedPaidTileKey] = useState<string | null>(
+    null,
+  );
 
   const [generalNotes, setGeneralNotes] = useState(chart.generalNotes ?? '');
 
@@ -140,6 +181,47 @@ function ChartEditorInner({
     [chart.availableInventory, draggedInventoryItemId],
   );
 
+  const placedPaidTilesByKey = useMemo(() => {
+    const map = new Map<string, ChartTile>();
+
+    for (const tile of tiles) {
+      if (tile.tileType === 'Paid') map.set(getPaidTileKey(tile), tile);
+    }
+
+    return map;
+  }, [tiles]);
+
+  const paidTileCatalog = useMemo(() => {
+    const map = new Map<string, ChartTile>();
+
+    for (const tile of chart.paidTiles) {
+      if (tile.tileType === 'Paid') map.set(getPaidTileKey(tile), tile);
+    }
+
+    for (const tile of tiles) {
+      if (tile.tileType === 'Paid') map.set(getPaidTileKey(tile), tile);
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) =>
+        a.row - b.row ||
+        a.col - b.col ||
+        (a.label ?? '').localeCompare(b.label ?? ''),
+    );
+  }, [chart.paidTiles, tiles]);
+
+  const draggedPaidTile = useMemo(() => {
+    if (!draggedPaidTileKey) return null;
+
+    return (
+      placedPaidTilesByKey.get(draggedPaidTileKey) ??
+      paidTileCatalog.find(
+        (tile) => getPaidTileKey(tile) === draggedPaidTileKey,
+      ) ??
+      null
+    );
+  }, [draggedPaidTileKey, paidTileCatalog, placedPaidTilesByKey]);
+
   const handleSelectTile = useCallback((tile: ChartTile | null) => {
     setSelectedTileId(tile?.id ?? null);
   }, []);
@@ -147,11 +229,11 @@ function ChartEditorInner({
   const canPlaceInventoryItem = useCallback(
     (item: ChartInventoryItem) =>
       Boolean(
-        findFirstOpenSlot(
+        findFirstDisplacingSlot(
           tiles,
           chart.gridSize.width,
           chart.gridSize.height,
-          item.colSpan,
+          createInventoryTile(item, { col: 0, row: 0, colSpan: item.colSpan }),
         ),
       ),
     [chart.gridSize, tiles],
@@ -159,15 +241,50 @@ function ChartEditorInner({
 
   const canPlaceInventoryItemAt = useCallback(
     (item: ChartInventoryItem, col: number, row: number) =>
-      canPlaceNewTileAt(
+      canPlaceTileWithDisplacement(
         tiles,
         chart.gridSize.width,
         chart.gridSize.height,
-        item.colSpan,
+        createInventoryTile(item, { col, row, colSpan: item.colSpan }),
         col,
         row,
       ),
     [chart.gridSize, tiles],
+  );
+
+  const canPlacePaidTile = useCallback(
+    (tile: ChartTile) => {
+      const placedTile = placedPaidTilesByKey.get(getPaidTileKey(tile));
+      if (placedTile) return true;
+
+      return Boolean(
+        findFirstDisplacingSlot(
+          tiles,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          createPaidTile(tile, { col: 0, row: 0, colSpan: tile.colSpan }),
+        ),
+      );
+    },
+    [chart.gridSize, placedPaidTilesByKey, tiles],
+  );
+
+  const canPlacePaidTileAt = useCallback(
+    (tile: ChartTile, col: number, row: number) => {
+      const placedTile = placedPaidTilesByKey.get(getPaidTileKey(tile));
+      const tileToPlace =
+        placedTile ?? createPaidTile(tile, { col, row, colSpan: tile.colSpan });
+
+      return canPlaceTileWithDisplacement(
+        tiles,
+        chart.gridSize.width,
+        chart.gridSize.height,
+        tileToPlace,
+        col,
+        row,
+      );
+    },
+    [chart.gridSize, placedPaidTilesByKey, tiles],
   );
 
   const handleAddInventoryItem = useCallback(
@@ -175,21 +292,78 @@ function ChartEditorInner({
       if (isReadOnly) return;
 
       setTiles((prev) => {
-        const slot = findFirstOpenSlot(
+        const tile = createInventoryTile(item, {
+          col: 0,
+          row: 0,
+          colSpan: item.colSpan,
+        });
+        const slot = findFirstDisplacingSlot(
           prev,
           chart.gridSize.width,
           chart.gridSize.height,
-          item.colSpan,
+          tile,
         );
         if (!slot) return prev;
 
-        const tile = createInventoryTile(item, slot);
-        setSelectedTileId(tile.id);
+        const placedTile = { ...tile, col: slot.col, row: slot.row };
+        const next = placeTileWithDisplacement(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          placedTile,
+          slot.col,
+          slot.row,
+        );
+        if (!next) return prev;
 
-        return [...prev, tile];
+        setSelectedTileId(placedTile.id);
+
+        return next;
       });
     },
     [chart.gridSize, isReadOnly],
+  );
+
+  const handleAddPaidTile = useCallback(
+    (tile: ChartTile) => {
+      if (isReadOnly) return;
+
+      const placedTile = placedPaidTilesByKey.get(getPaidTileKey(tile));
+      if (placedTile) {
+        setSelectedTileId(placedTile.id);
+        return;
+      }
+
+      setTiles((prev) => {
+        const tileToPlace = createPaidTile(tile, {
+          col: 0,
+          row: 0,
+          colSpan: tile.colSpan,
+        });
+        const slot = findFirstDisplacingSlot(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          tileToPlace,
+        );
+        if (!slot) return prev;
+
+        const next = placeTileWithDisplacement(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          tileToPlace,
+          slot.col,
+          slot.row,
+        );
+        if (!next) return prev;
+
+        setSelectedTileId(tileToPlace.id);
+
+        return next;
+      });
+    },
+    [chart.gridSize, isReadOnly, placedPaidTilesByKey],
   );
 
   const handleInventoryDragStart = useCallback(
@@ -205,34 +379,78 @@ function ChartEditorInner({
     setDraggedInventoryItemId(null);
   }, []);
 
+  const handlePaidTileDragStart = useCallback(
+    (tile: ChartTile) => {
+      if (isReadOnly || !canPlacePaidTile(tile)) return;
+
+      setDraggedPaidTileKey(getPaidTileKey(tile));
+    },
+    [canPlacePaidTile, isReadOnly],
+  );
+
+  const handlePaidTileDragEnd = useCallback(() => {
+    setDraggedPaidTileKey(null);
+  }, []);
+
   const handlePlaceInventoryItem = useCallback(
     (item: ChartInventoryItem, col: number, row: number) => {
       if (isReadOnly) return;
 
       setTiles((prev) => {
-        if (
-          !canPlaceNewTileAt(
-            prev,
-            chart.gridSize.width,
-            chart.gridSize.height,
-            item.colSpan,
-            col,
-            row,
-          )
-        ) {
-          return prev;
-        }
-
         const tile = createInventoryTile(item, {
           col,
           row,
           colSpan: item.colSpan,
         });
+        const next = placeTileWithDisplacement(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          tile,
+          col,
+          row,
+        );
+
+        if (!next) return prev;
+
         setSelectedTileId(tile.id);
 
-        return [...prev, tile];
+        return next;
       });
       setDraggedInventoryItemId(null);
+    },
+    [chart.gridSize, isReadOnly],
+  );
+
+  const handlePlacePaidTile = useCallback(
+    (tile: ChartTile, col: number, row: number) => {
+      if (isReadOnly) return;
+
+      setTiles((prev) => {
+        const placedTile = prev.find(
+          (currentTile) =>
+            currentTile.tileType === 'Paid' &&
+            getPaidTileKey(currentTile) === getPaidTileKey(tile),
+        );
+        const tileToPlace =
+          placedTile ??
+          createPaidTile(tile, { col, row, colSpan: tile.colSpan });
+        const next = placeTileWithDisplacement(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          tileToPlace,
+          col,
+          row,
+        );
+
+        if (!next) return prev;
+
+        setSelectedTileId(tileToPlace.id);
+
+        return next;
+      });
+      setDraggedPaidTileKey(null);
     },
     [chart.gridSize, isReadOnly],
   );
@@ -274,7 +492,7 @@ function ChartEditorInner({
         );
         if (!slot) return prev;
 
-        const copyId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const copyId = createTempTileId('copy');
         const copy = { ...source, id: copyId, col: slot.col, row: slot.row };
         setSelectedTileId(copyId);
 
@@ -289,22 +507,19 @@ function ChartEditorInner({
       if (isReadOnly) return;
 
       setTiles((prev) => {
-        if (
-          !canPlaceTileAt(
-            prev,
-            chart.gridSize.width,
-            chart.gridSize.height,
-            tileId,
-            col,
-            row,
-          )
-        ) {
-          return prev;
-        }
+        const tile = prev.find((item) => item.id === tileId);
+        if (!tile) return prev;
 
-        return prev.map((tile) =>
-          tile.id === tileId ? { ...tile, col, row } : tile,
+        const next = placeTileWithDisplacement(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          tile,
+          col,
+          row,
         );
+
+        return next ?? prev;
       });
       setSelectedTileId(tileId);
     },
@@ -334,10 +549,12 @@ function ChartEditorInner({
         isCompleting={isCompleting}
         isCloning={isCloning}
         isInitializing={isInitializing}
+        isPrinting={isPrinting}
         onSave={handleSave}
         onComplete={onComplete}
         onClone={onClone}
         onInitialize={onInitialize}
+        onPrint={onPrint}
         onMonthChange={onMonthChange}
       />
 
@@ -352,6 +569,7 @@ function ChartEditorInner({
           height={chart.gridSize.height}
           tiles={tiles}
           draggedInventoryItem={draggedInventoryItem}
+          draggedPaidTile={draggedPaidTile}
           selectedTileId={selectedTileId}
           isLocked={isReadOnly}
           hasEmptyCells={stats.empty > 0}
@@ -363,6 +581,8 @@ function ChartEditorInner({
           onPlaceInventoryItem={
             isReadOnly ? undefined : handlePlaceInventoryItem
           }
+          onCanPlacePaidTile={canPlacePaidTileAt}
+          onPlacePaidTile={isReadOnly ? undefined : handlePlacePaidTile}
           onFlagTile={isReadOnly ? undefined : handleFlag}
           onUnflagTile={isReadOnly ? undefined : handleUnflag}
         />
@@ -376,11 +596,16 @@ function ChartEditorInner({
           isFullscreen={isFullscreen}
           hasEmptyCells={stats.empty > 0}
           generalNotes={generalNotes}
+          paidTiles={paidTileCatalog}
           canPlaceInventoryItem={canPlaceInventoryItem}
+          canPlacePaidTile={canPlacePaidTile}
           onGeneralNotesChange={setGeneralNotes}
           onAddInventoryItem={handleAddInventoryItem}
+          onAddPaidTile={handleAddPaidTile}
           onInventoryItemDragStart={handleInventoryDragStart}
           onInventoryItemDragEnd={handleInventoryDragEnd}
+          onPaidTileDragStart={handlePaidTileDragStart}
+          onPaidTileDragEnd={handlePaidTileDragEnd}
           onSelectTileId={setSelectedTileId}
           onFlag={handleFlag}
           onUnflag={handleUnflag}

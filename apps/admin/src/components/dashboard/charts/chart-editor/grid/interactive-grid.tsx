@@ -10,7 +10,7 @@ import {
   type TileContextMenuAction,
   type TileContextMenuState,
 } from './menus/tile-context-menu';
-import { canPlaceTileAt } from './utils/grid-placement';
+import { canPlaceTileWithDisplacement } from './utils/grid-placement';
 
 import type {
   DragEvent,
@@ -27,6 +27,7 @@ interface InteractiveGridProps {
   height: number;
   tiles: ChartTile[];
   draggedInventoryItem: ChartInventoryItem | null;
+  draggedPaidTile: ChartTile | null;
   selectedTileId: string | null;
   isLocked: boolean;
   hasEmptyCells: boolean;
@@ -44,6 +45,8 @@ interface InteractiveGridProps {
     col: number,
     row: number,
   ) => void;
+  onCanPlacePaidTile?: (tile: ChartTile, col: number, row: number) => boolean;
+  onPlacePaidTile?: (tile: ChartTile, col: number, row: number) => void;
   onFlagTile?: (tileId: string, flagNote: string) => void;
   onUnflagTile?: (tileId: string) => void;
 }
@@ -92,6 +95,7 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   height,
   tiles,
   draggedInventoryItem,
+  draggedPaidTile,
   selectedTileId,
   isLocked,
   hasEmptyCells,
@@ -101,12 +105,14 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   onMoveTile,
   onCanPlaceInventoryItem,
   onPlaceInventoryItem,
+  onCanPlacePaidTile,
+  onPlacePaidTile,
   onFlagTile,
   onUnflagTile,
 }: InteractiveGridProps) {
   const [dragState, setDragState] = useState<TileDragState | null>(null);
   const [dragOverCell, setDragOverCell] = useState<CellPosition | null>(null);
-  const [inventoryDragOverCell, setInventoryDragOverCell] =
+  const [sidebarDragOverCell, setSidebarDragOverCell] =
     useState<CellPosition | null>(null);
   const [contextMenu, setContextMenu] = useState<TileContextMenuState | null>(
     null,
@@ -114,8 +120,6 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   const [flagDialog, setFlagDialog] = useState<FlagTileDialogState | null>(
     null,
   );
-
-  const draggedTileId = dragState?.isDragging ? dragState.tile.id : null;
 
   const { tileMap, occupiedCells } = useMemo(() => {
     const map = new Map<string, ChartTile>();
@@ -143,8 +147,8 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   }, [width, height]);
 
   const canDropTile = useCallback(
-    (tileId: string, col: number, row: number) =>
-      canPlaceTileAt(tiles, width, height, tileId, col, row),
+    (tile: ChartTile, col: number, row: number) =>
+      canPlaceTileWithDisplacement(tiles, width, height, tile, col, row),
     [height, tiles, width],
   );
 
@@ -195,7 +199,7 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   }, []);
 
   const clearInventoryDragTarget = useCallback(() => {
-    setInventoryDragOverCell(null);
+    setSidebarDragOverCell(null);
   }, []);
 
   const handleTileContextMenu = useCallback(
@@ -257,7 +261,7 @@ export const InteractiveGrid = memo(function InteractiveGrid({
         wasDragging &&
         cell &&
         onMoveTile &&
-        canDropTile(dragState.tile.id, cell.col, cell.row)
+        canDropTile(dragState.tile, cell.col, cell.row)
       ) {
         onMoveTile(dragState.tile.id, cell.col, cell.row);
       }
@@ -284,35 +288,58 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   }, [canDropTile, clearDragState, dragState, onMoveTile]);
 
   useEffect(() => {
-    if (!draggedInventoryItem) clearInventoryDragTarget();
-  }, [clearInventoryDragTarget, draggedInventoryItem]);
+    if (!draggedInventoryItem && !draggedPaidTile) clearInventoryDragTarget();
+  }, [clearInventoryDragTarget, draggedInventoryItem, draggedPaidTile]);
 
-  const canDropInventoryItem = useCallback(
-    (col: number, row: number) =>
-      Boolean(
-        draggedInventoryItem &&
-        onCanPlaceInventoryItem?.(draggedInventoryItem, col, row),
-      ),
-    [draggedInventoryItem, onCanPlaceInventoryItem],
+  const canDropSidebarItem = useCallback(
+    (col: number, row: number) => {
+      if (draggedInventoryItem) {
+        return Boolean(
+          onCanPlaceInventoryItem?.(draggedInventoryItem, col, row),
+        );
+      }
+
+      if (draggedPaidTile) {
+        return Boolean(onCanPlacePaidTile?.(draggedPaidTile, col, row));
+      }
+
+      return false;
+    },
+    [
+      draggedInventoryItem,
+      draggedPaidTile,
+      onCanPlaceInventoryItem,
+      onCanPlacePaidTile,
+    ],
   );
 
   const handleInventoryDragOver = useCallback(
     (col: number, row: number, event: DragEvent<HTMLDivElement>) => {
-      if (isLocked || !draggedInventoryItem || !onPlaceInventoryItem) return;
+      if (
+        isLocked ||
+        (!draggedInventoryItem && !draggedPaidTile) ||
+        (!onPlaceInventoryItem && !onPlacePaidTile)
+      ) {
+        return;
+      }
 
       event.preventDefault();
-      event.dataTransfer.dropEffect = canDropInventoryItem(col, row)
-        ? 'copy'
+      event.dataTransfer.dropEffect = canDropSidebarItem(col, row)
+        ? draggedPaidTile
+          ? 'move'
+          : 'copy'
         : 'none';
-      setInventoryDragOverCell((current) =>
+      setSidebarDragOverCell((current) =>
         current?.col === col && current.row === row ? current : { col, row },
       );
     },
     [
-      canDropInventoryItem,
+      canDropSidebarItem,
       draggedInventoryItem,
+      draggedPaidTile,
       isLocked,
       onPlaceInventoryItem,
+      onPlacePaidTile,
     ],
   );
 
@@ -334,21 +361,27 @@ export const InteractiveGrid = memo(function InteractiveGrid({
 
   const handleInventoryDrop = useCallback(
     (col: number, row: number, event: DragEvent<HTMLDivElement>) => {
-      if (!draggedInventoryItem || !onPlaceInventoryItem) return;
+      if (!draggedInventoryItem && !draggedPaidTile) return;
 
       event.preventDefault();
 
-      if (canDropInventoryItem(col, row)) {
-        onPlaceInventoryItem(draggedInventoryItem, col, row);
+      if (canDropSidebarItem(col, row)) {
+        if (draggedInventoryItem && onPlaceInventoryItem) {
+          onPlaceInventoryItem(draggedInventoryItem, col, row);
+        } else if (draggedPaidTile && onPlacePaidTile) {
+          onPlacePaidTile(draggedPaidTile, col, row);
+        }
       }
 
       clearInventoryDragTarget();
     },
     [
-      canDropInventoryItem,
+      canDropSidebarItem,
       clearInventoryDragTarget,
       draggedInventoryItem,
+      draggedPaidTile,
       onPlaceInventoryItem,
+      onPlacePaidTile,
     ],
   );
 
@@ -424,14 +457,14 @@ export const InteractiveGrid = memo(function InteractiveGrid({
             const tile = tileMap.get(key) ?? null;
             const isTileDragTarget =
               dragOverCell?.col === cell.col && dragOverCell.row === cell.row;
-            const canDropMovedTile = draggedTileId
-              ? canDropTile(draggedTileId, cell.col, cell.row)
+            const canDropMovedTile = dragState?.isDragging
+              ? canDropTile(dragState.tile, cell.col, cell.row)
               : false;
             const isInventoryDragTarget =
-              inventoryDragOverCell?.col === cell.col &&
-              inventoryDragOverCell.row === cell.row;
+              sidebarDragOverCell?.col === cell.col &&
+              sidebarDragOverCell.row === cell.row;
             const canDropInventoryHere = isInventoryDragTarget
-              ? canDropInventoryItem(cell.col, cell.row)
+              ? canDropSidebarItem(cell.col, cell.row)
               : false;
             const isDragTarget = isTileDragTarget || isInventoryDragTarget;
             const canDropHere = isInventoryDragTarget

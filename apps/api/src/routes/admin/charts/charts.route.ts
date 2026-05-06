@@ -14,6 +14,7 @@ import {
   getArchiveHandler,
   getChartHandler,
   getSectorChartHandler,
+  getSectorChartsPdfHandler,
   initializeSectorChartHandler,
   listArchivesHandler,
   listChartsHandler,
@@ -56,6 +57,13 @@ chartsRoute.get(
   isStaffOrAbove,
   validator(getSectorChartValidator),
   getSectorChartHandler,
+);
+
+chartsRoute.get(
+  '/sectors/:sectorId/pdf',
+  isStaffOrAbove,
+  validator(getSectorChartValidator),
+  getSectorChartsPdfHandler,
 );
 
 chartsRoute.post(

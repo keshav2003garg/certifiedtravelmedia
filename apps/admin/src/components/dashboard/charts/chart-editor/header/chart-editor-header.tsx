@@ -28,10 +28,12 @@ interface ChartEditorHeaderProps {
   isCompleting: boolean;
   isCloning: boolean;
   isInitializing: boolean;
+  isPrinting: boolean;
   onSave: () => void;
   onComplete: () => void;
   onClone: () => void;
   onInitialize: () => void;
+  onPrint: () => void;
   onMonthChange: (month: number, year: number) => void;
 }
 
@@ -46,10 +48,12 @@ export const ChartEditorHeader = memo(function ChartEditorHeader({
   isCompleting,
   isCloning,
   isInitializing,
+  isPrinting,
   onSave,
   onComplete,
   onClone,
   onInitialize,
+  onPrint,
   onMonthChange,
 }: ChartEditorHeaderProps) {
   return (
@@ -143,20 +147,21 @@ export const ChartEditorHeader = memo(function ChartEditorHeader({
             onMonthChange={onMonthChange}
           />
 
-          {chart.persisted ? (
-            <ChartActions
-              isLocked={chart.locked}
-              isDraft={chart.status === 'Draft'}
-              isPastMonth={isPastMonth}
-              isSaving={isSaving}
-              isCompleting={isCompleting}
-              isCloning={isCloning}
-              isManager={isManager}
-              onSave={onSave}
-              onComplete={onComplete}
-              onClone={onClone}
-            />
-          ) : null}
+          <ChartActions
+            isPersisted={chart.persisted}
+            isLocked={chart.locked}
+            isDraft={chart.status === 'Draft'}
+            isPastMonth={isPastMonth}
+            isSaving={isSaving}
+            isCompleting={isCompleting}
+            isCloning={isCloning}
+            isPrinting={isPrinting}
+            isManager={isManager}
+            onSave={onSave}
+            onComplete={onComplete}
+            onClone={onClone}
+            onPrint={onPrint}
+          />
         </div>
       </div>
 

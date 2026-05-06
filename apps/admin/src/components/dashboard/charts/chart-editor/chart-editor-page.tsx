@@ -43,6 +43,7 @@ function ChartEditorPage({
     completeChartMutation,
     cloneChartMutation,
     initializeSectorChartMutation,
+    openSectorChartsPdfMutation,
   } = useChartEditor();
 
   const chartQueryOptions = useMemo(
@@ -104,6 +105,16 @@ function ChartEditorPage({
     );
   }, [chartId, cloneChartMutation, onMonthChange]);
 
+  const handlePrint = useCallback(() => {
+    openSectorChartsPdfMutation.mutate({
+      sectorId,
+      width,
+      height,
+      month,
+      year,
+    });
+  }, [height, month, openSectorChartsPdfMutation, sectorId, width, year]);
+
   if (width < 1 || height < 1) {
     return (
       <ChartEditorError
@@ -146,10 +157,12 @@ function ChartEditorPage({
           isCompleting={completeChartMutation.isPending}
           isCloning={cloneChartMutation.isPending}
           isInitializing={initializeSectorChartMutation.isPending}
+          isPrinting={openSectorChartsPdfMutation.isPending}
           onSave={handleSave}
           onComplete={handleComplete}
           onClone={handleClone}
           onInitialize={handleInitialize}
+          onPrint={handlePrint}
           onMonthChange={onMonthChange}
         />
       )}
