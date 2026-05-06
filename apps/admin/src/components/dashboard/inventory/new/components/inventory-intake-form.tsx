@@ -6,7 +6,6 @@ import { Button } from '@repo/ui/components/base/button';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -24,9 +23,9 @@ import { Textarea } from '@repo/ui/components/base/textarea';
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import {
   Building2,
+  FileImage,
   Loader2,
-  RotateCcw,
-  Save,
+  Send,
   Tags,
   UserRound,
   Warehouse,
@@ -438,309 +437,249 @@ function InventoryIntakeForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
         {headerSlot}
 
-        <section className="space-y-4">
-          <header>
-            <h2 className="text-base font-semibold">Brochure</h2>
-            <p className="text-muted-foreground text-sm">
-              Select existing records when they match, or keep the entered text
-              to create them during intake.
-            </p>
-          </header>
-
-          <FormField
-            control={form.control}
-            name="brochureTypeId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Brochure type</FormLabel>
-                <FormControl>
-                  <SearchableSelect
-                    options={brochureTypeOptions}
-                    value={field.value}
-                    onChange={(value) =>
-                      handleBrochureTypeChange(value, field.onChange)
-                    }
-                    placeholder="Select brochure type"
-                    searchPlaceholder="Search brochure types"
-                    emptyMessage="No brochure types found"
-                    isLoading={isLoadingBrochureTypes}
-                    disabled={isSubmitting}
-                    icon={<Tags className="size-4 shrink-0" />}
-                    onSearchChange={setBrochureTypeSearch}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Category used when matching or creating the brochure.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="customerName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Acumatica customer</FormLabel>
-                <FormControl>
-                  <ReviewCreatableSearchField
-                    value={field.value}
-                    selectedValue={customerId}
-                    options={customerOptions}
-                    search={customerSearch}
-                    onSearchChange={setCustomerSearch}
-                    onSelect={handleCustomerSelect}
-                    onUseText={handleCustomerUseText}
-                    isLoading={isSearchingCustomers}
-                    disabled={isSubmitting}
-                    placeholder="Select or keep customer"
-                    searchPlaceholder="Search Acumatica customers"
-                    emptyMessage="No customers found"
-                    icon={<UserRound className="size-4 shrink-0" />}
-                    getTextLabel={(value) => `Keep "${value}" as customer`}
-                    textDescription="Stores the entered customer text if no record matches"
-                  />
-                </FormControl>
-                <FormDescription>
-                  Existing Acumatica customers are linked by ID; typed names are
-                  kept for brochure matching.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="brochureName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Brochure name</FormLabel>
-                <FormControl>
-                  <ReviewCreatableSearchField
-                    value={field.value}
-                    selectedValue={selectedBrochureId}
-                    options={brochureOptions}
-                    search={brochureSearch}
-                    onSearchChange={setBrochureSearch}
-                    onSelect={handleBrochureSelect}
-                    onUseText={handleBrochureUseText}
-                    isLoading={isSearchingBrochures}
-                    disabled={isSubmitting}
-                    placeholder="Select or keep brochure"
-                    searchPlaceholder="Search brochures or type a name"
-                    emptyMessage="No brochures found"
-                    icon={<Building2 className="size-4 shrink-0" />}
-                    getTextLabel={(value) => `Keep "${value}" as brochure`}
-                    textDescription="Creates the brochure if no exact match exists"
-                  />
-                </FormControl>
-                <FormDescription>
-                  The selected or typed brochure is matched with type and
-                  customer before inventory is updated.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="imageUrl"
-            render={({ field, fieldState }) => (
-              <BrochureImageRequestField
-                ownerId={ownerId}
-                brochureId={selectedBrochureId}
-                images={selectedBrochureImages}
-                isLoading={brochureDetailQuery.isLoading}
-                value={field.value ?? ''}
-                onChange={field.onChange}
-                disabled={isSubmitting}
-                invalid={Boolean(fieldState.error)}
-              />
-            )}
-          />
-        </section>
-
-        <section className="space-y-4 border-t pt-6">
-          <header>
-            <h2 className="text-base font-semibold">Warehouse</h2>
-            <p className="text-muted-foreground text-sm">
-              Choose where this stock balance will be created or increased.
-            </p>
-          </header>
-
-          <FormField
-            control={form.control}
-            name="warehouseId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Warehouse</FormLabel>
-                <FormControl>
-                  <SearchableSelect
-                    options={warehouseOptions}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Select warehouse"
-                    searchPlaceholder="Search warehouses"
-                    emptyMessage="No active warehouses found"
-                    isLoading={isLoadingWarehouses}
-                    disabled={isSubmitting}
-                    icon={<Warehouse className="size-4 shrink-0" />}
-                    onSearchChange={setWarehouseSearch}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Final warehouse for this inventory item.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </section>
-
-        <section className="space-y-4 border-t pt-6">
-          <header>
-            <h2 className="text-base font-semibold">Transaction</h2>
-            <p className="text-muted-foreground text-sm">
-              Delivery adds to the current balance; Start Count replaces it.
-            </p>
-          </header>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="transactionType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {TRANSACTION_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Only intake transaction types are available here.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="transactionDate"
-              render={({ field }) => (
-                <DateReceivedField
+        <FormField
+          control={form.control}
+          name="warehouseId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Warehouse</FormLabel>
+              <FormControl>
+                <SearchableSelect
+                  options={warehouseOptions}
                   value={field.value}
                   onChange={field.onChange}
+                  placeholder="Select warehouse"
+                  searchPlaceholder="Search warehouses"
+                  emptyMessage="No active warehouses found"
+                  isLoading={isLoadingWarehouses}
                   disabled={isSubmitting}
-                  label="Transaction date"
+                  icon={<Warehouse className="size-4 shrink-0" />}
+                  onSearchChange={setWarehouseSearch}
                 />
-              )}
-            />
-          </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="boxes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Boxes</FormLabel>
-                  <FormControl>
-                    <NumericInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                      min={0.01}
-                      step={0.01}
-                      decimals={2}
-                      placeholder="1"
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Number of boxes for this direct intake transaction.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="brochureTypeId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Brochure type</FormLabel>
+              <FormControl>
+                <SearchableSelect
+                  options={brochureTypeOptions}
+                  value={field.value}
+                  onChange={(value) =>
+                    handleBrochureTypeChange(value, field.onChange)
+                  }
+                  placeholder="Select brochure type"
+                  searchPlaceholder="Search brochure types"
+                  emptyMessage="No brochure types found"
+                  isLoading={isLoadingBrochureTypes}
+                  disabled={isSubmitting}
+                  icon={<Tags className="size-4 shrink-0" />}
+                  onSearchChange={setBrochureTypeSearch}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="unitsPerBox"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Units per box</FormLabel>
-                  <FormControl>
-                    <NumericInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                      min={0.01}
-                      step={0.01}
-                      decimals={2}
-                      placeholder="225"
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Pack size that will be matched or created for the selected
-                    brochure image.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+        <FormField
+          control={form.control}
+          name="customerName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Customer Name</FormLabel>
+              <FormControl>
+                <ReviewCreatableSearchField
+                  value={field.value}
+                  selectedValue={customerId}
+                  options={customerOptions}
+                  search={customerSearch}
+                  onSearchChange={setCustomerSearch}
+                  onSelect={handleCustomerSelect}
+                  onUseText={handleCustomerUseText}
+                  isLoading={isSearchingCustomers}
+                  disabled={isSubmitting}
+                  placeholder="Customer name"
+                  searchPlaceholder="Search Acumatica customers"
+                  emptyMessage="No customers found"
+                  icon={<UserRound className="size-4 shrink-0" />}
+                  getTextLabel={(value) => `Keep "${value}" as customer`}
+                  textDescription="Stores the entered customer text if no record matches"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
+        <FormField
+          control={form.control}
+          name="brochureName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Brochure</FormLabel>
+              <FormControl>
+                <ReviewCreatableSearchField
+                  value={field.value}
+                  selectedValue={selectedBrochureId}
+                  options={brochureOptions}
+                  search={brochureSearch}
+                  onSearchChange={setBrochureSearch}
+                  onSelect={handleBrochureSelect}
+                  onUseText={handleBrochureUseText}
+                  isLoading={isSearchingBrochures}
+                  disabled={isSubmitting}
+                  placeholder="Select or keep brochure"
+                  searchPlaceholder="Search brochures or type a name"
+                  emptyMessage="No brochures found"
+                  icon={<Building2 className="size-4 shrink-0" />}
+                  getTextLabel={(value) => `Keep "${value}" as brochure`}
+                  textDescription="Creates the brochure if no exact match exists"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="imageUrl"
+          render={({ field, fieldState }) => (
+            <BrochureImageRequestField
+              ownerId={ownerId}
+              brochureId={selectedBrochureId}
+              images={selectedBrochureImages}
+              isLoading={brochureDetailQuery.isLoading}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              disabled={isSubmitting}
+              invalid={Boolean(fieldState.error)}
+            />
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="transactionDate"
+          render={({ field }) => (
+            <DateReceivedField
+              value={field.value}
+              onChange={field.onChange}
+              disabled={isSubmitting}
+            />
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="transactionType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type</FormLabel>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isSubmitting}
+              >
                 <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder="Shipment, condition, or count notes"
-                    className="min-h-24 resize-y"
-                    disabled={isSubmitting}
-                  />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
                 </FormControl>
-                <FormDescription>
-                  Saved on the inventory transaction.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </section>
+                <SelectContent>
+                  {TRANSACTION_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="flex flex-col-reverse gap-2 border-t pt-6 sm:flex-row sm:justify-end">
+        <FormField
+          control={form.control}
+          name="boxes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Boxes</FormLabel>
+              <FormControl>
+                <NumericInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                  min={0.01}
+                  step={0.01}
+                  decimals={2}
+                  placeholder="1"
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="unitsPerBox"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Units per box</FormLabel>
+              <FormControl>
+                <NumericInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                  min={0.01}
+                  step={0.01}
+                  decimals={2}
+                  placeholder="225"
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Shipment, condition, or count notes"
+                  className="min-h-24 resize-y"
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           {extraFooterActions}
           <Button
             type="button"
@@ -748,14 +687,14 @@ function InventoryIntakeForm({
             onClick={resetForm}
             disabled={isSubmitting}
           >
-            <RotateCcw className="size-4" />
+            <FileImage className="size-4" />
             Reset
           </Button>
           <Button type="submit" disabled={isSubmitting || isLoadingOptions}>
             {isSubmitting ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Save className="size-4" />
+              <Send className="size-4" />
             )}
             {submitLabel}
           </Button>

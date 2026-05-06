@@ -45,11 +45,6 @@ function BrochureTypesTableRow({
           {formatShortDate(brochureType.createdAt)}
         </span>
       </TableCell>
-      <TableCell>
-        <span className="text-muted-foreground text-sm">
-          {formatShortDate(brochureType.updatedAt)}
-        </span>
-      </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

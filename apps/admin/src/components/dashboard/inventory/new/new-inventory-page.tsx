@@ -49,7 +49,7 @@ function NewInventoryPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-xl space-y-6">
       <div className="space-y-1">
         <h1 className="text-foreground text-2xl font-semibold tracking-normal">
           New Inventory
@@ -60,8 +60,8 @@ function NewInventoryPage() {
         </p>
       </div>
 
-      <Card className="shadow-none">
-        <CardContent className="space-y-5 p-5">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardContent className="space-y-5 p-0">
           <InventoryIntakeForm
             ownerId={user.id}
             isSubmitting={createIntakeMutation.isPending}

@@ -1,19 +1,6 @@
 import { memo, useMemo } from 'react';
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@repo/ui/components/base/select';
-
 import DataFilterBar from '@/components/common/data-filter-bar';
-
-import {
-  INVENTORY_REQUEST_STATUS_OPTIONS,
-  type useInventoryRequestsFilters,
-} from '@/hooks/useInventoryRequests/useInventoryRequestsFilters';
 
 import type {
   ActiveDataFilter,
@@ -21,9 +8,9 @@ import type {
 } from '@/components/common/data-filter-bar';
 import type {
   InventoryRequestSortBy,
-  InventoryRequestStatus,
   SortOrder,
 } from '@/hooks/useInventoryRequests/types';
+import type { useInventoryRequestsFilters } from '@/hooks/useInventoryRequests/useInventoryRequestsFilters';
 
 type InventoryRequestsFilters = ReturnType<typeof useInventoryRequestsFilters>;
 
@@ -57,8 +44,6 @@ const orderLabels: Record<SortOrder, string> = {
   desc: 'Descending',
 };
 
-const STATUS_ALL = '__all__';
-
 function InventoryRequestsFilterBar({
   filters,
 }: InventoryRequestsFilterBarProps) {
@@ -67,11 +52,9 @@ function InventoryRequestsFilterBar({
     searchInputValue,
     sortBy,
     order,
-    status,
     setSearch,
     handleSortByChange,
     handleOrderChange,
-    handleStatusChange,
     clearFilters,
     hasActiveFilters,
   } = filters;
@@ -83,13 +66,6 @@ function InventoryRequestsFilterBar({
       items.push({
         label: `Search: "${search}"`,
         onClear: () => setSearch(''),
-      });
-    }
-
-    if (status) {
-      items.push({
-        label: `Status: ${status}`,
-        onClear: () => handleStatusChange(null),
       });
     }
 
@@ -108,60 +84,25 @@ function InventoryRequestsFilterBar({
     }
 
     return items;
-  }, [
-    search,
-    status,
-    sortBy,
-    order,
-    setSearch,
-    handleStatusChange,
-    handleSortByChange,
-    handleOrderChange,
-  ]);
+  }, [search, sortBy, order, setSearch, handleSortByChange, handleOrderChange]);
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
-        <Select
-          value={status ?? STATUS_ALL}
-          onValueChange={(value) =>
-            handleStatusChange(
-              value === STATUS_ALL ? null : (value as InventoryRequestStatus),
-            )
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={STATUS_ALL}>All statuses</SelectItem>
-            {INVENTORY_REQUEST_STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div />
-      </div>
-
-      <DataFilterBar
-        searchValue={searchInputValue}
-        searchPlaceholder="Search by brochure or customer"
-        onSearchChange={setSearch}
-        sortValue={sortBy}
-        defaultSortValue="createdAt"
-        sortOptions={sortOptions}
-        onSortChange={handleSortByChange}
-        orderValue={order}
-        defaultOrderValue="desc"
-        orderOptions={orderOptions}
-        onOrderChange={handleOrderChange}
-        activeFilters={activeFilters}
-        clearDisabled={!hasActiveFilters}
-        onClear={clearFilters}
-      />
-    </div>
+    <DataFilterBar
+      searchValue={searchInputValue}
+      searchPlaceholder="Search by brochure or customer"
+      onSearchChange={setSearch}
+      sortValue={sortBy}
+      defaultSortValue="createdAt"
+      sortOptions={sortOptions}
+      onSortChange={handleSortByChange}
+      orderValue={order}
+      defaultOrderValue="desc"
+      orderOptions={orderOptions}
+      onOrderChange={handleOrderChange}
+      activeFilters={activeFilters}
+      clearDisabled={!hasActiveFilters}
+      onClear={clearFilters}
+    />
   );
 }
 

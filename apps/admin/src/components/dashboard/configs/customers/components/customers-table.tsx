@@ -28,16 +28,13 @@ function CustomersTable({
   return (
     <div className="overflow-hidden rounded-md border">
       <div className="overflow-x-auto">
-        <Table className="table-fixed" style={{ minWidth: '980px' }}>
+        <Table className="table-fixed" style={{ minWidth: '680px' }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[30%]">Customer</TableHead>
-              <TableHead className="w-[14%]">Acumatica ID</TableHead>
-              <TableHead className="w-[10%]">Brochures</TableHead>
-              <TableHead className="w-[10%]">Contracts</TableHead>
-              <TableHead className="w-[14%]">Created</TableHead>
-              <TableHead className="w-[14%]">Updated</TableHead>
-              <TableHead className="w-[8%]" />
+              <TableHead className="w-[42%]">Customer</TableHead>
+              <TableHead className="w-[24%]">Acumatica ID</TableHead>
+              <TableHead className="w-[24%]">Created</TableHead>
+              <TableHead className="w-[10%]" />
             </TableRow>
           </TableHeader>
           <TableBody>

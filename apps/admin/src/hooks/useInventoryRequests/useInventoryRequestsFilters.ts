@@ -35,6 +35,16 @@ export const INVENTORY_REQUEST_STATUS_OPTIONS = [
   'Cancelled',
 ] as const satisfies readonly InventoryRequestStatus[];
 
+export const REQUEST_VIEW_OPTIONS = [
+  'All',
+  'Pending',
+  'Approved',
+  'Rejected',
+  'Cancelled',
+] as const;
+
+export type RequestViewOption = (typeof REQUEST_VIEW_OPTIONS)[number];
+
 export const INVENTORY_REQUEST_TYPE_OPTIONS = [
   'Delivery',
   'Start Count',
@@ -58,7 +68,7 @@ export function useInventoryRequestsFilters() {
   );
   const [status, setStatus] = useQueryState(
     'status',
-    parseAsStringLiteral(INVENTORY_REQUEST_STATUS_OPTIONS),
+    parseAsStringLiteral(REQUEST_VIEW_OPTIONS),
   );
   const [transactionType, setTransactionType] = useQueryState(
     'transactionType',
@@ -90,7 +100,7 @@ export function useInventoryRequestsFilters() {
   );
 
   const handleStatusChange = useCallback(
-    (value: InventoryRequestStatus | null) => {
+    (value: RequestViewOption | null) => {
       setStatus(value);
       handlePageChange(1);
     },
@@ -125,7 +135,6 @@ export function useInventoryRequestsFilters() {
     setSearch('');
     setSortBy(null);
     setOrder(null);
-    setStatus(null);
     setTransactionType(null);
     setWarehouseId(null);
     setBrochureTypeId(null);
@@ -134,7 +143,6 @@ export function useInventoryRequestsFilters() {
     setSearch,
     setSortBy,
     setOrder,
-    setStatus,
     setTransactionType,
     setWarehouseId,
     setBrochureTypeId,
@@ -147,20 +155,11 @@ export function useInventoryRequestsFilters() {
         search ||
         sortBy ||
         order ||
-        status ||
         transactionType ||
         warehouseId ||
         brochureTypeId,
       ),
-    [
-      search,
-      sortBy,
-      order,
-      status,
-      transactionType,
-      warehouseId,
-      brochureTypeId,
-    ],
+    [search, sortBy, order, transactionType, warehouseId, brochureTypeId],
   );
 
   const params = useMemo(
@@ -168,7 +167,10 @@ export function useInventoryRequestsFilters() {
       search: search || undefined,
       sortBy: sortBy ?? undefined,
       order: order ?? undefined,
-      status: status ?? undefined,
+      status:
+        status === 'All'
+          ? undefined
+          : ((status ?? 'Pending') as InventoryRequestStatus),
       transactionType: transactionType ?? undefined,
       warehouseId: warehouseId ?? undefined,
       brochureTypeId: brochureTypeId ?? undefined,

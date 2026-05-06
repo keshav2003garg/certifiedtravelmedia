@@ -18,7 +18,6 @@ import {
   Pencil,
 } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
-import { formatShortDate } from '@repo/utils/date';
 
 import type { Warehouse } from '@/hooks/useWarehouses/types';
 
@@ -98,11 +97,6 @@ function WarehousesTableRow({
         )}
       </TableCell>
       <TableCell>
-        <span className="text-sm font-medium">
-          {warehouse.inventoryItemCount}
-        </span>
-      </TableCell>
-      <TableCell>
         <Badge
           variant={warehouse.isActive ? 'secondary' : 'outline'}
           className={cn(
@@ -114,11 +108,6 @@ function WarehousesTableRow({
         >
           {warehouse.isActive ? 'Active' : 'Retired'}
         </Badge>
-      </TableCell>
-      <TableCell>
-        <span className="text-muted-foreground text-sm">
-          {formatShortDate(warehouse.updatedAt)}
-        </span>
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1">

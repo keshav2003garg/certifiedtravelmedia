@@ -32,15 +32,13 @@ function WarehousesTable({
   return (
     <div className="overflow-hidden rounded-md border">
       <div className="overflow-x-auto">
-        <Table className="table-fixed" style={{ minWidth: '1280px' }}>
+        <Table className="table-fixed" style={{ minWidth: '980px' }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[24%]">Warehouse</TableHead>
-              <TableHead className="w-[12%]">Warehouse ID</TableHead>
-              <TableHead className="w-[34%]">Sectors</TableHead>
-              <TableHead className="w-[8%]">Inventory</TableHead>
-              <TableHead className="w-[8%]">Status</TableHead>
-              <TableHead className="w-[8%]">Updated</TableHead>
+              <TableHead className="w-[30%]">Warehouse</TableHead>
+              <TableHead className="w-[14%]">Warehouse ID</TableHead>
+              <TableHead className="w-[40%]">Sectors</TableHead>
+              <TableHead className="w-[10%]">Status</TableHead>
               <TableHead className="w-[6%]" />
             </TableRow>
           </TableHeader>

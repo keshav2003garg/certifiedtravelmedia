@@ -27,14 +27,13 @@ function BrochureTypesTable({
 }: BrochureTypesTableProps) {
   return (
     <div className="overflow-hidden rounded-md border">
-      <Table className="table-fixed" style={{ minWidth: '760px' }}>
+      <Table className="table-fixed" style={{ minWidth: '620px' }}>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="w-[40%]">Name</TableHead>
-            <TableHead className="w-[18%]">Column span</TableHead>
-            <TableHead className="w-[18%]">Created</TableHead>
-            <TableHead className="w-[18%]">Updated</TableHead>
-            <TableHead className="w-[6%]" />
+            <TableHead className="w-[50%]">Name</TableHead>
+            <TableHead className="w-[22%]">Column span</TableHead>
+            <TableHead className="w-[20%]">Created</TableHead>
+            <TableHead className="w-[8%]" />
           </TableRow>
         </TableHeader>
         <TableBody>

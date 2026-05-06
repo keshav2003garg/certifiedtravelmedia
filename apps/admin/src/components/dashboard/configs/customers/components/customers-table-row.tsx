@@ -36,9 +36,6 @@ function CustomersTableRow({
       <TableCell>
         <div className="min-w-0 space-y-1">
           <p className="truncate font-medium">{customer.name}</p>
-          <p className="text-muted-foreground truncate text-xs">
-            {customer.acumaticaId}
-          </p>
         </div>
       </TableCell>
       <TableCell>
@@ -47,19 +44,8 @@ function CustomersTableRow({
         </Badge>
       </TableCell>
       <TableCell>
-        <span className="text-sm font-medium">{customer.brochureCount}</span>
-      </TableCell>
-      <TableCell>
-        <span className="text-sm font-medium">{customer.contractCount}</span>
-      </TableCell>
-      <TableCell>
         <span className="text-muted-foreground text-sm">
           {formatShortDate(customer.createdAt)}
-        </span>
-      </TableCell>
-      <TableCell>
-        <span className="text-muted-foreground text-sm">
-          {formatShortDate(customer.updatedAt)}
         </span>
       </TableCell>
       <TableCell className="text-right">

@@ -30,20 +30,20 @@ interface DataFilterBarProps<
   searchPlaceholder: string;
   onSearchChange: (value: string) => void;
   sortValue?: TSortBy | null;
-  defaultSortValue: TSortBy;
-  sortOptions: readonly DataFilterOption<TSortBy>[];
-  onSortChange: (value: TSortBy | null) => void;
+  defaultSortValue?: TSortBy;
+  sortOptions?: readonly DataFilterOption<TSortBy>[];
+  onSortChange?: (value: TSortBy | null) => void;
   orderValue?: TOrder | null;
-  defaultOrderValue: TOrder;
-  orderOptions: readonly DataFilterOption<TOrder>[];
-  onOrderChange: (value: TOrder | null) => void;
+  defaultOrderValue?: TOrder;
+  orderOptions?: readonly DataFilterOption<TOrder>[];
+  onOrderChange?: (value: TOrder | null) => void;
   activeFilters?: readonly ActiveDataFilter[];
   clearDisabled: boolean;
   onClear: () => void;
 }
 
 function DataFilterBar<
-  TSortBy extends string,
+  TSortBy extends string = string,
   TOrder extends string = string,
 >({
   searchValue,
@@ -61,9 +61,23 @@ function DataFilterBar<
   clearDisabled,
   onClear,
 }: DataFilterBarProps<TSortBy, TOrder>) {
+  const hasSortControls = Boolean(
+    defaultSortValue && sortOptions?.length && onSortChange,
+  );
+  const hasOrderControls = Boolean(
+    defaultOrderValue && orderOptions?.length && onOrderChange,
+  );
+  const gridClassName = hasSortControls
+    ? hasOrderControls
+      ? 'grid gap-3 lg:grid-cols-[1fr_180px_160px_auto]'
+      : 'grid gap-3 lg:grid-cols-[1fr_180px_auto]'
+    : hasOrderControls
+      ? 'grid gap-3 lg:grid-cols-[1fr_160px_auto]'
+      : 'grid gap-3 lg:grid-cols-[1fr_auto]';
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 lg:grid-cols-[1fr_180px_160px_auto]">
+      <div className={gridClassName}>
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
@@ -74,45 +88,49 @@ function DataFilterBar<
           />
         </div>
 
-        <Select
-          value={sortValue ?? defaultSortValue}
-          onValueChange={(value) =>
-            onSortChange(
-              value === defaultSortValue ? null : (value as TSortBy),
-            )
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            {sortOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {hasSortControls ? (
+          <Select
+            value={sortValue ?? defaultSortValue}
+            onValueChange={(value) =>
+              onSortChange?.(
+                value === defaultSortValue ? null : (value as TSortBy),
+              )
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions?.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
 
-        <Select
-          value={orderValue ?? defaultOrderValue}
-          onValueChange={(value) =>
-            onOrderChange(
-              value === defaultOrderValue ? null : (value as TOrder),
-            )
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Order" />
-          </SelectTrigger>
-          <SelectContent>
-            {orderOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {hasOrderControls ? (
+          <Select
+            value={orderValue ?? defaultOrderValue}
+            onValueChange={(value) =>
+              onOrderChange?.(
+                value === defaultOrderValue ? null : (value as TOrder),
+              )
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Order" />
+            </SelectTrigger>
+            <SelectContent>
+              {orderOptions?.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
 
         <Button
           type="button"

@@ -5,12 +5,23 @@ import { useNavigate } from '@tanstack/react-router';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/ui/components/base/select';
 import { AlertCircle, Loader2, RefreshCw } from '@repo/ui/lib/icons';
 
 import DataPaginationControls from '@/components/common/data-pagination-controls';
 
 import { useInventoryRequests } from '@/hooks/useInventoryRequests';
-import { useInventoryRequestsFilters } from '@/hooks/useInventoryRequests/useInventoryRequestsFilters';
+import {
+  REQUEST_VIEW_OPTIONS,
+  type RequestViewOption,
+  useInventoryRequestsFilters,
+} from '@/hooks/useInventoryRequests/useInventoryRequestsFilters';
 import { useUserRole } from '@/hooks/useUserRole';
 
 import InventoryRequestsEmpty from './components/inventory-requests-empty';
@@ -104,20 +115,42 @@ function InventoryRequestsQueuePage() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={handleRefresh}
-          disabled={isListFetching}
-          aria-label="Refresh inventory requests"
-        >
-          {isListFetching ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4" />
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select
+            value={filters.status ?? 'Pending'}
+            onValueChange={(value) =>
+              filters.handleStatusChange(
+                value === 'Pending' ? null : (value as RequestViewOption),
+              )
+            }
+          >
+            <SelectTrigger className="h-9 w-36.25">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {REQUEST_VIEW_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option === 'All' ? 'All statuses' : option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isListFetching}
+            aria-label="Refresh inventory requests"
+          >
+            {isListFetching ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
       <InventoryRequestsStats

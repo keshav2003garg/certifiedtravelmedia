@@ -4,11 +4,7 @@ import { Switch } from '@repo/ui/components/base/switch';
 
 import DataFilterBar from '@/components/common/data-filter-bar';
 
-import type {
-  ActiveDataFilter,
-  DataFilterOption,
-} from '@/components/common/data-filter-bar';
-import type { SortOrder, WarehouseSortBy } from '@/hooks/useWarehouses/types';
+import type { ActiveDataFilter } from '@/components/common/data-filter-bar';
 import type { useWarehousesFilters } from '@/hooks/useWarehouses/useWarehousesFilters';
 
 type WarehousesFilters = ReturnType<typeof useWarehousesFilters>;
@@ -17,40 +13,12 @@ interface WarehousesFilterBarProps {
   filters: WarehousesFilters;
 }
 
-const sortOptions = [
-  { value: 'name', label: 'Name' },
-  { value: 'acumaticaId', label: 'Acumatica ID' },
-  { value: 'createdAt', label: 'Created date' },
-  { value: 'updatedAt', label: 'Updated date' },
-] as const satisfies readonly DataFilterOption<WarehouseSortBy>[];
-
-const sortLabels: Record<WarehouseSortBy, string> = {
-  name: 'Name',
-  acumaticaId: 'Acumatica ID',
-  createdAt: 'Created date',
-  updatedAt: 'Updated date',
-};
-
-const orderOptions = [
-  { value: 'asc', label: 'Ascending' },
-  { value: 'desc', label: 'Descending' },
-] as const satisfies readonly DataFilterOption<SortOrder>[];
-
-const orderLabels: Record<SortOrder, string> = {
-  asc: 'Ascending',
-  desc: 'Descending',
-};
-
 function WarehousesFilterBar({ filters }: WarehousesFilterBarProps) {
   const {
     search,
     searchInputValue,
-    sortBy,
-    order,
     includeInactive,
     setSearch,
-    handleSortByChange,
-    handleOrderChange,
     handleIncludeInactiveChange,
     clearFilters,
     hasActiveFilters,
@@ -66,20 +34,6 @@ function WarehousesFilterBar({ filters }: WarehousesFilterBarProps) {
       });
     }
 
-    if (sortBy) {
-      items.push({
-        label: `Sort: ${sortLabels[sortBy]}`,
-        onClear: () => handleSortByChange(null),
-      });
-    }
-
-    if (order) {
-      items.push({
-        label: `Order: ${orderLabels[order]}`,
-        onClear: () => handleOrderChange(null),
-      });
-    }
-
     if (includeInactive) {
       items.push({
         label: 'Status: includes retired',
@@ -88,16 +42,7 @@ function WarehousesFilterBar({ filters }: WarehousesFilterBarProps) {
     }
 
     return items;
-  }, [
-    search,
-    sortBy,
-    order,
-    includeInactive,
-    setSearch,
-    handleSortByChange,
-    handleOrderChange,
-    handleIncludeInactiveChange,
-  ]);
+  }, [search, includeInactive, setSearch, handleIncludeInactiveChange]);
 
   return (
     <div className="space-y-3">
@@ -105,14 +50,6 @@ function WarehousesFilterBar({ filters }: WarehousesFilterBarProps) {
         searchValue={searchInputValue}
         searchPlaceholder="Search warehouses"
         onSearchChange={setSearch}
-        sortValue={sortBy}
-        defaultSortValue="name"
-        sortOptions={sortOptions}
-        onSortChange={handleSortByChange}
-        orderValue={order}
-        defaultOrderValue="asc"
-        orderOptions={orderOptions}
-        onOrderChange={handleOrderChange}
         activeFilters={activeFilters}
         clearDisabled={!hasActiveFilters}
         onClear={clearFilters}
