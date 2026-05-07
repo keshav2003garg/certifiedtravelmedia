@@ -23,6 +23,7 @@ type TableSection = {
 };
 
 type PdfDocument = {
+  companyName?: string;
   title?: string;
   subtitle?: string;
   tables: TableSection[];
@@ -38,15 +39,24 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 18,
+    alignItems: 'center',
+  },
+  companyName: {
+    fontSize: 22,
+    fontWeight: 700,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 700,
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: 400,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 10,
     color: '#4b5563',
+    textAlign: 'center',
   },
   table: {
     borderTopWidth: 1,
@@ -87,7 +97,13 @@ export function createPDFDocument(): PdfDocument {
   return { tables: [] };
 }
 
-export function addHeader(doc: PdfDocument, title: string, subtitle?: string) {
+export function addHeader(
+  doc: PdfDocument,
+  title: string,
+  subtitle?: string,
+  companyName?: string,
+) {
+  doc.companyName = companyName;
   doc.title = title;
   doc.subtitle = subtitle;
 }
@@ -112,8 +128,11 @@ function GeneratedPDF({ doc }: { doc: PdfDocument }) {
   return (
     <Document title={doc.title} author="Certified Travel Media">
       <Page size="A4" style={styles.page}>
-        {(doc.title || doc.subtitle) && (
+        {(doc.companyName || doc.title || doc.subtitle) && (
           <View style={styles.header}>
+            {doc.companyName && (
+              <Text style={styles.companyName}>{doc.companyName}</Text>
+            )}
             {doc.title && <Text style={styles.title}>{doc.title}</Text>}
             {doc.subtitle && (
               <Text style={styles.subtitle}>{doc.subtitle}</Text>

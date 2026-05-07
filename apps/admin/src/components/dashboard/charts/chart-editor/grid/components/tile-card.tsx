@@ -64,7 +64,7 @@ export const TileCard = memo(function TileCard({
           <span>Stock: {tile.stockLevel}</span>
         ) : null}
         {tile.isFlagged && tile.flagNote ? (
-          <span className="text-red-300">⚑ {tile.flagNote}</span>
+          <span className="text-base text-red-300">⚑ {tile.flagNote}</span>
         ) : null}
       </div>
     );
@@ -82,22 +82,24 @@ export const TileCard = memo(function TileCard({
         !isLocked && onPointerDown
           ? 'cursor-grab touch-none active:cursor-grabbing'
           : '',
-        isNew
-          ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-          : isPremium
-            ? 'bg-amber-500 text-white hover:bg-amber-600'
-            : isPaid
-              ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : isInventory
-                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
+        isFiller
+          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          : isNew
+            ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+            : isPremium
+              ? 'bg-amber-500 text-white hover:bg-amber-600'
+              : isPaid
+                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                : isInventory
+                  ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
         isSelected && 'ring-primary ring-2 ring-offset-1',
       )}
     >
       <span
         className={cn(
           'max-w-full truncate text-xs leading-tight font-semibold',
-          isFiller && !isInventory ? 'text-gray-700' : 'text-white',
+          isFiller ? 'text-gray-700' : 'text-white',
         )}
       >
         {tile.label ?? (isPaid ? 'Paid' : 'Inventory')}
@@ -105,8 +107,8 @@ export const TileCard = memo(function TileCard({
       {tile.isFlagged ? (
         <Flag
           className={cn(
-            'absolute top-0.5 right-0.5 size-4',
-            isFiller && !isInventory ? 'text-red-500' : 'text-red-100',
+            'absolute top-0.5 right-0.5 size-6',
+            isFiller ? 'text-red-500' : 'text-red-100',
           )}
         />
       ) : null}

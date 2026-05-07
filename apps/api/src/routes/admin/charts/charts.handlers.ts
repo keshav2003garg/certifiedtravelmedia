@@ -8,6 +8,7 @@ import type {
   ChartIdContext,
   CloneChartContext,
   DeleteTileContext,
+  ExportPocketsSoldReportContext,
   GetArchiveContext,
   GetSectorChartContext,
   InitializeSectorChartContext,
@@ -50,6 +51,19 @@ export async function getSectorChartsPdfHandler(ctx: GetSectorChartContext) {
       'Content-Disposition': `inline; filename="${filename}"`,
     },
   });
+}
+
+export async function exportPocketsSoldReportHandler(
+  ctx: ExportPocketsSoldReportContext,
+) {
+  const params = ctx.req.valid('query');
+  const { csv, filename } =
+    await chartsService.exportPocketsSoldReportCSV(params);
+
+  ctx.header('Content-Type', 'text/csv; charset=utf-8');
+  ctx.header('Content-Disposition', `attachment; filename="${filename}"`);
+
+  return ctx.body(csv);
 }
 
 export async function initializeSectorChartHandler(

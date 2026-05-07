@@ -103,6 +103,16 @@ export const listChartsValidator = createValidatorSchema({
 });
 export type ListChartsContext = TypedContext<typeof listChartsValidator>;
 
+export const exportPocketsSoldReportValidator = createValidatorSchema({
+  query: z.object({
+    year: yearSchema.default(currentYear),
+    search: optionalTrimmedSearchSchema,
+  }),
+});
+export type ExportPocketsSoldReportContext = TypedContext<
+  typeof exportPocketsSoldReportValidator
+>;
+
 export const getSectorChartValidator = createValidatorSchema({
   param: sectorIdParamSchema,
   query: z.object({

@@ -29,8 +29,8 @@ const MONTHS = [
 ] as const;
 
 const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 7 }, (_, index) => {
-  const year = currentYear - 2 + index;
+const YEARS = Array.from({ length: currentYear - 2020 + 5 }, (_, index) => {
+  const year = 2020 + index;
   return { value: String(year), label: String(year) };
 });
 

@@ -2,6 +2,7 @@ import type { PaginatedResponse } from '@repo/server-utils/types/util.types';
 import type { z } from '@repo/utils/zod';
 import type {
   cloneChartValidator,
+  exportPocketsSoldReportValidator,
   getSectorChartValidator,
   initializeSectorChartValidator,
   listArchivesValidator,
@@ -11,6 +12,9 @@ import type {
 } from './charts.validators';
 
 export type ListChartsParams = z.infer<typeof listChartsValidator.query>;
+export type ExportPocketsSoldReportParams = z.infer<
+  typeof exportPocketsSoldReportValidator.query
+>;
 export type GetSectorChartParams = z.infer<
   typeof getSectorChartValidator.query
 >;

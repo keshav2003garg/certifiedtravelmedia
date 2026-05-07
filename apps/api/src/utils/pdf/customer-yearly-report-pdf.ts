@@ -6,6 +6,7 @@ import sharp from 'sharp';
 
 import type {
   CustomerYearlyReportBrochure,
+  CustomerYearlyReportMonth,
   CustomerYearlyReportResult,
   CustomerYearlyReportVariant,
 } from '@/routes/admin/reports/reports.types';
@@ -17,8 +18,10 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const TABLE_X = MARGIN;
 const TABLE_WIDTH = CONTENT_WIDTH;
 const FOOTER_Y = PAGE_HEIGHT - 24;
+const CONTENT_BOTTOM_Y = FOOTER_Y - 14;
 const BROCHURE_IMAGE_WIDTH = 82;
 const BROCHURE_IMAGE_HEIGHT = 54;
+const MONTH_SECTION_HEADER_HEIGHT = 42;
 const BROCHURE_ROW_HEIGHT = 38;
 const VARIANT_ROW_HEIGHT = 68;
 const IMAGE_TIMEOUT_MS = 3500;
@@ -111,11 +114,82 @@ function truncate(value: string, maxLength: number) {
 }
 
 function ensureSpace(doc: PDFKit.PDFDocument, height: number) {
-  if (doc.y + height <= PAGE_HEIGHT - MARGIN) return false;
+  if (doc.y + height <= CONTENT_BOTTOM_Y) return false;
 
   doc.addPage();
   doc.y = MARGIN;
   return true;
+}
+
+function strokeGroupBox(params: {
+  doc: PDFKit.PDFDocument;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color?: string;
+}) {
+  const { color = COLORS.primary, doc, height, width, x, y } = params;
+
+  doc.rect(x, y, width, height).lineWidth(1.1).strokeColor(color).stroke();
+}
+
+function getCurrentPageIndex(doc: PDFKit.PDFDocument) {
+  const range = doc.bufferedPageRange();
+  return range.start + range.count - 1;
+}
+
+interface PageGroupBox {
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function addPageSpanningGroupBoxes(params: {
+  boxes: PageGroupBox[];
+  startPageIndex: number;
+  startY: number;
+  endPageIndex: number;
+  endY: number;
+  x: number;
+  width: number;
+}) {
+  const { boxes, endPageIndex, endY, startPageIndex, startY, width, x } =
+    params;
+
+  for (let pageIndex = startPageIndex; pageIndex <= endPageIndex; pageIndex++) {
+    const y = pageIndex === startPageIndex ? startY : MARGIN;
+    const bottomY = pageIndex === endPageIndex ? endY : CONTENT_BOTTOM_Y;
+
+    if (bottomY <= y) continue;
+
+    boxes.push({
+      pageIndex,
+      x,
+      y,
+      width,
+      height: bottomY - y,
+    });
+  }
+}
+
+function drawPageGroupBoxes(doc: PDFKit.PDFDocument, boxes: PageGroupBox[]) {
+  const restorePageIndex = getCurrentPageIndex(doc);
+
+  for (const box of boxes) {
+    doc.switchToPage(box.pageIndex);
+    strokeGroupBox({
+      doc,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+    });
+  }
+
+  doc.switchToPage(restorePageIndex);
 }
 
 function drawText(
@@ -130,13 +204,17 @@ function drawText(
     color?: string;
     align?: 'left' | 'center' | 'right';
     height?: number;
+    lineBreak?: boolean;
+    ellipsis?: boolean | string;
   },
 ) {
   const {
     align = 'left',
     color = COLORS.foreground,
+    ellipsis,
     font = 'Helvetica',
     height,
+    lineBreak = true,
     size = 8,
     text,
     width,
@@ -146,8 +224,9 @@ function drawText(
 
   doc.font(font).fontSize(size).fillColor(color).text(text, x, y, {
     align,
+    ellipsis,
     height,
-    lineBreak: true,
+    lineBreak,
     width,
   });
 }
@@ -416,7 +495,7 @@ function drawHeader(
   drawLogo(doc, logoBuffer, 22);
 
   drawText(doc, {
-    text: 'Year-End Report',
+    text: 'Monthly Distribution Report',
     x: MARGIN,
     y: 106,
     width: CONTENT_WIDTH,
@@ -426,7 +505,7 @@ function drawHeader(
     color: COLORS.navy,
   });
   drawText(doc, {
-    text: 'Customer distribution activity summary',
+    text: 'Customer brochure distribution activity by month',
     x: MARGIN,
     y: 130,
     width: CONTENT_WIDTH,
@@ -507,7 +586,7 @@ function drawSummary(
   report: CustomerYearlyReportResult,
 ) {
   const columns = [
-    ['Brochures', formatNumber(report.summary.brochureCount)],
+    ['Total brochures', formatNumber(report.summary.brochureCount)],
     ['Image / pack rows', formatNumber(report.summary.variantCount)],
     ['Distributed boxes', formatNumber(report.summary.distributionBoxes)],
     ['Distributed units', formatNumber(report.summary.distributionUnits)],
@@ -551,6 +630,70 @@ function drawSummary(
   doc.y = startY + 68;
 }
 
+function drawMonthHeader(
+  doc: PDFKit.PDFDocument,
+  month: CustomerYearlyReportMonth,
+) {
+  const startY = doc.y;
+  drawCell({
+    doc,
+    x: TABLE_X,
+    y: startY,
+    width: TABLE_WIDTH,
+    height: MONTH_SECTION_HEADER_HEIGHT,
+    fill: COLORS.navy,
+    stroke: COLORS.navy,
+  });
+  doc.rect(TABLE_X, startY, 5, MONTH_SECTION_HEADER_HEIGHT).fill(COLORS.accent);
+
+  drawText(doc, {
+    text: month.label,
+    x: TABLE_X + 16,
+    y: startY + 8,
+    width: 260,
+    font: 'Helvetica-Bold',
+    size: 12.2,
+    color: COLORS.white,
+  });
+  drawText(doc, {
+    text: `${formatOrdinalDate(month.startDate)} to ${formatOrdinalDate(month.endDate)}`,
+    x: TABLE_X + 16,
+    y: startY + 25,
+    width: 260,
+    size: 7.4,
+    color: COLORS.infoMuted,
+  });
+  drawText(doc, {
+    text: `${formatNumber(month.summary.brochureCount)} brochures | ${formatNumber(month.summary.distributionBoxes)} boxes | ${formatNumber(month.summary.distributionUnits)} units`,
+    x: TABLE_X + 300,
+    y: startY + 15,
+    width: TABLE_WIDTH - 318,
+    align: 'right',
+    font: 'Helvetica-Bold',
+    size: 8.8,
+    color: COLORS.white,
+  });
+
+  doc.y = startY + MONTH_SECTION_HEADER_HEIGHT;
+}
+
+function getBrochureIntroHeight(brochure: CustomerYearlyReportBrochure) {
+  return (
+    BROCHURE_ROW_HEIGHT +
+    (brochure.variants.length > 0 ? VARIANT_ROW_HEIGHT : 42)
+  );
+}
+
+function getMonthIntroHeight(month: CustomerYearlyReportMonth) {
+  const firstBrochure = month.brochures[0];
+
+  return (
+    MONTH_SECTION_HEADER_HEIGHT +
+    (firstBrochure ? getBrochureIntroHeight(firstBrochure) : 42) +
+    8
+  );
+}
+
 function drawBrochureHeader(
   doc: PDFKit.PDFDocument,
   brochure: CustomerYearlyReportBrochure,
@@ -575,6 +718,8 @@ function drawBrochureHeader(
     font: 'Helvetica-Bold',
     size: 9.4,
     color: COLORS.navy,
+    height: 12,
+    ellipsis: true,
   });
   drawText(doc, {
     text: `${brochure.brochureTypeName} | ${formatNumber(brochure.variants.length)} image/pack ${brochure.variants.length === 1 ? 'row' : 'rows'}`,
@@ -583,6 +728,8 @@ function drawBrochureHeader(
     width: 390,
     size: 7.2,
     color: COLORS.mutedForeground,
+    height: 9,
+    ellipsis: true,
   });
 
   const values = [
@@ -602,6 +749,8 @@ function drawBrochureHeader(
       size: 8.4,
       color: COLORS.foreground,
       align: 'right',
+      height: 10,
+      ellipsis: true,
     });
   }
 
@@ -647,6 +796,8 @@ function drawVariantRow(params: {
     font: 'Helvetica-Bold',
     size: 6.8,
     color: COLORS.foreground,
+    height: 16,
+    ellipsis: true,
   });
   drawText(doc, {
     text: 'UNIT PER BOX',
@@ -694,6 +845,8 @@ function drawVariantRow(params: {
       size: 9,
       color: COLORS.foreground,
       align: 'right',
+      height: 11,
+      ellipsis: true,
     });
   }
 
@@ -741,7 +894,7 @@ function drawBrochure(params: {
       doc,
       'No image and unit-per-box details are available for this brochure.',
     );
-    doc.y += 10;
+    doc.y += 4;
     return;
   }
 
@@ -753,7 +906,47 @@ function drawBrochure(params: {
     });
   }
 
-  doc.y += 10;
+  doc.y += 4;
+}
+
+function drawMonthSection(params: {
+  doc: PDFKit.PDFDocument;
+  month: CustomerYearlyReportMonth;
+  images: Map<string, Buffer | null>;
+  groupBoxes: PageGroupBox[];
+}) {
+  const { doc, groupBoxes, images, month } = params;
+  ensureSpace(doc, getMonthIntroHeight(month));
+
+  const startY = doc.y;
+  const startPageIndex = getCurrentPageIndex(doc);
+
+  drawMonthHeader(doc, month);
+
+  if (month.brochures.length === 0) {
+    drawEmptyTableRow(doc, `No brochure distributions in ${month.label}.`);
+    doc.y += 12;
+    return;
+  }
+
+  for (const brochure of month.brochures) {
+    drawBrochure({ doc, brochure, images });
+  }
+
+  const endY = doc.y;
+  const endPageIndex = getCurrentPageIndex(doc);
+
+  addPageSpanningGroupBoxes({
+    boxes: groupBoxes,
+    startPageIndex,
+    startY,
+    endPageIndex,
+    endY,
+    x: TABLE_X,
+    width: TABLE_WIDTH,
+  });
+
+  doc.y += 4;
 }
 
 function drawEmptyReport(
@@ -830,7 +1023,7 @@ export async function generateCustomerYearlyReportPDF(
     margin: MARGIN,
     bufferPages: true,
     info: {
-      Title: `Customer Year-End Report - ${report.customer.name} - ${report.period.year}`,
+      Title: `Customer Monthly Distribution Report - ${report.customer.name} - ${report.period.year}`,
       Author: 'Certified Travel Media',
     },
   });
@@ -842,12 +1035,25 @@ export async function generateCustomerYearlyReportPDF(
   drawHeader(doc, report, logoBuffer);
   drawSummary(doc, report);
 
-  if (report.summary.distributionUnits === 0 || report.brochures.length === 0) {
+  const distributionMonths = report.months.filter(
+    (month) => month.brochures.length > 0,
+  );
+
+  if (distributionMonths.length === 0) {
     drawEmptyReport(doc, report);
   } else {
-    for (const brochure of report.brochures) {
-      drawBrochure({ doc, brochure, images: brochureImages });
+    const groupBoxes: PageGroupBox[] = [];
+
+    for (const month of distributionMonths) {
+      drawMonthSection({
+        doc,
+        month,
+        images: brochureImages,
+        groupBoxes,
+      });
     }
+
+    drawPageGroupBoxes(doc, groupBoxes);
   }
 
   const range = doc.bufferedPageRange();
@@ -858,6 +1064,6 @@ export async function generateCustomerYearlyReportPDF(
 
   return {
     buffer: await finalize(doc),
-    filename: `customer-year-end-report-${safeFilename(report.customer.name)}-${report.period.year}.pdf`,
+    filename: `customer-monthly-distribution-report-${safeFilename(report.customer.name)}-${report.period.year}.pdf`,
   };
 }

@@ -1,8 +1,8 @@
 import {
   createFileRoute,
-  Link,
   redirect,
   useNavigate,
+  useRouter,
 } from '@tanstack/react-router';
 
 import { Button } from '@repo/ui/components/base/button';
@@ -33,20 +33,36 @@ export const Route = createFileRoute('/charts/$sectorId')({
 });
 
 function RouteComponent() {
-  const { sectorId } = Route.useParams();
   const search = Route.useSearch();
+  const { sectorId } = Route.useParams();
   const { user } = Route.useLoaderData();
+
+  const router = useRouter();
   const navigate = useNavigate();
+
   const isManager =
     typeof user.role === 'string' && MANAGER_ROLES.has(user.role);
+
+  function goBackToCharts() {
+    if (router.history.canGoBack()) {
+      router.history.back();
+      return;
+    }
+
+    void navigate({ to: '/dashboard/charts' });
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-gray-50">
       <header className="flex h-12 shrink-0 items-center gap-3 border-b bg-white px-4">
-        <Button type="button" variant="ghost" size="icon" asChild>
-          <Link to="/dashboard/charts" aria-label="Back to charts">
-            <ArrowLeft className="size-4" />
-          </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Back to charts"
+          onClick={goBackToCharts}
+        >
+          <ArrowLeft className="size-4" />
         </Button>
         <h1 className="text-foreground text-base font-semibold tracking-normal">
           Sector Chart Editor

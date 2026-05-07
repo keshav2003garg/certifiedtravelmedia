@@ -35,11 +35,11 @@ function WarehousesTable({
         <Table className="table-fixed" style={{ minWidth: '980px' }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[30%]">Warehouse</TableHead>
-              <TableHead className="w-[14%]">Warehouse ID</TableHead>
-              <TableHead className="w-[40%]">Sectors</TableHead>
-              <TableHead className="w-[10%]">Status</TableHead>
-              <TableHead className="w-[6%]" />
+              <TableHead className="w-[22%]">Warehouse</TableHead>
+              <TableHead className="w-[12%]">Warehouse ID</TableHead>
+              <TableHead>Sectors</TableHead>
+              <TableHead className="w-[9%]">Status</TableHead>
+              <TableHead className="w-[12%]" />
             </TableRow>
           </TableHeader>
           <TableBody>

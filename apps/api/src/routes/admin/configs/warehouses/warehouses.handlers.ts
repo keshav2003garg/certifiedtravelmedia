@@ -136,6 +136,7 @@ export async function fullTruckLoadHandler(ctx: FullTruckLoadContext) {
     doc,
     'Full Truck Load',
     `Warehouse: ${result.warehouseName} — ${periodLabel}`,
+    'CTM Media',
   );
 
   addTable(
@@ -169,7 +170,7 @@ export async function fullTruckLoadHandler(ctx: FullTruckLoadContext) {
   return new Response(pdfBuffer, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="full-truck-load-${result.warehouseName.replace(/[^a-zA-Z0-9-_]/g, '_')}-${filePeriod}.pdf"`,
+      'Content-Disposition': `inline; filename="full-truck-load-${result.warehouseName.replace(/[^a-zA-Z0-9-_]/g, '_')}-${filePeriod}.pdf"`,
     },
   });
 }

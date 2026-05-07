@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { useRouter } from '@tanstack/react-router';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
@@ -37,6 +37,7 @@ function ChartEditorPage({
   showBackButton = true,
   onMonthChange,
 }: ChartEditorPageProps) {
+  const router = useRouter();
   const {
     sectorChartQueryOptions,
     saveChartMutation,
@@ -115,11 +116,21 @@ function ChartEditorPage({
     });
   }, [height, month, openSectorChartsPdfMutation, sectorId, width, year]);
 
+  const goBackToCharts = useCallback(() => {
+    if (router.history.canGoBack()) {
+      router.history.back();
+      return;
+    }
+
+    void router.navigate({ to: '/dashboard/charts' });
+  }, [router]);
+
   if (width < 1 || height < 1) {
     return (
       <ChartEditorError
         title="Chart dimensions are missing"
         message="Return to the charts list and open a stand size with a valid width and height."
+        onBack={goBackToCharts}
       />
     );
   }
@@ -131,6 +142,7 @@ function ChartEditorPage({
         message="Refresh the chart or return to the list after checking the API connection."
         isRetrying={isFetching}
         onRetry={() => refetch()}
+        onBack={goBackToCharts}
       />
     );
   }
@@ -138,11 +150,14 @@ function ChartEditorPage({
   return (
     <div className={isFullscreen ? 'h-full min-h-0' : 'space-y-5'}>
       {showBackButton ? (
-        <Button type="button" variant="outline" size="sm" asChild>
-          <Link to="/dashboard/charts">
-            <ArrowLeft className="size-4" />
-            Back to charts
-          </Link>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={goBackToCharts}
+        >
+          <ArrowLeft className="size-4" />
+          Back to charts
         </Button>
       ) : null}
 
@@ -175,6 +190,7 @@ interface ChartEditorErrorProps {
   message: string;
   isRetrying?: boolean;
   onRetry?: () => void;
+  onBack: () => void;
 }
 
 function ChartEditorError({
@@ -182,6 +198,7 @@ function ChartEditorError({
   message,
   isRetrying = false,
   onRetry,
+  onBack,
 }: ChartEditorErrorProps) {
   return (
     <Card className="shadow-none">
@@ -198,8 +215,8 @@ function ChartEditorError({
               Retry
             </Button>
           ) : null}
-          <Button type="button" variant="outline" asChild>
-            <Link to="/dashboard/charts">Back to charts</Link>
+          <Button type="button" variant="outline" onClick={onBack}>
+            Back to charts
           </Button>
         </div>
       </CardContent>

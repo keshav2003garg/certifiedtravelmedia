@@ -57,7 +57,7 @@ function ReportsPage() {
       >
         <TabsList className="grid w-full grid-cols-2 sm:w-auto">
           <TabsTrigger value="month-end">Month-end reports</TabsTrigger>
-          <TabsTrigger value="year-end">Year-end reports</TabsTrigger>
+          <TabsTrigger value="year-end">Customer reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="month-end" className="mt-0">

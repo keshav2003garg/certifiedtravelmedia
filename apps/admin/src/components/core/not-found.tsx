@@ -1,5 +1,6 @@
 import { memo } from 'react';
 
+import { useRouter } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
 
 import { Button } from '@repo/ui/components/base/button';
@@ -11,6 +12,7 @@ interface NotFoundProps {
 
 function NotFound(props: NotFoundProps) {
   const { children } = props;
+  const router = useRouter();
 
   if (children) {
     return (
@@ -74,7 +76,7 @@ function NotFound(props: NotFoundProps) {
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button
               variant="outline"
-              onClick={() => window.history.back()}
+              onClick={() => router.history.back()}
               className="border-border hover:border-primary/40 hover:bg-primary/5 hover:text-primary h-11 rounded-xl px-6"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />

@@ -151,6 +151,14 @@ export type OpenSectorChartsPdfRequest = ApiData<
   Blob
 >;
 
+export type ExportPocketsSoldCsvRequest = ApiData<
+  {
+    year: number;
+    search?: string;
+  },
+  Blob
+>;
+
 export interface TilePayload {
   id?: string;
   col: number;

@@ -13,13 +13,18 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const TABLE_X = MARGIN;
 const TABLE_WIDTH = CONTENT_WIDTH;
 const FOOTER_Y = PAGE_HEIGHT - 24;
+const CONTENT_BOTTOM_Y = FOOTER_Y - 14;
 const ITEM_IMAGE_WIDTH = 82;
 const ITEM_IMAGE_HEIGHT = 54;
 const ITEM_INFO_WIDTH = 324;
 const ITEM_HEADER_HEIGHT = 28;
 const ITEM_DETAIL_HEIGHT = 70;
+const ITEM_GROUP_GAP = 18;
+const TRANSACTION_TABLE_TOP_GAP = 6;
 const TRANSACTION_HEADER_HEIGHT = 24;
 const TRANSACTION_ROW_HEIGHT = 25;
+const TRANSACTION_TABLE_X = TABLE_X + 16;
+const TRANSACTION_TABLE_WIDTH = TABLE_WIDTH - 16;
 const IMAGE_TIMEOUT_MS = 3500;
 const IMAGE_FETCH_CONCURRENCY = 8;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -57,7 +62,7 @@ const TRANSACTION_COLUMNS = [
   { label: 'Units', width: 92, align: 'right' },
   { label: 'Before', width: 92, align: 'right' },
   { label: 'After', width: 92, align: 'right' },
-  { label: 'Notes', width: TABLE_WIDTH - 554, align: 'left' },
+  { label: 'Notes', width: TRANSACTION_TABLE_WIDTH - 554, align: 'left' },
 ] as const;
 
 function finalize(doc: PDFKit.PDFDocument): Promise<Buffer> {
@@ -138,11 +143,82 @@ function truncate(value: string, maxLength: number) {
 }
 
 function ensureSpace(doc: PDFKit.PDFDocument, height: number) {
-  if (doc.y + height <= PAGE_HEIGHT - MARGIN) return false;
+  if (doc.y + height <= CONTENT_BOTTOM_Y) return false;
 
   doc.addPage();
   doc.y = MARGIN;
   return true;
+}
+
+function strokeGroupBox(params: {
+  doc: PDFKit.PDFDocument;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color?: string;
+}) {
+  const { color = COLORS.primary, doc, height, width, x, y } = params;
+
+  doc.rect(x, y, width, height).lineWidth(1.1).strokeColor(color).stroke();
+}
+
+function getCurrentPageIndex(doc: PDFKit.PDFDocument) {
+  const range = doc.bufferedPageRange();
+  return range.start + range.count - 1;
+}
+
+interface PageGroupBox {
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function addPageSpanningGroupBoxes(params: {
+  boxes: PageGroupBox[];
+  startPageIndex: number;
+  startY: number;
+  endPageIndex: number;
+  endY: number;
+  x: number;
+  width: number;
+}) {
+  const { boxes, endPageIndex, endY, startPageIndex, startY, width, x } =
+    params;
+
+  for (let pageIndex = startPageIndex; pageIndex <= endPageIndex; pageIndex++) {
+    const y = pageIndex === startPageIndex ? startY : MARGIN;
+    const bottomY = pageIndex === endPageIndex ? endY : CONTENT_BOTTOM_Y;
+
+    if (bottomY <= y) continue;
+
+    boxes.push({
+      pageIndex,
+      x,
+      y,
+      width,
+      height: bottomY - y,
+    });
+  }
+}
+
+function drawPageGroupBoxes(doc: PDFKit.PDFDocument, boxes: PageGroupBox[]) {
+  const restorePageIndex = getCurrentPageIndex(doc);
+
+  for (const box of boxes) {
+    doc.switchToPage(box.pageIndex);
+    strokeGroupBox({
+      doc,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+    });
+  }
+
+  doc.switchToPage(restorePageIndex);
 }
 
 function drawRule(doc: PDFKit.PDFDocument, y = doc.y) {
@@ -166,13 +242,17 @@ function drawText(
     color?: string;
     align?: 'left' | 'center' | 'right';
     height?: number;
+    lineBreak?: boolean;
+    ellipsis?: boolean | string;
   },
 ) {
   const {
     align = 'left',
     color = COLORS.foreground,
+    ellipsis,
     font = 'Helvetica',
     height,
+    lineBreak = true,
     size = 8,
     text,
     width,
@@ -182,8 +262,9 @@ function drawText(
 
   doc.font(font).fontSize(size).fillColor(color).text(text, x, y, {
     align,
+    ellipsis,
     height,
-    lineBreak: true,
+    lineBreak,
     width,
   });
 }
@@ -613,9 +694,18 @@ function drawItemHeader(
   item: InventoryMonthlyReportResult['items'][number],
   imageBuffer: Buffer | null | undefined,
 ) {
-  ensureSpace(doc, ITEM_HEADER_HEIGHT + ITEM_DETAIL_HEIGHT + 18);
+  ensureSpace(
+    doc,
+    ITEM_HEADER_HEIGHT +
+      ITEM_DETAIL_HEIGHT +
+      TRANSACTION_TABLE_TOP_GAP +
+      TRANSACTION_HEADER_HEIGHT +
+      TRANSACTION_ROW_HEIGHT +
+      8,
+  );
 
   const startY = doc.y;
+  const startPageIndex = getCurrentPageIndex(doc);
   doc.rect(TABLE_X, startY, TABLE_WIDTH, ITEM_HEADER_HEIGHT).fill(COLORS.navy);
   doc.rect(TABLE_X, startY, 5, ITEM_HEADER_HEIGHT).fill(COLORS.accent);
   doc
@@ -730,6 +820,8 @@ function drawItemHeader(
   });
 
   doc.y = detailY + ITEM_DETAIL_HEIGHT;
+
+  return { startPageIndex, startY };
 }
 
 function drawItemContinuation(
@@ -750,7 +842,7 @@ function drawItemContinuation(
 
 function drawTransactionTableHeader(doc: PDFKit.PDFDocument) {
   const startY = doc.y;
-  let x = TABLE_X;
+  let x = TRANSACTION_TABLE_X;
 
   for (const column of TRANSACTION_COLUMNS) {
     drawCell({
@@ -759,8 +851,8 @@ function drawTransactionTableHeader(doc: PDFKit.PDFDocument) {
       y: startY,
       width: column.width,
       height: TRANSACTION_HEADER_HEIGHT,
-      fill: COLORS.navy,
-      stroke: COLORS.navyDark,
+      fill: COLORS.secondary,
+      stroke: COLORS.border,
     });
     drawText(doc, {
       text: column.label,
@@ -769,8 +861,10 @@ function drawTransactionTableHeader(doc: PDFKit.PDFDocument) {
       width: column.width - 16,
       font: 'Helvetica-Bold',
       size: 7.3,
-      color: COLORS.white,
+      color: COLORS.navy,
       align: column.align,
+      height: 10,
+      ellipsis: true,
     });
     x += column.width;
   }
@@ -782,18 +876,18 @@ function drawEmptyTableRow(doc: PDFKit.PDFDocument, message: string) {
   const y = doc.y;
   drawCell({
     doc,
-    x: TABLE_X,
+    x: TRANSACTION_TABLE_X,
     y,
-    width: TABLE_WIDTH,
+    width: TRANSACTION_TABLE_WIDTH,
     height: 42,
     fill: COLORS.muted,
     stroke: COLORS.border,
   });
   drawText(doc, {
     text: message,
-    x: TABLE_X + 12,
+    x: TRANSACTION_TABLE_X + 12,
     y: y + 14,
-    width: TABLE_WIDTH - 24,
+    width: TRANSACTION_TABLE_WIDTH - 24,
     size: 8,
     color: COLORS.mutedForeground,
     align: 'center',
@@ -805,7 +899,13 @@ function drawTransactionsTable(
   doc: PDFKit.PDFDocument,
   item: InventoryMonthlyReportResult['items'][number],
 ) {
-  ensureSpace(doc, TRANSACTION_HEADER_HEIGHT + TRANSACTION_ROW_HEIGHT);
+  ensureSpace(
+    doc,
+    TRANSACTION_TABLE_TOP_GAP +
+      TRANSACTION_HEADER_HEIGHT +
+      TRANSACTION_ROW_HEIGHT,
+  );
+  doc.y += TRANSACTION_TABLE_TOP_GAP;
   drawTransactionTableHeader(doc);
 
   if (item.transactions.length === 0) {
@@ -813,7 +913,7 @@ function drawTransactionsTable(
       doc,
       'No transactions in this period. Starting and ending balance are unchanged.',
     );
-    doc.y += 14;
+    doc.y += ITEM_GROUP_GAP;
     return;
   }
 
@@ -832,9 +932,9 @@ function drawTransactionsTable(
       formatMovement(transaction.movementUnits),
       formatNumber(transaction.balanceBeforeBoxes),
       formatNumber(transaction.balanceAfterBoxes),
-      transaction.notes ? truncate(transaction.notes, 74) : 'None',
+      transaction.notes ? truncate(transaction.notes, 48) : 'None',
     ];
-    let x = TABLE_X;
+    let x = TRANSACTION_TABLE_X;
 
     TRANSACTION_COLUMNS.forEach((column, index) => {
       drawCell({
@@ -862,6 +962,9 @@ function drawTransactionsTable(
               )
             : COLORS.foreground,
         align: column.align,
+        height: TRANSACTION_ROW_HEIGHT - 12,
+        lineBreak: false,
+        ellipsis: true,
       });
       x += column.width;
     });
@@ -869,7 +972,7 @@ function drawTransactionsTable(
     doc.y = rowY + TRANSACTION_ROW_HEIGHT;
   });
 
-  doc.y += 14;
+  doc.y += ITEM_GROUP_GAP;
 }
 
 function drawEmptyReport(doc: PDFKit.PDFDocument) {
@@ -957,10 +1060,31 @@ export async function generateInventoryMonthlyReportPDF(
   if (report.items.length === 0) {
     drawEmptyReport(doc);
   } else {
+    const groupBoxes: PageGroupBox[] = [];
+
     for (const item of report.items) {
-      drawItemHeader(doc, item, imagesByItemId.get(item.id));
+      const { startPageIndex, startY } = drawItemHeader(
+        doc,
+        item,
+        imagesByItemId.get(item.id),
+      );
       drawTransactionsTable(doc, item);
+
+      const endY = doc.y - ITEM_GROUP_GAP;
+      const endPageIndex = getCurrentPageIndex(doc);
+
+      addPageSpanningGroupBoxes({
+        boxes: groupBoxes,
+        startPageIndex,
+        startY,
+        endPageIndex,
+        endY,
+        x: TABLE_X,
+        width: TABLE_WIDTH,
+      });
     }
+
+    drawPageGroupBoxes(doc, groupBoxes);
   }
 
   const range = doc.bufferedPageRange();

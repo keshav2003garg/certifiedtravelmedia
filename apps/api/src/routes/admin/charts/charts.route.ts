@@ -11,6 +11,7 @@ import {
   cloneChartHandler,
   completeChartHandler,
   deleteTileHandler,
+  exportPocketsSoldReportHandler,
   getArchiveHandler,
   getChartHandler,
   getSectorChartHandler,
@@ -25,6 +26,7 @@ import {
   chartIdValidator,
   cloneChartValidator,
   deleteTileValidator,
+  exportPocketsSoldReportValidator,
   getArchiveValidator,
   getSectorChartValidator,
   initializeSectorChartValidator,
@@ -50,6 +52,13 @@ chartsRoute.get(
   isStaffOrAbove,
   validator(listChartsValidator),
   listChartsHandler,
+);
+
+chartsRoute.get(
+  '/pockets-sold-report',
+  isStaffOrAbove,
+  validator(exportPocketsSoldReportValidator),
+  exportPocketsSoldReportHandler,
 );
 
 chartsRoute.get(

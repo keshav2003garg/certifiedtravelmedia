@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Link, useLoaderData, useNavigate } from '@tanstack/react-router';
+import { useLoaderData, useRouter } from '@tanstack/react-router';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
@@ -32,7 +32,7 @@ function InventoryRequestReviewPage({
   const isManagerOrAdmin = role === 'manager' || role === 'admin';
 
   const { user } = useLoaderData({ from: '/dashboard' });
-  const navigate = useNavigate();
+  const router = useRouter();
   const [rejectOpen, setRejectOpen] = useState(false);
 
   const { inventoryRequestQueryOptions, approveMutation, rejectMutation } =
@@ -45,8 +45,13 @@ function InventoryRequestReviewPage({
   const request = requestQuery.data?.request ?? null;
 
   const goBack = useCallback(() => {
-    void navigate({ to: '/dashboard/inventory/request-queue' });
-  }, [navigate]);
+    if (router.history.canGoBack()) {
+      router.history.back();
+      return;
+    }
+
+    void router.navigate({ to: '/dashboard/inventory/request-queue' });
+  }, [router]);
 
   const handleSubmit = useCallback(
     (values: ApproveInventoryRequestPayload) => {
@@ -84,11 +89,15 @@ function InventoryRequestReviewPage({
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div className="space-y-3">
-        <Button asChild variant="ghost" size="sm" className="-ml-2 w-fit">
-          <Link to="/dashboard/inventory/request-queue">
-            <ArrowLeft className="size-4" />
-            Back to queue
-          </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-ml-2 w-fit"
+          onClick={goBack}
+        >
+          <ArrowLeft className="size-4" />
+          Back to queue
         </Button>
         <div className="space-y-1">
           <h1 className="text-foreground text-2xl font-semibold tracking-normal">

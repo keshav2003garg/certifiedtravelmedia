@@ -132,11 +132,21 @@ export interface CustomerYearlyReportSummary {
   distributionUnits: number;
 }
 
+export interface CustomerYearlyReportMonth {
+  month: number;
+  label: string;
+  startDate: string;
+  endDate: string;
+  summary: CustomerYearlyReportSummary;
+  brochures: CustomerYearlyReportBrochure[];
+}
+
 export interface CustomerYearlyReportResult {
   customer: CustomerYearlyReportCustomer;
   period: CustomerYearlyReportPeriod;
   summary: CustomerYearlyReportSummary;
   brochures: CustomerYearlyReportBrochure[];
+  months: CustomerYearlyReportMonth[];
 }
 
 export interface CustomerYearlyBrochureAggregate extends Omit<

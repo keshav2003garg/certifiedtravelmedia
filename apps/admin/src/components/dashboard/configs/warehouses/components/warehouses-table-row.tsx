@@ -110,13 +110,12 @@ function WarehousesTableRow({
         </Badge>
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-1">
+        <div className="flex items-center justify-end gap-1">
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
+            variant="outline"
+            size="sm"
             aria-label={`Download FTL for ${warehouse.name}`}
-            title="Download FTL"
             disabled={isFullTruckLoadDownloadDisabled}
             onClick={() => onDownloadFullTruckLoad(warehouse)}
           >
@@ -125,16 +124,21 @@ function WarehousesTableRow({
             ) : (
               <Download className="size-4" />
             )}
+            FTL
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open row actions">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Open row actions"
+              >
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent align="end" className="w-36">
               <DropdownMenuItem onClick={() => onEdit(warehouse)}>
-                <Pencil className="mr-2 size-4" />
+                <Pencil className="size-4" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -142,7 +146,7 @@ function WarehousesTableRow({
                 disabled={isRetiring || !warehouse.isActive}
                 className="text-destructive focus:text-destructive"
               >
-                <Archive className="mr-2 size-4" />
+                <Archive className="size-4" />
                 Retire
               </DropdownMenuItem>
             </DropdownMenuContent>

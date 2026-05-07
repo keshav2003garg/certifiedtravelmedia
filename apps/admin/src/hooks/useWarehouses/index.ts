@@ -1,3 +1,5 @@
+import { env } from '@repo/env/client';
+
 import { useCallback } from 'react';
 
 import { queryOptions, useMutation } from '@tanstack/react-query';
@@ -121,69 +123,25 @@ export function useWarehouses() {
   );
 
   const downloadFullTruckLoad = useCallback(
-    async ({
-      id,
-      month,
-      warehouseName,
-      year,
-    }: DownloadFullTruckLoadRequest['payload']) => {
+    async ({ id, month, year }: DownloadFullTruckLoadRequest['payload']) => {
       if ((month === undefined) !== (year === undefined)) {
         throw new Error('Month and year are required together');
       }
 
-      const response = await api.raw<Blob, 'blob'>(
-        `${WAREHOUSES_ENDPOINT}/${id}/full-truck-load`,
-        {
-          query: { month, year },
-          responseType: 'blob',
-        },
+      const url = new URL(
+        `${env.VITE_API_URL}/api${WAREHOUSES_ENDPOINT}/${id}/full-truck-load`,
       );
-      const blob = response._data;
-      const contentType =
-        response.headers.get('content-type') ?? blob?.type ?? '';
 
-      if (!blob || !contentType.includes('application/pdf')) {
-        let message = 'Full truck load could not be downloaded';
+      if (month !== undefined) url.searchParams.set('month', String(month));
+      if (year !== undefined) url.searchParams.set('year', String(year));
 
-        if (blob && contentType.includes('application/json')) {
-          try {
-            const payload = JSON.parse(await blob.text()) as unknown;
+      const ftlWindow = window.open(url.toString(), '_blank');
 
-            if (
-              typeof payload === 'object' &&
-              payload !== null &&
-              'message' in payload &&
-              typeof payload.message === 'string'
-            ) {
-              message = payload.message;
-            }
-          } catch {
-            message = 'Full truck load could not be downloaded';
-          }
-        }
-
-        throw new Error(message);
+      if (!ftlWindow) {
+        throw new Error('Allow pop-ups to open the FTL PDF');
       }
 
-      const safeWarehouseName =
-        warehouseName
-          .trim()
-          .replace(/\s+/g, '-')
-          .replace(/[^a-zA-Z0-9-_]/g, '_') || 'warehouse';
-      const period = `${month}-${year}`;
-      const fileName = `full-truck-load-${safeWarehouseName}-${period}.pdf`;
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-
-      try {
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      } finally {
-        URL.revokeObjectURL(url);
-      }
+      ftlWindow.opener = null;
     },
     [],
   );

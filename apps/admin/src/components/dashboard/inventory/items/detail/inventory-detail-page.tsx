@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { useRouter } from '@tanstack/react-router';
 
 import { Badge } from '@repo/ui/components/base/badge';
 import { Button } from '@repo/ui/components/base/button';
@@ -198,6 +198,7 @@ function InventoryTransactionsEmpty({ hasFilters }: { hasFilters: boolean }) {
 
 function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
   const { isManager } = useUserRole();
+  const router = useRouter();
 
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
 
@@ -217,6 +218,15 @@ function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
   const transactions = transactionsQuery.data?.transactions ?? [];
   const pagination = transactionsQuery.data?.pagination;
 
+  const goBackToInventory = useCallback(() => {
+    if (router.history.canGoBack()) {
+      router.history.back();
+      return;
+    }
+
+    void router.navigate({ to: '/dashboard/inventory' });
+  }, [router]);
+
   if (itemQuery.isLoading) {
     return <InventoryDetailSkeleton />;
   }
@@ -230,11 +240,14 @@ function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
         <p className="text-muted-foreground mt-2 text-sm">
           This stock item may have been removed or is unavailable.
         </p>
-        <Button asChild variant="outline" className="mt-5">
-          <Link to="/dashboard/inventory">
-            <ArrowLeft className="size-4" />
-            Back to inventory
-          </Link>
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-5"
+          onClick={goBackToInventory}
+        >
+          <ArrowLeft className="size-4" />
+          Back to inventory
         </Button>
       </div>
     );
@@ -243,11 +256,15 @@ function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Button asChild variant="ghost" size="sm" className="-ml-2 w-fit">
-          <Link to="/dashboard/inventory">
-            <ArrowLeft className="size-4" />
-            Back to inventory
-          </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-ml-2 w-fit"
+          onClick={goBackToInventory}
+        >
+          <ArrowLeft className="size-4" />
+          Back to inventory
         </Button>
         <div className="flex flex-wrap gap-2">
           {isManager ? (

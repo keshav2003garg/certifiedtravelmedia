@@ -201,6 +201,7 @@ class ReportsService {
     return db
       .select({
         boxes: inventoryTransactions.boxes,
+        transactionDate: inventoryTransactions.transactionDate,
         brochureImagePackSizeId: brochureImagePackSizes.id,
         brochureId: brochures.id,
         brochureName: brochures.name,
@@ -458,6 +459,30 @@ class ReportsService {
     };
   }
 
+  private buildCustomerYearlyDistributionMonths(
+    rows: CustomerYearlyDistributionRow[],
+    year: number,
+  ): CustomerYearlyReportResult['months'] {
+    return ReportsService.MONTH_NAMES.map((monthName, index) => {
+      const month = index + 1;
+      const endDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      const monthRows = rows.filter((row) => {
+        const rowMonth = Number(row.transactionDate.slice(5, 7));
+        return rowMonth === month;
+      });
+      const brochures = this.buildCustomerYearlyDistributionReport(monthRows);
+
+      return {
+        month,
+        label: `${monthName} ${year}`,
+        startDate: this.toIsoDate(year, month, 1),
+        endDate: this.toIsoDate(year, month, endDay),
+        summary: this.buildCustomerYearlyDistributionSummary(brochures),
+        brochures,
+      };
+    });
+  }
+
   async getInventoryMonthlyReport(params: InventoryMonthlyReportParams) {
     const period = this.getReportPeriod(params.month, params.year);
     const [warehouse, inventoryRows] = await Promise.all([
@@ -511,6 +536,10 @@ class ReportsService {
     ]);
     const brochures =
       this.buildCustomerYearlyDistributionReport(distributionRows);
+    const months = this.buildCustomerYearlyDistributionMonths(
+      distributionRows,
+      params.year,
+    );
 
     return {
       customer: {
@@ -521,6 +550,7 @@ class ReportsService {
       period,
       summary: this.buildCustomerYearlyDistributionSummary(brochures),
       brochures,
+      months,
     };
   }
 }

@@ -8,8 +8,11 @@ import {
   desc,
   eq,
   gt,
+  gte,
   ilike,
   inArray,
+  lt,
+  lte,
   or,
   sql,
 } from 'drizzle-orm';
@@ -19,15 +22,21 @@ import {
   createPaginatedResult,
   getPaginationOffset,
 } from '@repo/server-utils/utils/pagination';
+import { escapeCsv } from '@repo/utils/csv';
 
 import * as schema from '@services/database/schemas';
+
+import {
+  getFillChart,
+  type Placement,
+  PLACEMENT_SIZES,
+  type PlacementType,
+} from '@/utils/fill-chart';
 
 import type {
   ChartResult as PublicChartResult,
   ChartTile as PublicChartTile,
 } from '@/routes/public/charts/charts.types';
-
-import { getFillChart, type Placement } from '../../../utils/fill-chart';
 
 import type { SQL } from 'drizzle-orm';
 import type {
@@ -39,6 +48,7 @@ import type {
   ChartLocationResult,
   ChartTileResult,
   CloneChartInput,
+  ExportPocketsSoldReportParams,
   GetSectorChartParams,
   InitializeSectorChartInput,
   ListArchivesParams,
@@ -53,6 +63,31 @@ import type {
 type ChartTileInsert = typeof schema.chartTiles.$inferInsert;
 type Sector = typeof schema.sectors.$inferSelect;
 type Location = typeof schema.locations.$inferSelect;
+
+const MONTH_REPORT_COLUMNS = [
+  { month: 1, label: 'Jan' },
+  { month: 2, label: 'Feb' },
+  { month: 3, label: 'Mar' },
+  { month: 4, label: 'Apr' },
+  { month: 5, label: 'May' },
+  { month: 6, label: 'Jun' },
+  { month: 7, label: 'Jul' },
+  { month: 8, label: 'Aug' },
+  { month: 9, label: 'Sep' },
+  { month: 10, label: 'Oct' },
+  { month: 11, label: 'Nov' },
+  { month: 12, label: 'Dec' },
+] as const;
+
+const POCKETS_SOLD_EXPORT_HEADERS = [
+  'Report Year',
+  'Sector ID',
+  'Sector Name',
+  'Stand Size',
+  'Pockets',
+  'Locations',
+  ...MONTH_REPORT_COLUMNS.map((column) => column.label),
+] as const;
 
 type ChartTileWithRelations = typeof schema.chartTiles.$inferSelect & {
   contract:
@@ -100,6 +135,32 @@ interface InventoryItemRow {
   colSpan: number;
   customerName: string | null;
 }
+
+interface PocketsSoldStandSizeRow {
+  sectorId: string;
+  sectorAcumaticaId: string;
+  sectorDescription: string;
+  standWidth: number;
+  standHeight: number;
+  locationCount: number;
+  monthlyOccupiedTiles: Record<number, number>;
+}
+
+interface ContractDistributionReportRow {
+  sectorId: string;
+  unitOfMeasure: PlacementType;
+  beginningDate: string;
+  endingDate: string;
+  description: string | null;
+  customerName: string | null;
+  tier: 'Premium Placement' | 'Normal Placement';
+  customerId: string | null;
+}
+
+type PocketsSoldCsvRow = Record<
+  (typeof POCKETS_SOLD_EXPORT_HEADERS)[number],
+  string
+>;
 
 class ChartsService {
   private async getLayoutById(id: string) {
@@ -672,6 +733,365 @@ class ChartsService {
     return result?.total ?? 0;
   }
 
+  private getMonthDateRange(month: number, year: number) {
+    const endDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const monthValue = String(month).padStart(2, '0');
+
+    return {
+      firstDay: `${year}-${monthValue}-01`,
+      lastDay: `${year}-${monthValue}-${String(endDay).padStart(2, '0')}`,
+    };
+  }
+
+  private getBrochureName(distribution: {
+    description: string | null;
+    customerName: string | null;
+  }) {
+    return distribution.description || distribution.customerName || '';
+  }
+
+  private getBrochureKey(distribution: {
+    description: string | null;
+    customerName: string | null;
+  }) {
+    return this.getBrochureName(distribution).toLowerCase();
+  }
+
+  private getDistributionKey(distribution: {
+    customerId: string | null;
+    description: string | null;
+    customerName: string | null;
+    unitOfMeasure: PlacementType;
+  }) {
+    return `${distribution.customerId}|${this.getBrochureKey(distribution)}|${distribution.unitOfMeasure}`;
+  }
+
+  private getPlacementPriority(
+    type: PlacementType,
+    isNew: boolean,
+    isPremium: boolean,
+  ) {
+    if (type === 'MAG') {
+      if (isNew && isPremium) return 0;
+      if (isNew && !isPremium) return 1;
+      if (!isNew && isPremium) return 2;
+      return 3;
+    }
+
+    if (isNew && isPremium) return 4;
+    if (!isNew && isPremium) return 5;
+    if (isNew && !isPremium) return 6;
+    return 7;
+  }
+
+  private countGeneratedOccupiedTiles(params: {
+    distributions: ContractDistributionReportRow[];
+    previousCustomerIds: Set<string | null>;
+    standWidth: number;
+    standHeight: number;
+  }) {
+    const { distributions, previousCustomerIds, standHeight, standWidth } =
+      params;
+    const isGenuinelyNew = (distribution: ContractDistributionReportRow) =>
+      !previousCustomerIds.has(distribution.customerId);
+
+    const sortedDistributions = [...distributions].sort((left, right) => {
+      const leftPriority = this.getPlacementPriority(
+        left.unitOfMeasure,
+        isGenuinelyNew(left),
+        left.tier === 'Premium Placement',
+      );
+      const rightPriority = this.getPlacementPriority(
+        right.unitOfMeasure,
+        isGenuinelyNew(right),
+        right.tier === 'Premium Placement',
+      );
+
+      if (leftPriority !== rightPriority) return leftPriority - rightPriority;
+
+      return this.getBrochureName(left).localeCompare(
+        this.getBrochureName(right),
+      );
+    });
+
+    const bestByKey = new Map<string, ContractDistributionReportRow>();
+    for (const distribution of sortedDistributions) {
+      const key = this.getDistributionKey(distribution);
+      const existing = bestByKey.get(key);
+
+      if (!existing || distribution.endingDate > existing.endingDate) {
+        bestByKey.set(key, distribution);
+      }
+    }
+
+    const uniqueDistributions = sortedDistributions.filter(
+      (distribution) =>
+        bestByKey.get(this.getDistributionKey(distribution)) === distribution,
+    );
+
+    let currentCol = 0;
+    let currentRow = 0;
+    let occupiedTiles = 0;
+
+    for (const distribution of uniqueDistributions) {
+      const size = PLACEMENT_SIZES[distribution.unitOfMeasure];
+
+      if (currentCol + size.cols > standWidth) {
+        currentCol = 0;
+        currentRow += 1;
+      }
+
+      if (currentRow + size.rows > standHeight) break;
+
+      occupiedTiles += size.cols * size.rows;
+      currentCol += size.cols;
+    }
+
+    return occupiedTiles;
+  }
+
+  private async getPocketsSoldReportRows(
+    params: ExportPocketsSoldReportParams,
+  ): Promise<PocketsSoldStandSizeRow[]> {
+    const sectorWhereClause = this.buildSearchWhere(params.search);
+    const sectorRows = await db
+      .select({
+        id: schema.sectors.id,
+        acumaticaId: schema.sectors.acumaticaId,
+        description: schema.sectors.description,
+      })
+      .from(schema.sectors)
+      .innerJoin(
+        schema.locationsSectors,
+        eq(schema.locationsSectors.sectorId, schema.sectors.id),
+      )
+      .innerJoin(
+        schema.locations,
+        eq(schema.locations.id, schema.locationsSectors.locationId),
+      )
+      .where(sectorWhereClause)
+      .groupBy(
+        schema.sectors.id,
+        schema.sectors.acumaticaId,
+        schema.sectors.description,
+      )
+      .orderBy(asc(schema.sectors.acumaticaId));
+
+    const sectorIds = sectorRows.map((sector) => sector.id);
+
+    if (sectorIds.length === 0) return [];
+
+    const standWidth = sql<number>`(${schema.locations.pockets}->>'width')::int`;
+    const standHeight = sql<number>`(${schema.locations.pockets}->>'height')::int`;
+    const [locationRows, layoutRows, distributionRows, priorCustomerRows] =
+      await Promise.all([
+        db
+          .select({
+            sectorId: schema.locationsSectors.sectorId,
+            width: standWidth.mapWith(Number),
+            height: standHeight.mapWith(Number),
+          })
+          .from(schema.locationsSectors)
+          .innerJoin(
+            schema.locations,
+            eq(schema.locations.id, schema.locationsSectors.locationId),
+          )
+          .where(inArray(schema.locationsSectors.sectorId, sectorIds))
+          .orderBy(schema.locationsSectors.sectorId, standWidth, standHeight),
+        db
+          .select({
+            sectorId: schema.chartLayouts.sectorId,
+            standWidth: schema.chartLayouts.standWidth,
+            standHeight: schema.chartLayouts.standHeight,
+            month: schema.chartLayouts.month,
+            occupiedTiles:
+              sql<number>`COALESCE(SUM(CASE WHEN ${schema.chartTiles.tileType} = 'Paid' THEN ${schema.chartTiles.colSpan} ELSE 0 END), 0)`.mapWith(
+                Number,
+              ),
+          })
+          .from(schema.chartLayouts)
+          .leftJoin(
+            schema.chartTiles,
+            eq(schema.chartTiles.chartLayoutId, schema.chartLayouts.id),
+          )
+          .where(
+            and(
+              inArray(schema.chartLayouts.sectorId, sectorIds),
+              eq(schema.chartLayouts.year, params.year),
+            ),
+          )
+          .groupBy(
+            schema.chartLayouts.sectorId,
+            schema.chartLayouts.standWidth,
+            schema.chartLayouts.standHeight,
+            schema.chartLayouts.month,
+          ),
+        db
+          .select({
+            sectorId: schema.contractDistributions.sectorId,
+            unitOfMeasure: schema.contractDistributions.unitOfMeasure,
+            beginningDate: schema.contractDistributions.beginningDate,
+            endingDate: schema.contractDistributions.endingDate,
+            description: schema.contractDistributions.description,
+            customerName: schema.customers.name,
+            tier: schema.contracts.tier,
+            customerId: schema.contracts.customerUuid,
+          })
+          .from(schema.contractDistributions)
+          .innerJoin(
+            schema.contracts,
+            eq(schema.contractDistributions.contractId, schema.contracts.id),
+          )
+          .leftJoin(
+            schema.customers,
+            eq(schema.contracts.customerUuid, schema.customers.id),
+          )
+          .where(
+            and(
+              inArray(schema.contractDistributions.sectorId, sectorIds),
+              lte(
+                schema.contractDistributions.beginningDate,
+                `${params.year}-12-31`,
+              ),
+              gte(
+                schema.contractDistributions.endingDate,
+                `${params.year}-01-01`,
+              ),
+              eq(schema.contracts.status, 'Open'),
+            ),
+          ),
+        db
+          .selectDistinct({
+            customerId: schema.contracts.customerUuid,
+            beginningDate: schema.contractDistributions.beginningDate,
+          })
+          .from(schema.contractDistributions)
+          .innerJoin(
+            schema.contracts,
+            eq(schema.contractDistributions.contractId, schema.contracts.id),
+          )
+          .where(
+            lt(
+              schema.contractDistributions.beginningDate,
+              `${params.year + 1}-01-01`,
+            ),
+          ),
+      ]);
+
+    const sectorById = new Map(sectorRows.map((sector) => [sector.id, sector]));
+    const rowsByKey = new Map<string, PocketsSoldStandSizeRow>();
+
+    for (const location of locationRows) {
+      const sector = sectorById.get(location.sectorId);
+      if (!sector) continue;
+
+      const key = `${location.sectorId}:${location.width}:${location.height}`;
+      let row = rowsByKey.get(key);
+
+      if (!row) {
+        row = {
+          sectorId: location.sectorId,
+          sectorAcumaticaId: sector.acumaticaId,
+          sectorDescription: sector.description,
+          standWidth: location.width,
+          standHeight: location.height,
+          locationCount: 0,
+          monthlyOccupiedTiles: {},
+        };
+        rowsByKey.set(key, row);
+      }
+
+      row.locationCount += 1;
+    }
+
+    const savedCountsByKey = new Map<string, number>();
+    for (const layout of layoutRows) {
+      savedCountsByKey.set(
+        `${layout.sectorId}:${layout.standWidth}:${layout.standHeight}:${layout.month}`,
+        layout.occupiedTiles,
+      );
+    }
+
+    const distributionsBySectorMonth = new Map<
+      string,
+      ContractDistributionReportRow[]
+    >();
+    for (const distribution of distributionRows) {
+      for (const { month } of MONTH_REPORT_COLUMNS) {
+        const { firstDay, lastDay } = this.getMonthDateRange(
+          month,
+          params.year,
+        );
+
+        if (
+          distribution.beginningDate <= lastDay &&
+          distribution.endingDate >= firstDay
+        ) {
+          const key = `${distribution.sectorId}:${month}`;
+          const distributions = distributionsBySectorMonth.get(key) ?? [];
+          distributions.push(distribution);
+          distributionsBySectorMonth.set(key, distributions);
+        }
+      }
+    }
+
+    const previousCustomerIdsByMonth = new Map<number, Set<string | null>>();
+    for (const { month } of MONTH_REPORT_COLUMNS) {
+      const { firstDay } = this.getMonthDateRange(month, params.year);
+      previousCustomerIdsByMonth.set(
+        month,
+        new Set(
+          priorCustomerRows
+            .filter((row) => row.beginningDate < firstDay)
+            .map((row) => row.customerId),
+        ),
+      );
+    }
+
+    const rows = Array.from(rowsByKey.values());
+
+    for (const row of rows) {
+      for (const { month } of MONTH_REPORT_COLUMNS) {
+        const savedKey = `${row.sectorId}:${row.standWidth}:${row.standHeight}:${month}`;
+        const savedCount = savedCountsByKey.get(savedKey);
+
+        if (savedCount !== undefined) {
+          row.monthlyOccupiedTiles[month] = savedCount;
+          continue;
+        }
+
+        row.monthlyOccupiedTiles[month] = this.countGeneratedOccupiedTiles({
+          distributions:
+            distributionsBySectorMonth.get(`${row.sectorId}:${month}`) ?? [],
+          previousCustomerIds:
+            previousCustomerIdsByMonth.get(month) ?? new Set<string | null>(),
+          standWidth: row.standWidth,
+          standHeight: row.standHeight,
+        });
+      }
+    }
+
+    return rows.sort(
+      (left, right) =>
+        left.sectorAcumaticaId.localeCompare(right.sectorAcumaticaId) ||
+        left.standWidth - right.standWidth ||
+        left.standHeight - right.standHeight,
+    );
+  }
+
+  private serializePocketsSoldReportCsv(rows: PocketsSoldCsvRow[]) {
+    const lines = [
+      POCKETS_SOLD_EXPORT_HEADERS.map(escapeCsv).join(','),
+      ...rows.map((row) =>
+        POCKETS_SOLD_EXPORT_HEADERS.map((header) =>
+          escapeCsv(row[header]),
+        ).join(','),
+      ),
+    ];
+
+    return lines.join('\n');
+  }
+
   private async getMatchingSectorLocations(
     sectorId: string,
     standWidth: number,
@@ -920,6 +1340,43 @@ class ChartsService {
       sectorLabel,
       title: `CTM Fill Charts - ${sectorLabel} - ${params.width}x${params.height}`,
       filename,
+    };
+  }
+
+  async exportPocketsSoldReportCSV(params: ExportPocketsSoldReportParams) {
+    const rows = await this.getPocketsSoldReportRows(params);
+    const csvRows: PocketsSoldCsvRow[] = rows.map((row) => {
+      const csvRow: PocketsSoldCsvRow = {
+        'Report Year': String(params.year),
+        'Sector ID': row.sectorAcumaticaId,
+        'Sector Name': row.sectorDescription,
+        'Stand Size': `${row.standWidth}x${row.standHeight}`,
+        Pockets: String(row.standWidth * row.standHeight),
+        Locations: String(row.locationCount),
+        Jan: '',
+        Feb: '',
+        Mar: '',
+        Apr: '',
+        May: '',
+        Jun: '',
+        Jul: '',
+        Aug: '',
+        Sep: '',
+        Oct: '',
+        Nov: '',
+        Dec: '',
+      };
+
+      for (const { label, month } of MONTH_REPORT_COLUMNS) {
+        csvRow[label] = String(row.monthlyOccupiedTiles[month] ?? 0);
+      }
+
+      return csvRow;
+    });
+
+    return {
+      csv: this.serializePocketsSoldReportCsv(csvRows),
+      filename: `chart-pockets-sold-${params.year}.csv`,
     };
   }
 

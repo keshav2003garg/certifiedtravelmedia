@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@repo/ui/components/base/button';
 import { Card, CardContent } from '@repo/ui/components/base/card';
-import { AlertCircle, LayoutGrid, Loader2 } from '@repo/ui/lib/icons';
+import { AlertCircle, Download, LayoutGrid, Loader2 } from '@repo/ui/lib/icons';
 
 import { useChartEditor } from '@/hooks/useChartEditor';
 import { useChartEditorFilters } from '@/hooks/useChartEditor/useChartEditorFilters';
@@ -15,7 +15,8 @@ import { ChartListSkeleton } from './skeletons/chart-list-skeleton';
 
 function ChartsPage() {
   const filters = useChartEditorFilters();
-  const { sectorStandSizesQueryOptions } = useChartEditor();
+  const { exportPocketsSoldCsvMutation, sectorStandSizesQueryOptions } =
+    useChartEditor();
 
   const queryOptions = useMemo(
     () => sectorStandSizesQueryOptions(filters.params),
@@ -66,6 +67,26 @@ function ChartsPage() {
             location coverage.
           </p>
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() =>
+            exportPocketsSoldCsvMutation.mutate({
+              year: filters.year,
+              search: filters.search || undefined,
+            })
+          }
+          disabled={exportPocketsSoldCsvMutation.isPending}
+          className="w-fit"
+        >
+          {exportPocketsSoldCsvMutation.isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Download className="size-4" />
+          )}
+          Download CSV
+        </Button>
       </div>
 
       <Card className="shadow-none">
