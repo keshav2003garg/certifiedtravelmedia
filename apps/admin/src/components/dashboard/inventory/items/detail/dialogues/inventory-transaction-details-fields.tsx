@@ -1,5 +1,6 @@
 import { memo } from 'react';
 
+import { DatePicker } from '@repo/ui/components/base/date-picker';
 import {
   FormControl,
   FormDescription,
@@ -8,7 +9,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@repo/ui/components/base/form';
-import { Input } from '@repo/ui/components/base/input';
 import { NumericInput } from '@repo/ui/components/base/numeric-input';
 import { Textarea } from '@repo/ui/components/base/textarea';
 
@@ -73,10 +73,9 @@ function InventoryTransactionDetailsFields({
             <FormItem>
               <FormLabel>Transaction date</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  className="h-11"
+                <DatePicker
+                  value={field.value}
+                  onChange={(value) => field.onChange(value ?? '')}
                   disabled={isSubmitting}
                 />
               </FormControl>

@@ -23,6 +23,7 @@ interface ChartEditorHeaderProps {
   isFullscreen: boolean;
   isPreview: boolean;
   isPastMonth: boolean;
+  unplacedPaidCount: number;
   isManager: boolean;
   isSaving: boolean;
   isCompleting: boolean;
@@ -43,6 +44,7 @@ export const ChartEditorHeader = memo(function ChartEditorHeader({
   isFullscreen,
   isPreview,
   isPastMonth,
+  unplacedPaidCount,
   isManager,
   isSaving,
   isCompleting,
@@ -152,6 +154,7 @@ export const ChartEditorHeader = memo(function ChartEditorHeader({
             isLocked={chart.locked}
             isDraft={chart.status === 'Draft'}
             isPastMonth={isPastMonth}
+            unplacedPaidCount={unplacedPaidCount}
             isSaving={isSaving}
             isCompleting={isCompleting}
             isCloning={isCloning}

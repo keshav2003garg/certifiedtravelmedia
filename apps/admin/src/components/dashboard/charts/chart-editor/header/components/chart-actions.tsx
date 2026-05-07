@@ -1,12 +1,19 @@
 import { memo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@repo/ui/components/base/tooltip';
 import { CheckCircle, Copy, Loader2, Printer, Save } from '@repo/ui/lib/icons';
 
 interface ChartActionsProps {
   isPersisted: boolean;
   isLocked: boolean;
   isDraft: boolean;
+  unplacedPaidCount: number;
   isPastMonth: boolean;
   isSaving: boolean;
   isCompleting: boolean;
@@ -23,6 +30,7 @@ export const ChartActions = memo(function ChartActions({
   isPersisted,
   isLocked,
   isDraft,
+  unplacedPaidCount,
   isPastMonth,
   isSaving,
   isCompleting,
@@ -53,14 +61,33 @@ export const ChartActions = memo(function ChartActions({
 
       {isPersisted && isManager && !isLocked && !isPastMonth && (
         <>
-          <Button onClick={onSave} disabled={isSaving} className="gap-1.5">
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    onClick={onSave}
+                    disabled={isSaving || unplacedPaidCount > 0}
+                    className="gap-1.5"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {unplacedPaidCount > 0 && (
+                <TooltipContent>
+                  {unplacedPaidCount === 1
+                    ? '1 paid brochure is not yet placed on the chart'
+                    : `${unplacedPaidCount} paid brochures are not yet placed on the chart`}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
 
           {isDraft && (
             <Button

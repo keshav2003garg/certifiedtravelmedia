@@ -133,10 +133,6 @@ function InventoryOverviewCard({ item }: { item: InventoryItemDetail }) {
               <h1 className="text-2xl font-semibold tracking-normal">
                 {item.brochureName}
               </h1>
-              <p className="text-muted-foreground mt-1 text-sm">
-                {item.customerName ?? 'Unassigned customer'} in{' '}
-                {item.warehouseName}
-              </p>
             </div>
           </div>
 
@@ -161,17 +157,24 @@ function InventoryReferenceCard({ item }: { item: InventoryItemDetail }) {
         <CardTitle>Inventory details</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <div className="space-y-1 rounded-md border p-3 md:col-span-2 xl:col-span-3">
+        <div className="space-y-3 rounded-md border p-3">
           <p className="text-muted-foreground text-xs font-medium tracking-normal uppercase">
             QR code
           </p>
           {item.qrCodeUrl ? (
-            <Button asChild variant="link" className="h-auto p-0">
-              <a href={item.qrCodeUrl} target="_blank" rel="noreferrer">
-                Open QR code
-                <ExternalLink className="size-3.5" />
-              </a>
-            </Button>
+            <div className="flex flex-col items-start gap-3">
+              <img
+                src={item.qrCodeUrl}
+                alt="QR code"
+                className="h-40 w-40 rounded-md border object-contain"
+              />
+              <Button asChild variant="outline" size="sm">
+                <a href={item.qrCodeUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink className="size-3.5" />
+                  Open full size
+                </a>
+              </Button>
+            </div>
           ) : (
             <p className="text-sm font-medium">Not generated</p>
           )}
@@ -307,7 +310,6 @@ function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
 
       <InventoryOverviewCard item={item} />
       <InventoryMetricCards item={item} />
-      <InventoryReferenceCard item={item} />
 
       <Card className="shadow-none">
         <CardHeader>
@@ -367,6 +369,8 @@ function InventoryDetailPage({ inventoryId }: InventoryDetailPageProps) {
           )}
         </CardContent>
       </Card>
+
+      <InventoryReferenceCard item={item} />
     </div>
   );
 }

@@ -677,6 +677,14 @@ function ChartEditorInner({
     [chart.gridSize, isReadOnly],
   );
 
+  const unplacedPaidCount = useMemo(() => {
+    let count = 0;
+    for (const tile of chart.paidTiles) {
+      if (!placedPaidTilesByKey.has(getPaidTileKey(tile))) count++;
+    }
+    return count;
+  }, [chart.paidTiles, placedPaidTilesByKey]);
+
   const handleSave = useCallback(() => {
     onSave(tiles, generalNotes || null);
   }, [onSave, tiles, generalNotes]);
@@ -701,6 +709,7 @@ function ChartEditorInner({
         isCloning={isCloning}
         isInitializing={isInitializing}
         isPrinting={isPrinting}
+        unplacedPaidCount={unplacedPaidCount}
         onSave={handleSave}
         onComplete={onComplete}
         onClone={onClone}

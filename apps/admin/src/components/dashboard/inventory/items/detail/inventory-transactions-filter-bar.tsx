@@ -1,7 +1,7 @@
 import { memo } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
-import { Input } from '@repo/ui/components/base/input';
+import { DatePicker } from '@repo/ui/components/base/date-picker';
 import {
   Select,
   SelectContent,
@@ -64,20 +64,18 @@ function InventoryTransactionsFilterBar({
         </SelectContent>
       </Select>
 
-      <Input
-        type="date"
-        value={dateFrom ?? ''}
-        onChange={(event) => handleDateFromChange(event.target.value)}
-        aria-label="Transaction start date"
-        className="h-11"
+      <DatePicker
+        value={dateFrom}
+        onChange={(value) => handleDateFromChange(value ?? '')}
+        placeholder="From date"
+        clearable
       />
 
-      <Input
-        type="date"
-        value={dateTo ?? ''}
-        onChange={(event) => handleDateToChange(event.target.value)}
-        aria-label="Transaction end date"
-        className="h-11"
+      <DatePicker
+        value={dateTo}
+        onChange={(value) => handleDateToChange(value ?? '')}
+        placeholder="To date"
+        clearable
       />
 
       <Button
