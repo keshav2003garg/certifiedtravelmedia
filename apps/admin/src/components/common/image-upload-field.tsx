@@ -140,7 +140,7 @@ function ImageUploadField({
             <img
               src={value}
               alt=""
-              className="size-full object-cover"
+              className="size-full object-contain"
               loading="lazy"
             />
             <div className="absolute inset-0 flex items-end justify-end gap-2 bg-linear-to-t from-black/50 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">

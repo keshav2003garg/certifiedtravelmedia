@@ -74,7 +74,7 @@ export const TileInspector = memo(function TileInspector({
               alt={tile.label ?? ''}
               loading="lazy"
               className={cn(
-                'rounded object-cover',
+                'bg-muted rounded border object-contain',
                 isCompact ? 'h-9 w-9' : 'h-12 w-12',
               )}
             />

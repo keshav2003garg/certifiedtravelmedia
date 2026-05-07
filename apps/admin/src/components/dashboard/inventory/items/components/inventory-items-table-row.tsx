@@ -48,7 +48,7 @@ function InventoryItemsTableRow({ item }: InventoryItemsTableRowProps) {
               <img
                 src={item.imageUrl}
                 alt=""
-                className="size-full object-cover"
+                className="size-full object-contain"
                 loading="lazy"
               />
             ) : (

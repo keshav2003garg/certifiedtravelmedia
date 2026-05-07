@@ -27,7 +27,7 @@ function MonthEndCountsTableRow({
               <img
                 src={row.item.imageUrl}
                 alt=""
-                className="size-full object-cover"
+                className="size-full object-contain"
                 loading="lazy"
               />
             ) : (

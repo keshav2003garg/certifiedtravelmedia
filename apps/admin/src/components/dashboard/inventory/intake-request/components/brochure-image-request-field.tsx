@@ -87,12 +87,12 @@ function BrochureImageRequestField({
                           'cursor-not-allowed opacity-70',
                       )}
                     >
-                      <div className="bg-muted relative aspect-4/3 w-full overflow-hidden">
+                      <div className="bg-muted relative flex h-56 w-full items-center justify-center overflow-hidden sm:h-64">
                         {imageUrl ? (
                           <img
                             src={imageUrl}
                             alt=""
-                            className="size-full object-cover"
+                            className="size-full object-contain"
                             loading="lazy"
                           />
                         ) : (

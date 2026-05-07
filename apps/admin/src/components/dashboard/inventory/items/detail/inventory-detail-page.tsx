@@ -108,12 +108,12 @@ function InventoryOverviewCard({ item }: { item: InventoryItemDetail }) {
   return (
     <Card className="shadow-none">
       <CardContent className="grid gap-5 p-5 lg:grid-cols-[220px_1fr]">
-        <div className="bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center overflow-hidden rounded-md border">
+        <div className="bg-muted text-muted-foreground mx-auto flex h-72 w-full max-w-56 items-center justify-center overflow-hidden rounded-md border lg:mx-0 lg:max-w-none">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
               alt=""
-              className="size-full object-cover"
+              className="size-full object-contain"
               loading="lazy"
             />
           ) : (

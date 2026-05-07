@@ -106,12 +106,12 @@ function ClosedRequestCard({
           <InventoryRequestStatusBadge status={request.status} />
         </div>
 
-        <div className="bg-muted relative aspect-4/3 w-full overflow-hidden rounded-md border">
+        <div className="bg-muted relative flex h-80 w-full items-center justify-center overflow-hidden rounded-md border sm:h-96">
           {request.imageUrl ? (
             <img
               src={request.imageUrl}
               alt=""
-              className="size-full object-cover"
+              className="size-full object-contain"
             />
           ) : (
             <div className="text-muted-foreground flex size-full items-center justify-center">

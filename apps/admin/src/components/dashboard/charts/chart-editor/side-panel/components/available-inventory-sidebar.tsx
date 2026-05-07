@@ -209,7 +209,7 @@ export const AvailableInventorySidebar = memo(
                           src={item.coverPhotoUrl}
                           alt={item.brochureName}
                           loading="lazy"
-                          className="h-10 w-10 shrink-0 rounded object-cover"
+                          className="bg-muted h-10 w-10 shrink-0 rounded border object-contain"
                         />
                       ) : (
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-blue-50 text-blue-600">
