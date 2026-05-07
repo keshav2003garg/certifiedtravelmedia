@@ -1000,17 +1000,23 @@ function drawFooter(
     x: MARGIN,
     y: FOOTER_Y,
     width: CONTENT_WIDTH / 2,
+    height: 10,
     size: 7.2,
     color: COLORS.mutedForeground,
+    lineBreak: false,
+    ellipsis: true,
   });
   drawText(doc, {
     text: `Generated ${formatDateTime(new Date())} | Page ${pageIndex + 1} of ${pageCount}`,
     x: MARGIN + CONTENT_WIDTH / 2,
     y: FOOTER_Y,
     width: CONTENT_WIDTH / 2,
+    height: 10,
     size: 7.2,
     color: COLORS.mutedForeground,
     align: 'right',
+    lineBreak: false,
+    ellipsis: true,
   });
 }
 
