@@ -1,0 +1,87 @@
+name: Refresh Production
+
+on:
+  push:
+    branches:
+      - main-refresh
+
+jobs:
+  refresh-prod:
+    runs-on: ubuntu-latest
+
+    environment: 'production'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Refresh
+        run: pnpm run refresh:prod
+        env:
+          # Environment
+          ENVIRONMENT: ${{ vars.ENVIRONMENT }}
+
+          # AWS
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+          # Cloudflare
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_DEFAULT_ACCOUNT_ID: ${{ vars.CLOUDFLARE_DEFAULT_ACCOUNT_ID }}
+
+          # API
+          ## Application
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          ## Database
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ## BetterAuth
+          BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          COOKIE_DOMAIN: ${{ vars.COOKIE_DOMAIN }}
+          ## SMTP
+          SMTP_NAME: ${{ vars.SMTP_NAME }}
+          SMTP_MAIL: ${{ vars.SMTP_MAIL }}
+          SMTP_REPLY_TO: ${{ vars.SMTP_REPLY_TO }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USERNAME: ${{ vars.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ## APP URL
+          API_URL: ${{ vars.API_URL }}
+          ADMIN_APP_URL: ${{ vars.ADMIN_APP_URL }}
+          CHARTS_APP_URL: ${{ vars.CHARTS_APP_URL }}
+          ## Route4Me
+          ROUTE4ME_API_KEY: ${{ secrets.ROUTE4ME_API_KEY }}
+          ## Airtables
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ vars.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE_ID: ${{ vars.AIRTABLE_TABLE_ID }}
+          AIRTABLE_VIEW_ID: ${{ vars.AIRTABLE_VIEW_ID }}
+          ## Acumatica
+          ACUMATICA_BASE_URL: ${{ vars.ACUMATICA_BASE_URL }}
+          ACUMATICA_TENANT: ${{ vars.ACUMATICA_TENANT }}
+          ACUMATICA_USERNAME: ${{ vars.ACUMATICA_USERNAME }}
+          ACUMATICA_PASSWORD: ${{ secrets.ACUMATICA_PASSWORD }}
+          ## Supabase
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+          # Admin/Provider/User Apps
+          ## APPS URLs
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_ADMIN_APP_URL: ${{ vars.VITE_ADMIN_APP_URL }}
+          VITE_CHARTS_APP_URL: ${{ vars.VITE_CHARTS_APP_URL }}
