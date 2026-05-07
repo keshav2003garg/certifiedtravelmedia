@@ -6,7 +6,7 @@ export default $config({
 
     return {
       home: 'aws',
-      name: 'certifiedtravelmedia',
+      name: 'ctm',
       providers: {
         aws: { region },
         'aws-native': {

@@ -45,14 +45,6 @@ export const serverEnvironment = {
   ACUMATICA_TENANT: process.env.ACUMATICA_TENANT,
   ACUMATICA_USERNAME: process.env.ACUMATICA_USERNAME,
   ACUMATICA_PASSWORD: process.env.ACUMATICA_PASSWORD,
-
-  // AWS
-  AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
-  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
-
-  // Cloudflare
-  CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN,
-  CLOUDFLARE_DEFAULT_ACCOUNT_ID: process.env.CLOUDFLARE_DEFAULT_ACCOUNT_ID,
 } satisfies ServerEnvironment;
 
 export const clientEnvironment = {

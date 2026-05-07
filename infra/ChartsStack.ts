@@ -3,7 +3,7 @@
 import { appDomains, clientEnvironment, wwwRedirect } from './config';
 
 export const chartsApp = new sst.aws.TanStackStart(
-  'CertifiedTravelMediaCharts',
+  'CTMCharts',
   {
     path: 'apps/charts',
     domain: {
@@ -16,7 +16,7 @@ export const chartsApp = new sst.aws.TanStackStart(
   },
 );
 
-new awsnative.lambda.Permission('CertifiedTravelMediaCharts:InvokePermission', {
+new awsnative.lambda.Permission('CTMCharts:InvokePermission', {
   action: 'lambda:InvokeFunction',
   functionName: chartsApp.nodes.server!.name,
   principal: '*',

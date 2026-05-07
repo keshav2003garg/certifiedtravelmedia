@@ -2,7 +2,7 @@
 
 import { appDomains, clientEnvironment, wwwRedirect } from './config';
 
-export const adminApp = new sst.aws.TanStackStart('CertifiedTravelMediaAdmin', {
+export const adminApp = new sst.aws.TanStackStart('CTMAdmin', {
   path: 'apps/admin',
   domain: {
     name: appDomains.admin,
@@ -13,7 +13,7 @@ export const adminApp = new sst.aws.TanStackStart('CertifiedTravelMediaAdmin', {
   buildCommand: 'pnpm build',
 });
 
-new awsnative.lambda.Permission('CertifiedTravelMediaAdmin:InvokePermission', {
+new awsnative.lambda.Permission('CTMAdmin:InvokePermission', {
   action: 'lambda:InvokeFunction',
   functionName: adminApp.nodes.server!.name,
   principal: '*',

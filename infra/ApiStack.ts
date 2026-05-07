@@ -2,7 +2,7 @@
 
 import { appDomains, corsConfig, serverEnvironment } from './config';
 
-export const api = new sst.aws.ApiGatewayV2('CertifiedTravelMediaApi', {
+export const api = new sst.aws.ApiGatewayV2('CTMApi', {
   domain: {
     name: appDomains.api,
     dns: sst.cloudflare.dns(),
