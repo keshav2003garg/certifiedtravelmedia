@@ -2,6 +2,7 @@ import type {
   chartStatusEnum,
   contractTierEnum,
   inventoryRequestStatusEnum,
+  oldInventoryItemMigrationTargetEnum,
   tileTypeEnum,
   transactionTypeEnum,
   unitOfMeasureEnum,
@@ -29,6 +30,7 @@ import type {
   inventoryMonthEndCounts,
   inventoryTransactionRequests,
   inventoryTransactions,
+  oldInventoryItemMappings,
 } from './schemas/inventory.schema';
 import type { locations, locationsSectors } from './schemas/location.schema';
 import type { sectors } from './schemas/sector.schema';
@@ -40,6 +42,8 @@ export type ContractTierValue = (typeof contractTierEnum.enumValues)[number];
 export type TransactionType = (typeof transactionTypeEnum.enumValues)[number];
 export type InventoryRequestStatus =
   (typeof inventoryRequestStatusEnum.enumValues)[number];
+export type OldInventoryItemMigrationTarget =
+  (typeof oldInventoryItemMigrationTargetEnum.enumValues)[number];
 export type ChartStatus = (typeof chartStatusEnum.enumValues)[number];
 export type TileType = (typeof tileTypeEnum.enumValues)[number];
 /******************************* Enum Types  ******************************************/
@@ -118,6 +122,11 @@ export type InventoryTransactionRequest =
   typeof inventoryTransactionRequests.$inferSelect;
 export type InventoryTransactionRequestInsert =
   typeof inventoryTransactionRequests.$inferInsert;
+
+export type OldInventoryItemMapping =
+  typeof oldInventoryItemMappings.$inferSelect;
+export type OldInventoryItemMappingInsert =
+  typeof oldInventoryItemMappings.$inferInsert;
 /******************************* Inventory  ******************************************/
 
 /******************************* Chart  ******************************************/

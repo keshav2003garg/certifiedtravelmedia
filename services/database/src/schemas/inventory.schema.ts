@@ -15,7 +15,12 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { userSchema } from './auth.schema';
-import { brochureImagePackSizes, brochureTypes } from './brochure.schema';
+import {
+  brochureImagePackSizes,
+  brochureImages,
+  brochures,
+  brochureTypes,
+} from './brochure.schema';
 import { warehouses } from './warehouse.schema';
 
 export const transactionTypeEnum = pgEnum('transaction_type', [
@@ -169,6 +174,11 @@ export const inventoryRequestStatusEnum = pgEnum('inventory_request_status', [
   'Cancelled',
 ]);
 
+export const oldInventoryItemMigrationTargetEnum = pgEnum(
+  'old_inventory_item_migration_target',
+  ['inventory_item', 'inventory_transaction_request'],
+);
+
 export const inventoryTransactionRequests = pgTable(
   'inventory_transaction_requests',
   {
@@ -233,6 +243,67 @@ export const inventoryTransactionRequests = pgTable(
   ],
 );
 
+export const oldInventoryItemMappings = pgTable(
+  'old_inventory_item_mappings',
+  {
+    oldInventoryItemId: uuid('old_inventory_item_id').primaryKey(),
+
+    newInventoryItemId: uuid('new_inventory_item_id').references(
+      () => inventoryItems.id,
+      { onDelete: 'set null' },
+    ),
+    inventoryTransactionId: uuid('inventory_transaction_id').references(
+      () => inventoryTransactions.id,
+      { onDelete: 'set null' },
+    ),
+    inventoryTransactionRequestId: uuid(
+      'inventory_transaction_request_id',
+    ).references(() => inventoryTransactionRequests.id, {
+      onDelete: 'set null',
+    }),
+
+    brochureId: uuid('brochure_id').references(() => brochures.id, {
+      onDelete: 'set null',
+    }),
+    brochureImageId: uuid('brochure_image_id').references(
+      () => brochureImages.id,
+      { onDelete: 'set null' },
+    ),
+    brochureImagePackSizeId: uuid('brochure_image_pack_size_id').references(
+      () => brochureImagePackSizes.id,
+      { onDelete: 'set null' },
+    ),
+
+    migratedAs: oldInventoryItemMigrationTargetEnum('migrated_as').notNull(),
+
+    sourceStatus: text('source_status'),
+    sourceTransactionType: text('source_transaction_type'),
+    migrationNotes: text('migration_notes'),
+
+    createdAt: timestamp('created_at', { mode: 'string' })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('old_inventory_item_mappings_new_item_idx').on(
+      table.newInventoryItemId,
+    ),
+    index('old_inventory_item_mappings_transaction_idx').on(
+      table.inventoryTransactionId,
+    ),
+    index('old_inventory_item_mappings_request_idx').on(
+      table.inventoryTransactionRequestId,
+    ),
+    index('old_inventory_item_mappings_pack_size_idx').on(
+      table.brochureImagePackSizeId,
+    ),
+    index('old_inventory_item_mappings_migrated_as_idx').on(table.migratedAs),
+  ],
+);
+
 export const inventoryItemsRelations = relations(
   inventoryItems,
   ({ one, many }) => ({
@@ -247,12 +318,13 @@ export const inventoryItemsRelations = relations(
 
     transactions: many(inventoryTransactions),
     monthEndCounts: many(inventoryMonthEndCounts),
+    oldInventoryItemMappings: many(oldInventoryItemMappings),
   }),
 );
 
 export const inventoryTransactionsRelations = relations(
   inventoryTransactions,
-  ({ one }) => ({
+  ({ one, many }) => ({
     inventoryItem: one(inventoryItems, {
       fields: [inventoryTransactions.inventoryItemId],
       references: [inventoryItems.id],
@@ -269,6 +341,7 @@ export const inventoryTransactionsRelations = relations(
       fields: [inventoryTransactions.createdBy],
       references: [userSchema.id],
     }),
+    oldInventoryItemMappings: many(oldInventoryItemMappings),
   }),
 );
 
@@ -292,7 +365,7 @@ export const inventoryMonthEndCountsRelations = relations(
 
 export const inventoryTransactionRequestsRelations = relations(
   inventoryTransactionRequests,
-  ({ one }) => ({
+  ({ one, many }) => ({
     requestedByUser: one(userSchema, {
       fields: [inventoryTransactionRequests.requestedBy],
       references: [userSchema.id],
@@ -317,6 +390,37 @@ export const inventoryTransactionRequestsRelations = relations(
     approvedTransaction: one(inventoryTransactions, {
       fields: [inventoryTransactionRequests.approvedTransactionId],
       references: [inventoryTransactions.id],
+    }),
+    oldInventoryItemMappings: many(oldInventoryItemMappings),
+  }),
+);
+
+export const oldInventoryItemMappingsRelations = relations(
+  oldInventoryItemMappings,
+  ({ one }) => ({
+    newInventoryItem: one(inventoryItems, {
+      fields: [oldInventoryItemMappings.newInventoryItemId],
+      references: [inventoryItems.id],
+    }),
+    inventoryTransaction: one(inventoryTransactions, {
+      fields: [oldInventoryItemMappings.inventoryTransactionId],
+      references: [inventoryTransactions.id],
+    }),
+    inventoryTransactionRequest: one(inventoryTransactionRequests, {
+      fields: [oldInventoryItemMappings.inventoryTransactionRequestId],
+      references: [inventoryTransactionRequests.id],
+    }),
+    brochure: one(brochures, {
+      fields: [oldInventoryItemMappings.brochureId],
+      references: [brochures.id],
+    }),
+    brochureImage: one(brochureImages, {
+      fields: [oldInventoryItemMappings.brochureImageId],
+      references: [brochureImages.id],
+    }),
+    brochureImagePackSize: one(brochureImagePackSizes, {
+      fields: [oldInventoryItemMappings.brochureImagePackSizeId],
+      references: [brochureImagePackSizes.id],
     }),
   }),
 );
