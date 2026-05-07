@@ -2,11 +2,13 @@ import type { PaginatedResponse } from '@repo/server-utils/types/util.types';
 import type { z } from '@repo/utils/zod';
 import type {
   cloneChartValidator,
+  createCustomFillerValidator,
   exportPocketsSoldReportValidator,
   getSectorChartValidator,
   initializeSectorChartValidator,
   listArchivesValidator,
   listChartsValidator,
+  listCustomFillersValidator,
   saveChartValidator,
   upsertTileValidator,
 } from './charts.validators';
@@ -20,6 +22,12 @@ export type GetSectorChartParams = z.infer<
 >;
 export type InitializeSectorChartInput = z.infer<
   typeof initializeSectorChartValidator.json
+>;
+export type ListCustomFillersParams = z.infer<
+  typeof listCustomFillersValidator.query
+>;
+export type CreateCustomFillerInput = z.infer<
+  typeof createCustomFillerValidator.json
 >;
 export type SaveChartInput = z.infer<typeof saveChartValidator.json>;
 export type TileInput = z.infer<typeof upsertTileValidator.json>;
@@ -74,6 +82,7 @@ export interface ChartTileResult {
   brochureId: string | null;
   brochureName: string | null;
   inventoryItemId: string | null;
+  customFillerId: string | null;
   contractId: string | null;
   label: string | null;
   coverPhotoUrl: string | null;
@@ -88,6 +97,19 @@ export interface ChartTileResult {
   customerName: string | null;
   acumaticaContractId: string | null;
 }
+
+export interface ChartCustomFillerResult {
+  id: string;
+  name: string;
+  customerId: string;
+  customerName: string;
+  customerAcumaticaId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ListCustomFillersResult =
+  PaginatedResponse<ChartCustomFillerResult>;
 
 export interface ChartInventoryItemResult {
   id: string;
@@ -130,6 +152,7 @@ export interface ChartLayoutResult {
   persisted: boolean;
   locationCount: number;
   availableInventory: ChartInventoryItemResult[];
+  customFillers: ChartCustomFillerResult[];
   paidTiles: ChartTileResult[];
   tiles: ChartTileResult[];
 }
@@ -152,7 +175,12 @@ export interface ArchiveListItem {
 export interface ArchiveSnapshot {
   layout: Omit<
     ChartLayoutResult,
-    'tiles' | 'persisted' | 'locationCount' | 'availableInventory' | 'paidTiles'
+    | 'tiles'
+    | 'persisted'
+    | 'locationCount'
+    | 'availableInventory'
+    | 'paidTiles'
+    | 'customFillers'
   >;
   tiles: ChartTileResult[];
   metadata: {

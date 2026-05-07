@@ -61,6 +61,7 @@ const tileSchema = z
     tileType: z.enum(tileTypeEnum.enumValues),
     inventoryItemId: z.uuid('Invalid inventory item ID').nullable().optional(),
     contractId: z.uuid('Invalid contract ID').nullable().optional(),
+    customFillerId: z.uuid('Invalid custom filler ID').nullable().optional(),
     brochureTypeId: z.uuid('Invalid brochure type ID').nullable().optional(),
     label: z.string().trim().max(255).nullable().optional(),
     coverPhotoUrl: z.string().trim().max(500).nullable().optional(),
@@ -69,19 +70,29 @@ const tileSchema = z
     flagNote: z.string().trim().max(2000).nullable().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.contractId && value.inventoryItemId) {
+    const referenceCount = [
+      value.contractId,
+      value.inventoryItemId,
+      value.customFillerId,
+    ].filter(Boolean).length;
+
+    if (referenceCount > 1) {
       ctx.addIssue({
         code: 'custom',
-        path: ['inventoryItemId'],
-        message: 'A tile can reference either a contract or inventory item',
+        path: ['customFillerId'],
+        message:
+          'A tile can reference only one contract, inventory item, or custom filler',
       });
     }
 
-    if (value.tileType === 'Paid' && value.inventoryItemId) {
+    if (
+      value.tileType === 'Paid' &&
+      (value.inventoryItemId || value.customFillerId)
+    ) {
       ctx.addIssue({
         code: 'custom',
-        path: ['inventoryItemId'],
-        message: 'Paid tiles must reference contracts, not inventory items',
+        path: ['tileType'],
+        message: 'Paid tiles must reference contracts only',
       });
     }
 
@@ -93,6 +104,30 @@ const tileSchema = z
       });
     }
   });
+
+export const listCustomFillersValidator = createValidatorSchema({
+  query: paginationSchema.extend({
+    search: optionalTrimmedSearchSchema,
+  }),
+});
+export type ListCustomFillersContext = TypedContext<
+  typeof listCustomFillersValidator
+>;
+
+export const createCustomFillerValidator = createValidatorSchema({
+  json: z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, 'Filler name is required')
+      .max(255, 'Filler name must be 255 characters or less')
+      .transform((value) => value.replace(/\s+/g, ' ')),
+    customerId: z.uuid('Invalid customer ID'),
+  }),
+});
+export type CreateCustomFillerContext = TypedContext<
+  typeof createCustomFillerValidator
+>;
 
 export const listChartsValidator = createValidatorSchema({
   query: paginationSchema.extend({

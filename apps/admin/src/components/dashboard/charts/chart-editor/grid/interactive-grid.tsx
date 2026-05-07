@@ -18,6 +18,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from 'react';
 import type {
+  ChartCustomFiller,
   ChartInventoryItem,
   ChartTile,
 } from '@/hooks/useChartEditor/types';
@@ -27,6 +28,7 @@ interface InteractiveGridProps {
   height: number;
   tiles: ChartTile[];
   draggedInventoryItem: ChartInventoryItem | null;
+  draggedCustomFiller: ChartCustomFiller | null;
   draggedPaidTile: ChartTile | null;
   selectedTileId: string | null;
   isLocked: boolean;
@@ -40,8 +42,18 @@ interface InteractiveGridProps {
     col: number,
     row: number,
   ) => boolean;
+  onCanPlaceCustomFiller?: (
+    filler: ChartCustomFiller,
+    col: number,
+    row: number,
+  ) => boolean;
   onPlaceInventoryItem?: (
     item: ChartInventoryItem,
+    col: number,
+    row: number,
+  ) => void;
+  onPlaceCustomFiller?: (
+    filler: ChartCustomFiller,
     col: number,
     row: number,
   ) => void;
@@ -95,6 +107,7 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   height,
   tiles,
   draggedInventoryItem,
+  draggedCustomFiller,
   draggedPaidTile,
   selectedTileId,
   isLocked,
@@ -104,7 +117,9 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   onCloneTile,
   onMoveTile,
   onCanPlaceInventoryItem,
+  onCanPlaceCustomFiller,
   onPlaceInventoryItem,
+  onPlaceCustomFiller,
   onCanPlacePaidTile,
   onPlacePaidTile,
   onFlagTile,
@@ -288,8 +303,15 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   }, [canDropTile, clearDragState, dragState, onMoveTile]);
 
   useEffect(() => {
-    if (!draggedInventoryItem && !draggedPaidTile) clearInventoryDragTarget();
-  }, [clearInventoryDragTarget, draggedInventoryItem, draggedPaidTile]);
+    if (!draggedInventoryItem && !draggedCustomFiller && !draggedPaidTile) {
+      clearInventoryDragTarget();
+    }
+  }, [
+    clearInventoryDragTarget,
+    draggedCustomFiller,
+    draggedInventoryItem,
+    draggedPaidTile,
+  ]);
 
   const canDropSidebarItem = useCallback(
     (col: number, row: number) => {
@@ -299,6 +321,10 @@ export const InteractiveGrid = memo(function InteractiveGrid({
         );
       }
 
+      if (draggedCustomFiller) {
+        return Boolean(onCanPlaceCustomFiller?.(draggedCustomFiller, col, row));
+      }
+
       if (draggedPaidTile) {
         return Boolean(onCanPlacePaidTile?.(draggedPaidTile, col, row));
       }
@@ -306,8 +332,10 @@ export const InteractiveGrid = memo(function InteractiveGrid({
       return false;
     },
     [
+      draggedCustomFiller,
       draggedInventoryItem,
       draggedPaidTile,
+      onCanPlaceCustomFiller,
       onCanPlaceInventoryItem,
       onCanPlacePaidTile,
     ],
@@ -317,8 +345,8 @@ export const InteractiveGrid = memo(function InteractiveGrid({
     (col: number, row: number, event: DragEvent<HTMLDivElement>) => {
       if (
         isLocked ||
-        (!draggedInventoryItem && !draggedPaidTile) ||
-        (!onPlaceInventoryItem && !onPlacePaidTile)
+        (!draggedInventoryItem && !draggedCustomFiller && !draggedPaidTile) ||
+        (!onPlaceInventoryItem && !onPlaceCustomFiller && !onPlacePaidTile)
       ) {
         return;
       }
@@ -335,9 +363,11 @@ export const InteractiveGrid = memo(function InteractiveGrid({
     },
     [
       canDropSidebarItem,
+      draggedCustomFiller,
       draggedInventoryItem,
       draggedPaidTile,
       isLocked,
+      onPlaceCustomFiller,
       onPlaceInventoryItem,
       onPlacePaidTile,
     ],
@@ -361,13 +391,17 @@ export const InteractiveGrid = memo(function InteractiveGrid({
 
   const handleInventoryDrop = useCallback(
     (col: number, row: number, event: DragEvent<HTMLDivElement>) => {
-      if (!draggedInventoryItem && !draggedPaidTile) return;
+      if (!draggedInventoryItem && !draggedCustomFiller && !draggedPaidTile) {
+        return;
+      }
 
       event.preventDefault();
 
       if (canDropSidebarItem(col, row)) {
         if (draggedInventoryItem && onPlaceInventoryItem) {
           onPlaceInventoryItem(draggedInventoryItem, col, row);
+        } else if (draggedCustomFiller && onPlaceCustomFiller) {
+          onPlaceCustomFiller(draggedCustomFiller, col, row);
         } else if (draggedPaidTile && onPlacePaidTile) {
           onPlacePaidTile(draggedPaidTile, col, row);
         }
@@ -378,8 +412,10 @@ export const InteractiveGrid = memo(function InteractiveGrid({
     [
       canDropSidebarItem,
       clearInventoryDragTarget,
+      draggedCustomFiller,
       draggedInventoryItem,
       draggedPaidTile,
+      onPlaceCustomFiller,
       onPlaceInventoryItem,
       onPlacePaidTile,
     ],

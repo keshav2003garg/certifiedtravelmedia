@@ -39,6 +39,7 @@ export interface ChartTile {
   brochureId: string | null;
   brochureName: string | null;
   inventoryItemId: string | null;
+  customFillerId: string | null;
   contractId: string | null;
   label: string | null;
   coverPhotoUrl: string | null;
@@ -52,6 +53,16 @@ export interface ChartTile {
   contractEndDate: string | null;
   customerName: string | null;
   acumaticaContractId: string | null;
+}
+
+export interface ChartCustomFiller {
+  id: string;
+  name: string;
+  customerId: string;
+  customerName: string;
+  customerAcumaticaId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ChartInventoryItem {
@@ -95,6 +106,7 @@ export interface ChartLayout {
   persisted: boolean;
   locationCount: number;
   availableInventory: ChartInventoryItem[];
+  customFillers: ChartCustomFiller[];
   paidTiles: ChartTile[];
   tiles: ChartTile[];
 }
@@ -167,6 +179,7 @@ export interface TilePayload {
   tileType: TileType;
   inventoryItemId?: string | null;
   contractId?: string | null;
+  customFillerId?: string | null;
   brochureTypeId?: string | null;
   label?: string | null;
   coverPhotoUrl?: string | null;
@@ -213,4 +226,21 @@ export type InitializeSectorChartRequest = ApiData<
     year: number;
   },
   { chart: ChartLayout }
+>;
+
+export type ListCustomFillersRequest = ApiData<
+  {
+    page?: number;
+    limit?: number;
+    search?: string;
+  },
+  { customFillers: ChartCustomFiller[]; pagination: Pagination }
+>;
+
+export type CreateCustomFillerRequest = ApiData<
+  {
+    name: string;
+    customerId: string;
+  },
+  { customFiller: ChartCustomFiller }
 >;

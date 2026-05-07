@@ -34,12 +34,14 @@ class ChartsService {
         row: tile.row,
         colSpan: tile.colSpan,
         tileType: tile.tileType,
-        label: tile.label,
+        label: tile.label ?? tile.customFiller?.name ?? null,
         coverPhotoUrl: tile.coverPhotoUrl,
         brochureTypeName: null,
+        customFillerId: tile.customFillerId,
         contractId: tile.contract?.acumaticaContractId ?? null,
         contractEndDate: tile.contract?.endDate ?? null,
         tier: tile.contract?.tier ?? null,
+        customerName: tile.customFiller?.customer?.name ?? null,
         isNew: tile.isNew,
         isFlagged: tile.isFlagged,
         flagNote: tile.flagNote,
@@ -75,9 +77,11 @@ class ChartsService {
       label: p.brochureName,
       coverPhotoUrl: null,
       brochureTypeName: null,
+      customFillerId: null,
       contractId: p.contractId || null,
       contractEndDate: p.contractEndDate,
       tier: p.tier,
+      customerName: p.customerName,
       isNew: p.isNew,
       isFlagged: false,
       flagNote: null,
@@ -138,6 +142,11 @@ class ChartsService {
         tiles: {
           with: {
             contract: true,
+            customFiller: {
+              with: {
+                customer: true,
+              },
+            },
           },
         },
       },
@@ -152,6 +161,11 @@ class ChartsService {
         tiles: {
           with: {
             contract: true,
+            customFiller: {
+              with: {
+                customer: true,
+              },
+            },
           },
         },
       },

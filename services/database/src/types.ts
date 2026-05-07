@@ -19,7 +19,11 @@ import type {
   brochures,
   brochureTypes,
 } from './schemas/brochure.schema';
-import type { chartLayouts, chartTiles } from './schemas/charts.schema';
+import type {
+  chartCustomFillers,
+  chartLayouts,
+  chartTiles,
+} from './schemas/charts.schema';
 import type {
   contractDistributions,
   contracts,
@@ -135,6 +139,9 @@ export type ChartLayoutInsert = typeof chartLayouts.$inferInsert;
 
 export type ChartTile = typeof chartTiles.$inferSelect;
 export type ChartTileInsert = typeof chartTiles.$inferInsert;
+
+export type ChartCustomFiller = typeof chartCustomFillers.$inferSelect;
+export type ChartCustomFillerInsert = typeof chartCustomFillers.$inferInsert;
 
 /******************************* Chart  ******************************************/
 

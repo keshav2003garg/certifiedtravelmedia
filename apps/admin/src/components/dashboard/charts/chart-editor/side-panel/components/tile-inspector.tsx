@@ -46,6 +46,7 @@ export const TileInspector = memo(function TileInspector({
 
   const isPaid = tile.tileType === 'Paid';
   const isInventory = Boolean(tile.inventoryItemId);
+  const isCustomFiller = Boolean(tile.customFillerId);
 
   return (
     <Card className="shrink-0">
@@ -80,7 +81,7 @@ export const TileInspector = memo(function TileInspector({
           )}
           <div>
             <p className="text-sm font-medium">
-              {tile.label ?? (isPaid ? 'Paid Tile' : 'Inventory Tile')}
+              {tile.label ?? (isPaid ? 'Paid Tile' : 'Filler Tile')}
             </p>
             <div className="mt-1 flex items-center gap-2">
               <Badge
@@ -133,6 +134,17 @@ export const TileInspector = memo(function TileInspector({
             <div className="rounded-md border bg-gray-50 p-2">
               <p className="text-muted-foreground">Units/box</p>
               <p className="mt-0.5 font-medium">{tile.unitsPerBox ?? '-'}</p>
+            </div>
+          </div>
+        ) : null}
+
+        {isCustomFiller ? (
+          <div className="grid grid-cols-1 gap-2 text-xs">
+            <div className="rounded-md border bg-gray-50 p-2">
+              <p className="text-muted-foreground">Customer</p>
+              <p className="mt-0.5 truncate font-medium">
+                {tile.customerName ?? 'Unknown'}
+              </p>
             </div>
           </div>
         ) : null}

@@ -253,6 +253,8 @@ function drawChartPDFPage(
         } else {
           bgColor = '#3B82F6';
         }
+      } else if (cell.tileType === 'Filler') {
+        bgColor = '#E5E7EB';
       }
 
       if (bgColor) {

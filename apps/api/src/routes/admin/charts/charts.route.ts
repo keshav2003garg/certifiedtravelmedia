@@ -10,6 +10,7 @@ import {
   archiveChartHandler,
   cloneChartHandler,
   completeChartHandler,
+  createCustomFillerHandler,
   deleteTileHandler,
   exportPocketsSoldReportHandler,
   getArchiveHandler,
@@ -19,12 +20,14 @@ import {
   initializeSectorChartHandler,
   listArchivesHandler,
   listChartsHandler,
+  listCustomFillersHandler,
   saveChartHandler,
   upsertTileHandler,
 } from './charts.handlers';
 import {
   chartIdValidator,
   cloneChartValidator,
+  createCustomFillerValidator,
   deleteTileValidator,
   exportPocketsSoldReportValidator,
   getArchiveValidator,
@@ -32,6 +35,7 @@ import {
   initializeSectorChartValidator,
   listArchivesValidator,
   listChartsValidator,
+  listCustomFillersValidator,
   saveChartValidator,
   upsertTileValidator,
 } from './charts.validators';
@@ -80,6 +84,20 @@ chartsRoute.post(
   isManagerOrAbove,
   validator(initializeSectorChartValidator),
   initializeSectorChartHandler,
+);
+
+chartsRoute.get(
+  '/custom-fillers',
+  isStaffOrAbove,
+  validator(listCustomFillersValidator),
+  listCustomFillersHandler,
+);
+
+chartsRoute.post(
+  '/custom-fillers',
+  isManagerOrAbove,
+  validator(createCustomFillerValidator),
+  createCustomFillerHandler,
 );
 
 chartsRoute.get(

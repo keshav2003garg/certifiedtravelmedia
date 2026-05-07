@@ -20,9 +20,11 @@ export type ChartTile = Pick<
   | 'flagNote'
 > & {
   brochureTypeName: string | null;
+  customFillerId: string | null;
   contractId: string | null;
   contractEndDate: string | null;
   tier: ContractTierValue | null;
+  customerName: string | null;
 };
 
 export type ChartLocation = Pick<Location, 'id' | 'name' | 'address'> & {

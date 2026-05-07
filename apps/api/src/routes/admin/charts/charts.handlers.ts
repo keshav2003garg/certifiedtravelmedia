@@ -7,6 +7,7 @@ import { chartsService } from './charts.services';
 import type {
   ChartIdContext,
   CloneChartContext,
+  CreateCustomFillerContext,
   DeleteTileContext,
   ExportPocketsSoldReportContext,
   GetArchiveContext,
@@ -14,6 +15,7 @@ import type {
   InitializeSectorChartContext,
   ListArchivesContext,
   ListChartsContext,
+  ListCustomFillersContext,
   SaveChartContext,
   UpsertTileContext,
 } from './charts.validators';
@@ -75,6 +77,28 @@ export async function initializeSectorChartHandler(
   const chart = await chartsService.initializeSectorChart(sectorId, body);
 
   return sendResponse(ctx, 201, 'Chart initialized successfully', { chart });
+}
+
+export async function listCustomFillersHandler(ctx: ListCustomFillersContext) {
+  const params = ctx.req.valid('query');
+
+  const result = await chartsService.listCustomFillers(params);
+
+  return sendResponse(ctx, 200, 'Custom fillers retrieved successfully', {
+    customFillers: result.data,
+    pagination: result.pagination,
+  });
+}
+
+export async function createCustomFillerHandler(
+  ctx: CreateCustomFillerContext,
+) {
+  const body = ctx.req.valid('json');
+  const user = ctx.get('user')!;
+
+  const result = await chartsService.createCustomFiller(body, user.id);
+
+  return sendResponse(ctx, 201, 'Custom filler created successfully', result);
 }
 
 export async function getChartHandler(ctx: ChartIdContext) {

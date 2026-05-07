@@ -11,6 +11,7 @@ import {
   gte,
   ilike,
   inArray,
+  isNull,
   lt,
   lte,
   or,
@@ -43,17 +44,21 @@ import type {
   ArchiveDetail,
   ArchiveListItem,
   ArchiveSnapshot,
+  ChartCustomFillerResult,
   ChartInventoryItemResult,
   ChartLayoutResult,
   ChartLocationResult,
   ChartTileResult,
   CloneChartInput,
+  CreateCustomFillerInput,
   ExportPocketsSoldReportParams,
   GetSectorChartParams,
   InitializeSectorChartInput,
   ListArchivesParams,
   ListChartsParams,
   ListChartsResult,
+  ListCustomFillersParams,
+  ListCustomFillersResult,
   SaveChartInput,
   SectorChartsResult,
   SectorStandSizeResult,
@@ -92,6 +97,11 @@ const POCKETS_SOLD_EXPORT_HEADERS = [
 type ChartTileWithRelations = typeof schema.chartTiles.$inferSelect & {
   contract:
     | (typeof schema.contracts.$inferSelect & {
+        customer: typeof schema.customers.$inferSelect | null;
+      })
+    | null;
+  customFiller:
+    | (typeof schema.chartCustomFillers.$inferSelect & {
         customer: typeof schema.customers.$inferSelect | null;
       })
     | null;
@@ -136,6 +146,16 @@ interface InventoryItemRow {
   customerName: string | null;
 }
 
+interface CustomFillerRow {
+  id: string;
+  name: string;
+  customerId: string;
+  customerName: string;
+  customerAcumaticaId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface PocketsSoldStandSizeRow {
   sectorId: string;
   sectorAcumaticaId: string;
@@ -171,6 +191,11 @@ class ChartsService {
         tiles: {
           with: {
             contract: {
+              with: {
+                customer: true,
+              },
+            },
+            customFiller: {
               with: {
                 customer: true,
               },
@@ -322,6 +347,40 @@ class ChartsService {
     };
   }
 
+  private formatCustomFiller(row: CustomFillerRow): ChartCustomFillerResult {
+    return {
+      id: row.id,
+      name: row.name,
+      customerId: row.customerId,
+      customerName: row.customerName,
+      customerAcumaticaId: row.customerAcumaticaId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  private async getActiveCustomFillers() {
+    const rows = await db
+      .select({
+        id: schema.chartCustomFillers.id,
+        name: schema.chartCustomFillers.name,
+        customerId: schema.chartCustomFillers.customerId,
+        customerName: schema.customers.name,
+        customerAcumaticaId: schema.customers.acumaticaId,
+        createdAt: schema.chartCustomFillers.createdAt,
+        updatedAt: schema.chartCustomFillers.updatedAt,
+      })
+      .from(schema.chartCustomFillers)
+      .innerJoin(
+        schema.customers,
+        eq(schema.chartCustomFillers.customerId, schema.customers.id),
+      )
+      .where(isNull(schema.chartCustomFillers.deletedAt))
+      .orderBy(asc(schema.chartCustomFillers.name), asc(schema.customers.name));
+
+    return rows.map((row) => this.formatCustomFiller(row));
+  }
+
   private getInventoryItemIds(tiles: ChartTileWithRelations[]) {
     return [
       ...new Set(tiles.map((tile) => tile.inventoryItemId).filter(Boolean)),
@@ -457,8 +516,13 @@ class ChartsService {
           brochureId: inventory?.brochureId ?? null,
           brochureName: inventory?.brochureName ?? null,
           inventoryItemId: tile.inventoryItemId,
+          customFillerId: tile.customFillerId,
           contractId: tile.contractId,
-          label: tile.label ?? inventory?.brochureName ?? null,
+          label:
+            tile.label ??
+            tile.customFiller?.name ??
+            inventory?.brochureName ??
+            null,
           coverPhotoUrl: tile.coverPhotoUrl ?? inventory?.coverPhotoUrl ?? null,
           unitsPerBox: inventory?.unitsPerBox ?? null,
           boxes: inventory?.boxes ?? null,
@@ -469,7 +533,10 @@ class ChartsService {
           tier: tile.contract?.tier ?? null,
           contractEndDate: tile.contract?.endDate ?? null,
           customerName:
-            tile.contract?.customer?.name ?? inventory?.customerName ?? null,
+            tile.contract?.customer?.name ??
+            tile.customFiller?.customer?.name ??
+            inventory?.customerName ??
+            null,
           acumaticaContractId: tile.contract?.acumaticaContractId ?? null,
         };
       });
@@ -481,6 +548,7 @@ class ChartsService {
       locationCount?: number;
       inventoryById: Map<string, ChartInventoryItemResult>;
       availableInventory: ChartInventoryItemResult[];
+      customFillers: ChartCustomFillerResult[];
       paidTiles: ChartTileResult[];
     },
   ): ChartLayoutResult {
@@ -510,6 +578,7 @@ class ChartsService {
       persisted: true,
       locationCount: options.locationCount ?? 0,
       availableInventory: options.availableInventory,
+      customFillers: options.customFillers,
       paidTiles: options.paidTiles,
       tiles,
     };
@@ -568,18 +637,24 @@ class ChartsService {
     layout: ChartLayoutWithRelations,
     extra: { locationCount?: number } = {},
   ): Promise<ChartLayoutResult> {
-    const [inventoryById, availableInventory, generatedPaidTiles] =
-      await Promise.all([
-        this.getInventoryDetailsByIds(this.getInventoryItemIds(layout.tiles)),
-        this.getSectorInventoryItems(layout.sectorId),
-        this.getGeneratedPaidTileCatalog(layout),
-      ]);
+    const [
+      inventoryById,
+      availableInventory,
+      customFillers,
+      generatedPaidTiles,
+    ] = await Promise.all([
+      this.getInventoryDetailsByIds(this.getInventoryItemIds(layout.tiles)),
+      this.getSectorInventoryItems(layout.sectorId),
+      this.getActiveCustomFillers(),
+      this.getGeneratedPaidTileCatalog(layout),
+    ]);
     const formattedTiles = this.formatTiles(layout.tiles, inventoryById);
 
     return this.buildChartLayoutResult(layout, {
       ...extra,
       inventoryById,
       availableInventory,
+      customFillers,
       paidTiles: this.mergePaidTileCatalog(generatedPaidTiles, formattedTiles),
     });
   }
@@ -593,6 +668,7 @@ class ChartsService {
       tileType: tile.tileType,
       inventoryItemId: tile.inventoryItemId ?? null,
       contractId: tile.contractId ?? null,
+      customFillerId: tile.customFillerId ?? null,
       label: tile.label || null,
       coverPhotoUrl: tile.coverPhotoUrl || null,
       isNew: tile.isNew ?? false,
@@ -613,6 +689,7 @@ class ChartsService {
       tileType: tile.tileType,
       inventoryItemId: tile.inventoryItemId,
       contractId: tile.contractId,
+      customFillerId: tile.customFillerId,
       label: tile.label,
       coverPhotoUrl: tile.coverPhotoUrl,
       isNew: tile.isNew,
@@ -668,8 +745,11 @@ class ChartsService {
     const inventoryItemIds = [
       ...new Set(tiles.map((tile) => tile.inventoryItemId).filter(Boolean)),
     ] as string[];
+    const customFillerIds = [
+      ...new Set(tiles.map((tile) => tile.customFillerId).filter(Boolean)),
+    ] as string[];
 
-    const [contracts, inventoryItems] = await Promise.all([
+    const [contracts, inventoryItems, customFillers] = await Promise.all([
       contractIds.length > 0
         ? db.query.contracts.findMany({
             where: inArray(schema.contracts.id, contractIds),
@@ -691,6 +771,14 @@ class ChartsService {
             )
             .where(inArray(schema.inventoryItems.id, inventoryItemIds))
         : [],
+      customFillerIds.length > 0
+        ? db.query.chartCustomFillers.findMany({
+            where: and(
+              inArray(schema.chartCustomFillers.id, customFillerIds),
+              isNull(schema.chartCustomFillers.deletedAt),
+            ),
+          })
+        : [],
     ]);
 
     if (contracts.length !== contractIds.length) {
@@ -705,6 +793,14 @@ class ChartsService {
       throw new HttpError(
         400,
         'One or more inventory items are not linked to this sector',
+        'BAD_REQUEST',
+      );
+    }
+
+    if (customFillers.length !== customFillerIds.length) {
+      throw new HttpError(
+        400,
+        'One or more custom fillers were not found',
         'BAD_REQUEST',
       );
     }
@@ -1144,6 +1240,11 @@ class ChartsService {
                 customer: true,
               },
             },
+            customFiller: {
+              with: {
+                customer: true,
+              },
+            },
           },
         },
       },
@@ -1192,6 +1293,7 @@ class ChartsService {
         brochureId: null,
         brochureName: null,
         inventoryItemId: null,
+        customFillerId: null,
         contractId: contractIdMap.get(placement.contractId) ?? null,
         label: placement.brochureName,
         coverPhotoUrl: null,
@@ -1220,12 +1322,14 @@ class ChartsService {
       row: tile.row,
       colSpan: tile.colSpan,
       tileType: tile.tileType,
-      label: tile.label,
+      label: tile.label ?? tile.customFiller?.name ?? null,
       coverPhotoUrl: tile.coverPhotoUrl,
       brochureTypeName: null,
+      customFillerId: tile.customFillerId,
       contractId: tile.contract?.acumaticaContractId ?? null,
       contractEndDate: tile.contract?.endDate ?? null,
       tier: tile.contract?.tier ?? null,
+      customerName: tile.customFiller?.customer?.name ?? null,
       isNew: tile.isNew,
       isFlagged: tile.isFlagged,
       flagNote: tile.flagNote,
@@ -1279,9 +1383,11 @@ class ChartsService {
           label: placement.brochureName,
           coverPhotoUrl: null,
           brochureTypeName: null,
+          customFillerId: null,
           contractId: placement.contractId || null,
           contractEndDate: placement.contractEndDate,
           tier: placement.tier,
+          customerName: placement.customerName,
           isNew: placement.isNew,
           isFlagged: false,
           flagNote: null,
@@ -1411,6 +1517,7 @@ class ChartsService {
     const chart = this.buildChartLayoutResult(layout, {
       inventoryById,
       availableInventory: [],
+      customFillers: [],
       paidTiles: [],
     });
     const totalPaid = chart.tiles.filter(
@@ -1626,6 +1733,120 @@ class ChartsService {
     });
   }
 
+  async listCustomFillers(
+    params: ListCustomFillersParams,
+  ): Promise<ListCustomFillersResult> {
+    const offset = getPaginationOffset(params);
+    const conditions: SQL[] = [isNull(schema.chartCustomFillers.deletedAt)];
+
+    if (params.search) {
+      const term = `%${this.escapeLike(params.search)}%`;
+      conditions.push(
+        or(
+          ilike(schema.chartCustomFillers.name, term),
+          ilike(schema.customers.name, term),
+          ilike(schema.customers.acumaticaId, term),
+        )!,
+      );
+    }
+
+    const whereClause = and(...conditions);
+    const [countResult, rows] = await Promise.all([
+      db
+        .select({ total: count() })
+        .from(schema.chartCustomFillers)
+        .innerJoin(
+          schema.customers,
+          eq(schema.chartCustomFillers.customerId, schema.customers.id),
+        )
+        .where(whereClause),
+      db
+        .select({
+          id: schema.chartCustomFillers.id,
+          name: schema.chartCustomFillers.name,
+          customerId: schema.chartCustomFillers.customerId,
+          customerName: schema.customers.name,
+          customerAcumaticaId: schema.customers.acumaticaId,
+          createdAt: schema.chartCustomFillers.createdAt,
+          updatedAt: schema.chartCustomFillers.updatedAt,
+        })
+        .from(schema.chartCustomFillers)
+        .innerJoin(
+          schema.customers,
+          eq(schema.chartCustomFillers.customerId, schema.customers.id),
+        )
+        .where(whereClause)
+        .orderBy(
+          asc(schema.chartCustomFillers.name),
+          asc(schema.customers.name),
+        )
+        .limit(params.limit)
+        .offset(offset),
+    ]);
+
+    return createPaginatedResult({
+      data: rows.map((row) => this.formatCustomFiller(row)),
+      page: params.page,
+      limit: params.limit,
+      total: countResult[0]?.total ?? 0,
+    });
+  }
+
+  async createCustomFiller(values: CreateCustomFillerInput, userId: string) {
+    const customer = await db.query.customers.findFirst({
+      where: eq(schema.customers.id, values.customerId),
+    });
+
+    if (!customer) {
+      throw new HttpError(400, 'Customer not found', 'BAD_REQUEST');
+    }
+
+    const existing = await db.query.chartCustomFillers.findFirst({
+      where: and(
+        eq(schema.chartCustomFillers.customerId, values.customerId),
+        isNull(schema.chartCustomFillers.deletedAt),
+        sql`lower(${schema.chartCustomFillers.name}) = lower(${values.name})`,
+      ),
+    });
+
+    if (existing) {
+      throw new HttpError(
+        409,
+        'A custom filler with this name already exists for this customer',
+        'CONFLICT',
+      );
+    }
+
+    const [created] = await db
+      .insert(schema.chartCustomFillers)
+      .values({
+        name: values.name,
+        customerId: values.customerId,
+        createdBy: userId,
+      })
+      .returning();
+
+    if (!created) {
+      throw new HttpError(
+        500,
+        'Failed to create custom filler',
+        'INTERNAL_SERVER',
+      );
+    }
+
+    return {
+      customFiller: this.formatCustomFiller({
+        id: created.id,
+        name: created.name,
+        customerId: created.customerId,
+        customerName: customer.name,
+        customerAcumaticaId: customer.acumaticaId,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      }),
+    };
+  }
+
   async getById(id: string) {
     const layout = await this.getLayoutById(id);
     const locationCount = await this.getLocationCount(
@@ -1669,13 +1890,16 @@ class ChartsService {
       });
     }
 
-    const tiles = await this.buildPreviewTiles(
-      primaryLocation.id,
-      sectorId,
-      params.month,
-      params.year,
-    );
-    const availableInventory = await this.getSectorInventoryItems(sectorId);
+    const [tiles, availableInventory, customFillers] = await Promise.all([
+      this.buildPreviewTiles(
+        primaryLocation.id,
+        sectorId,
+        params.month,
+        params.year,
+      ),
+      this.getSectorInventoryItems(sectorId),
+      this.getActiveCustomFillers(),
+    ]);
 
     return {
       id: null,
@@ -1701,6 +1925,7 @@ class ChartsService {
       persisted: false,
       locationCount: matchingLocations.length,
       availableInventory,
+      customFillers,
       paidTiles: tiles,
       tiles,
     };

@@ -34,11 +34,14 @@ export const TileCard = memo(function TileCard({
   const isPremium = isPaid && !isNew && tile.tier === 'Premium Placement';
   const isFiller = tile.tileType === 'Filler';
   const isInventory = Boolean(tile.inventoryItemId);
+  const isCustomFiller = Boolean(tile.customFillerId);
 
   const tooltipContent = useMemo(() => {
-    if (!isPaid && !isInventory && !tile.isFlagged) return null;
+    if (!isPaid && !isInventory && !isCustomFiller && !tile.isFlagged) {
+      return null;
+    }
 
-    const hasDetails = isPaid || isInventory;
+    const hasDetails = isPaid || isInventory || isCustomFiller;
 
     return (
       <div className="flex flex-col gap-0.5">
@@ -68,7 +71,7 @@ export const TileCard = memo(function TileCard({
         ) : null}
       </div>
     );
-  }, [isInventory, isPaid, tile]);
+  }, [isCustomFiller, isInventory, isPaid, tile]);
 
   const tileButton = (
     <button

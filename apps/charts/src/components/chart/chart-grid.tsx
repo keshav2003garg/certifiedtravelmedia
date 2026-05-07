@@ -301,6 +301,11 @@ function GridContent({
                     Type: {tile.brochureTypeName}
                   </p>
                 )}
+                {tile.customerName && (
+                  <p className="text-xs opacity-80">
+                    Customer: {tile.customerName}
+                  </p>
+                )}
                 {tile.contractId && (
                   <p className="text-xs opacity-80">
                     Contract: {tile.contractId}

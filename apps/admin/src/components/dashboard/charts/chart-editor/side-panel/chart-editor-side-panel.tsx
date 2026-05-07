@@ -4,10 +4,12 @@ import { Card, CardContent } from '@repo/ui/components/base/card';
 import { cn } from '@repo/ui/lib/utils';
 
 import { AvailableInventorySidebar } from './components/available-inventory-sidebar';
+import { CustomFillersSidebar } from './components/custom-fillers-sidebar';
 import { PaidTilesSidebar } from './components/paid-tiles-sidebar';
 import { TileInspector } from './components/tile-inspector';
 
 import type {
+  ChartCustomFiller,
   ChartInventoryItem,
   ChartLayout,
   ChartTile,
@@ -24,12 +26,16 @@ interface ChartEditorSidePanelProps {
   generalNotes: string;
   paidTiles: ChartTile[];
   canPlaceInventoryItem: (item: ChartInventoryItem) => boolean;
+  canPlaceCustomFiller: (filler: ChartCustomFiller) => boolean;
   canPlacePaidTile: (tile: ChartTile) => boolean;
   onGeneralNotesChange: (value: string) => void;
   onAddInventoryItem: (item: ChartInventoryItem) => void;
+  onAddCustomFiller: (filler: ChartCustomFiller) => void;
   onAddPaidTile: (tile: ChartTile) => void;
   onInventoryItemDragStart: (item: ChartInventoryItem) => void;
   onInventoryItemDragEnd: () => void;
+  onCustomFillerDragStart: (filler: ChartCustomFiller) => void;
+  onCustomFillerDragEnd: () => void;
   onPaidTileDragStart: (tile: ChartTile) => void;
   onPaidTileDragEnd: () => void;
   onSelectTileId: (tileId: string | null) => void;
@@ -50,12 +56,16 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
   generalNotes,
   paidTiles,
   canPlaceInventoryItem,
+  canPlaceCustomFiller,
   canPlacePaidTile,
   onGeneralNotesChange,
   onAddInventoryItem,
+  onAddCustomFiller,
   onAddPaidTile,
   onInventoryItemDragStart,
   onInventoryItemDragEnd,
+  onCustomFillerDragStart,
+  onCustomFillerDragEnd,
   onPaidTileDragStart,
   onPaidTileDragEnd,
   onSelectTileId,
@@ -121,6 +131,17 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
         onTileDragStart={onPaidTileDragStart}
         onTileDragEnd={onPaidTileDragEnd}
         onSelectTile={(tile) => onSelectTileId(tile.id)}
+      />
+
+      <CustomFillersSidebar
+        fillers={chart.customFillers}
+        isLocked={isReadOnly}
+        isCompact={isFullscreen}
+        hasEmptyCells={hasEmptyCells}
+        canPlaceFiller={canPlaceCustomFiller}
+        onAddFiller={onAddCustomFiller}
+        onFillerDragStart={onCustomFillerDragStart}
+        onFillerDragEnd={onCustomFillerDragEnd}
       />
 
       <AvailableInventorySidebar

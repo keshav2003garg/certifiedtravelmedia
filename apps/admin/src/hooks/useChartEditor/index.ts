@@ -11,10 +11,12 @@ import { ReactQueryKeys } from '@/types/react-query-keys';
 import type {
   CloneChartRequest,
   CompleteChartRequest,
+  CreateCustomFillerRequest,
   DeleteTileRequest,
   ExportPocketsSoldCsvRequest,
   GetSectorChartRequest,
   InitializeSectorChartRequest,
+  ListCustomFillersRequest,
   ListSectorStandSizesRequest,
   OpenSectorChartsPdfRequest,
   SaveChartRequest,
@@ -89,6 +91,7 @@ function normalizeTile(tile: TilePayload): TilePayload {
     tileType: tile.tileType,
     inventoryItemId: tile.inventoryItemId ?? null,
     contractId: tile.contractId ?? null,
+    customFillerId: tile.customFillerId ?? null,
     brochureTypeId: tile.brochureTypeId ?? null,
     label: tile.label ?? null,
     coverPhotoUrl: tile.coverPhotoUrl ?? null,
@@ -268,6 +271,30 @@ export function useChartEditor() {
     [],
   );
 
+  const listCustomFillers = useCallback(
+    async (params?: ListCustomFillersRequest['payload']) => {
+      const response = await api<ListCustomFillersRequest['response']>(
+        `${CHARTS_ENDPOINT}/custom-fillers`,
+        { query: params },
+      );
+
+      return response.data;
+    },
+    [],
+  );
+
+  const createCustomFiller = useCallback(
+    async (payload: CreateCustomFillerRequest['payload']) => {
+      const response = await api<CreateCustomFillerRequest['response']>(
+        `${CHARTS_ENDPOINT}/custom-fillers`,
+        { method: 'POST', body: payload },
+      );
+
+      return response.data;
+    },
+    [],
+  );
+
   const sectorStandSizesQueryOptions = (
     params?: ListSectorStandSizesRequest['payload'],
   ) =>
@@ -287,6 +314,14 @@ export function useChartEditor() {
         payload.month >= 1 &&
         payload.month <= 12 &&
         payload.year >= 2020,
+    });
+
+  const customFillersQueryOptions = (
+    params?: ListCustomFillersRequest['payload'],
+  ) =>
+    queryOptions({
+      queryKey: [ReactQueryKeys.GET_CHART_CUSTOM_FILLERS, params],
+      queryFn: () => listCustomFillers(params),
     });
 
   const saveChartMutation = useMutation({
@@ -349,6 +384,17 @@ export function useChartEditor() {
     },
   });
 
+  const createCustomFillerMutation = useMutation({
+    mutationFn: createCustomFiller,
+    meta: {
+      successMessage: 'Custom filler created',
+      invalidateQueries: [
+        ReactQueryKeys.GET_CHART_CUSTOM_FILLERS,
+        ReactQueryKeys.GET_SECTOR_CHART,
+      ],
+    },
+  });
+
   const openSectorChartsPdfMutation = useMutation({
     mutationFn: openSectorChartsPdf,
     meta: {
@@ -368,12 +414,14 @@ export function useChartEditor() {
     getSectorChartsPdfUrl,
     sectorStandSizesQueryOptions,
     sectorChartQueryOptions,
+    customFillersQueryOptions,
     saveChartMutation,
     upsertTileMutation,
     deleteTileMutation,
     completeChartMutation,
     cloneChartMutation,
     initializeSectorChartMutation,
+    createCustomFillerMutation,
     openSectorChartsPdfMutation,
     exportPocketsSoldCsvMutation,
   };

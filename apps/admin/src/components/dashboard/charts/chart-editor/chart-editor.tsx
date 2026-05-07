@@ -14,6 +14,7 @@ import { ChartEditorHeader } from './header/chart-editor-header';
 import { ChartEditorSidePanel } from './side-panel/chart-editor-side-panel';
 
 import type {
+  ChartCustomFiller,
   ChartInventoryItem,
   ChartLayout,
   ChartTile,
@@ -78,6 +79,7 @@ function createInventoryTile(
     brochureId: item.brochureId,
     brochureName: item.brochureName,
     inventoryItemId: item.id,
+    customFillerId: null,
     contractId: null,
     label: item.brochureName,
     coverPhotoUrl: item.coverPhotoUrl,
@@ -90,6 +92,41 @@ function createInventoryTile(
     tier: null,
     contractEndDate: null,
     customerName: item.customerName,
+    acumaticaContractId: null,
+  };
+}
+
+function createCustomFillerTile(
+  filler: ChartCustomFiller,
+  slot: GridSlot,
+): ChartTile {
+  return {
+    id: createTempTileId('custom-filler'),
+    col: slot.col,
+    row: slot.row,
+    colSpan: 1,
+    tileType: 'Filler',
+    warehouseId: null,
+    warehouseName: null,
+    warehouseAcumaticaId: null,
+    brochureTypeId: null,
+    brochureTypeName: null,
+    brochureId: null,
+    brochureName: null,
+    inventoryItemId: null,
+    customFillerId: filler.id,
+    contractId: null,
+    label: filler.name,
+    coverPhotoUrl: null,
+    unitsPerBox: null,
+    boxes: null,
+    stockLevel: null,
+    isNew: false,
+    isFlagged: false,
+    flagNote: null,
+    tier: null,
+    contractEndDate: null,
+    customerName: filler.customerName,
     acumaticaContractId: null,
   };
 }
@@ -110,6 +147,7 @@ function createPaidTile(tile: ChartTile, slot: GridSlot): ChartTile {
     brochureId: null,
     brochureName: null,
     inventoryItemId: null,
+    customFillerId: null,
     boxes: null,
     stockLevel: null,
   };
@@ -138,6 +176,9 @@ function ChartEditorInner({
   const [tiles, setTiles] = useState<ChartTile[]>(chart.tiles);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [draggedInventoryItemId, setDraggedInventoryItemId] = useState<
+    string | null
+  >(null);
+  const [draggedCustomFillerId, setDraggedCustomFillerId] = useState<
     string | null
   >(null);
   const [draggedPaidTileKey, setDraggedPaidTileKey] = useState<string | null>(
@@ -179,6 +220,14 @@ function ChartEditorInner({
         (item) => item.id === draggedInventoryItemId,
       ) ?? null,
     [chart.availableInventory, draggedInventoryItemId],
+  );
+
+  const draggedCustomFiller = useMemo(
+    () =>
+      chart.customFillers.find(
+        (filler) => filler.id === draggedCustomFillerId,
+      ) ?? null,
+    [chart.customFillers, draggedCustomFillerId],
   );
 
   const placedPaidTilesByKey = useMemo(() => {
@@ -252,6 +301,32 @@ function ChartEditorInner({
     [chart.gridSize, tiles],
   );
 
+  const canPlaceCustomFiller = useCallback(
+    (filler: ChartCustomFiller) =>
+      Boolean(
+        findFirstDisplacingSlot(
+          tiles,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          createCustomFillerTile(filler, { col: 0, row: 0, colSpan: 1 }),
+        ),
+      ),
+    [chart.gridSize, tiles],
+  );
+
+  const canPlaceCustomFillerAt = useCallback(
+    (filler: ChartCustomFiller, col: number, row: number) =>
+      canPlaceTileWithDisplacement(
+        tiles,
+        chart.gridSize.width,
+        chart.gridSize.height,
+        createCustomFillerTile(filler, { col, row, colSpan: 1 }),
+        col,
+        row,
+      ),
+    [chart.gridSize, tiles],
+  );
+
   const canPlacePaidTile = useCallback(
     (tile: ChartTile) => {
       const placedTile = placedPaidTilesByKey.get(getPaidTileKey(tile));
@@ -296,6 +371,43 @@ function ChartEditorInner({
           col: 0,
           row: 0,
           colSpan: item.colSpan,
+        });
+        const slot = findFirstDisplacingSlot(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          tile,
+        );
+        if (!slot) return prev;
+
+        const placedTile = { ...tile, col: slot.col, row: slot.row };
+        const next = placeTileWithDisplacement(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          placedTile,
+          slot.col,
+          slot.row,
+        );
+        if (!next) return prev;
+
+        setSelectedTileId(placedTile.id);
+
+        return next;
+      });
+    },
+    [chart.gridSize, isReadOnly],
+  );
+
+  const handleAddCustomFiller = useCallback(
+    (filler: ChartCustomFiller) => {
+      if (isReadOnly) return;
+
+      setTiles((prev) => {
+        const tile = createCustomFillerTile(filler, {
+          col: 0,
+          row: 0,
+          colSpan: 1,
         });
         const slot = findFirstDisplacingSlot(
           prev,
@@ -379,6 +491,19 @@ function ChartEditorInner({
     setDraggedInventoryItemId(null);
   }, []);
 
+  const handleCustomFillerDragStart = useCallback(
+    (filler: ChartCustomFiller) => {
+      if (isReadOnly || !canPlaceCustomFiller(filler)) return;
+
+      setDraggedCustomFillerId(filler.id);
+    },
+    [canPlaceCustomFiller, isReadOnly],
+  );
+
+  const handleCustomFillerDragEnd = useCallback(() => {
+    setDraggedCustomFillerId(null);
+  }, []);
+
   const handlePaidTileDragStart = useCallback(
     (tile: ChartTile) => {
       if (isReadOnly || !canPlacePaidTile(tile)) return;
@@ -418,6 +543,32 @@ function ChartEditorInner({
         return next;
       });
       setDraggedInventoryItemId(null);
+    },
+    [chart.gridSize, isReadOnly],
+  );
+
+  const handlePlaceCustomFiller = useCallback(
+    (filler: ChartCustomFiller, col: number, row: number) => {
+      if (isReadOnly) return;
+
+      setTiles((prev) => {
+        const tile = createCustomFillerTile(filler, { col, row, colSpan: 1 });
+        const next = placeTileWithDisplacement(
+          prev,
+          chart.gridSize.width,
+          chart.gridSize.height,
+          tile,
+          col,
+          row,
+        );
+
+        if (!next) return prev;
+
+        setSelectedTileId(tile.id);
+
+        return next;
+      });
+      setDraggedCustomFillerId(null);
     },
     [chart.gridSize, isReadOnly],
   );
@@ -569,6 +720,7 @@ function ChartEditorInner({
           height={chart.gridSize.height}
           tiles={tiles}
           draggedInventoryItem={draggedInventoryItem}
+          draggedCustomFiller={draggedCustomFiller}
           draggedPaidTile={draggedPaidTile}
           selectedTileId={selectedTileId}
           isLocked={isReadOnly}
@@ -581,6 +733,8 @@ function ChartEditorInner({
           onPlaceInventoryItem={
             isReadOnly ? undefined : handlePlaceInventoryItem
           }
+          onCanPlaceCustomFiller={canPlaceCustomFillerAt}
+          onPlaceCustomFiller={isReadOnly ? undefined : handlePlaceCustomFiller}
           onCanPlacePaidTile={canPlacePaidTileAt}
           onPlacePaidTile={isReadOnly ? undefined : handlePlacePaidTile}
           onFlagTile={isReadOnly ? undefined : handleFlag}
@@ -598,12 +752,16 @@ function ChartEditorInner({
           generalNotes={generalNotes}
           paidTiles={paidTileCatalog}
           canPlaceInventoryItem={canPlaceInventoryItem}
+          canPlaceCustomFiller={canPlaceCustomFiller}
           canPlacePaidTile={canPlacePaidTile}
           onGeneralNotesChange={setGeneralNotes}
           onAddInventoryItem={handleAddInventoryItem}
+          onAddCustomFiller={handleAddCustomFiller}
           onAddPaidTile={handleAddPaidTile}
           onInventoryItemDragStart={handleInventoryDragStart}
           onInventoryItemDragEnd={handleInventoryDragEnd}
+          onCustomFillerDragStart={handleCustomFillerDragStart}
+          onCustomFillerDragEnd={handleCustomFillerDragEnd}
           onPaidTileDragStart={handlePaidTileDragStart}
           onPaidTileDragEnd={handlePaidTileDragEnd}
           onSelectTileId={setSelectedTileId}

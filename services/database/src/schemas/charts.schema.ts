@@ -14,6 +14,7 @@ import {
 
 import { userSchema } from './auth.schema';
 import { contracts } from './contract.schema';
+import { customers } from './customer.schema';
 import { inventoryItems } from './inventory.schema';
 import { sectors } from './sector.schema';
 
@@ -24,6 +25,40 @@ export const chartStatusEnum = pgEnum('chart_status', [
 ]);
 
 export const tileTypeEnum = pgEnum('tile_type', ['Paid', 'Filler']);
+
+export const chartCustomFillers = pgTable(
+  'chart_custom_fillers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    name: varchar('name', { length: 255 }).notNull(),
+
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id),
+
+    createdBy: text('created_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
+
+    deletedAt: timestamp('deleted_at', { mode: 'string' }),
+    deletedBy: text('deleted_by').references(() => userSchema.id, {
+      onDelete: 'set null',
+    }),
+
+    createdAt: timestamp('created_at', { mode: 'string' })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('chart_custom_fillers_name_idx').on(table.name),
+    index('chart_custom_fillers_customer_id_idx').on(table.customerId),
+    index('chart_custom_fillers_deleted_at_idx').on(table.deletedAt),
+  ],
+);
 
 export const chartLayouts = pgTable(
   'chart_layouts',
@@ -102,6 +137,10 @@ export const chartTiles = pgTable(
     inventoryItemId: uuid('inventory_item_id').references(
       () => inventoryItems.id,
     ),
+    customFillerId: uuid('custom_filler_id').references(
+      () => chartCustomFillers.id,
+      { onDelete: 'set null' },
+    ),
 
     label: varchar('label', { length: 255 }),
 
@@ -119,7 +158,10 @@ export const chartTiles = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index('chart_tiles_layout_id_idx').on(table.chartLayoutId)],
+  (table) => [
+    index('chart_tiles_layout_id_idx').on(table.chartLayoutId),
+    index('chart_tiles_custom_filler_id_idx').on(table.customFillerId),
+  ],
 );
 
 export const chartLayoutsRelations = relations(
@@ -150,4 +192,27 @@ export const chartTilesRelations = relations(chartTiles, ({ one }) => ({
     fields: [chartTiles.contractId],
     references: [contracts.id],
   }),
+  customFiller: one(chartCustomFillers, {
+    fields: [chartTiles.customFillerId],
+    references: [chartCustomFillers.id],
+  }),
 }));
+
+export const chartCustomFillersRelations = relations(
+  chartCustomFillers,
+  ({ one, many }) => ({
+    customer: one(customers, {
+      fields: [chartCustomFillers.customerId],
+      references: [customers.id],
+    }),
+    createdByUser: one(userSchema, {
+      fields: [chartCustomFillers.createdBy],
+      references: [userSchema.id],
+    }),
+    deletedByUser: one(userSchema, {
+      fields: [chartCustomFillers.deletedBy],
+      references: [userSchema.id],
+    }),
+    tiles: many(chartTiles),
+  }),
+);
