@@ -4,8 +4,6 @@ export enum ReactQueryKeys {
   GET_USERS = 'GET::/auth.admin.listUsers()',
 
   // Configs
-  GET_BROCHURES = 'GET::/admin/configs/brochures',
-  GET_BROCHURE = 'GET::/admin/configs/brochures/:id',
   GET_BROCHURE_TYPES = 'GET::/admin/configs/brochure-types',
   GET_BROCHURE_TYPE = 'GET::/admin/configs/brochure-types/:id',
   GET_CUSTOMERS = 'GET::/admin/configs/customers',
@@ -27,6 +25,8 @@ export enum ReactQueryKeys {
   // Inventory
   GET_INVENTORY_ITEMS = 'GET::/admin/inventory/items',
   GET_INVENTORY_ITEM = 'GET::/admin/inventory/items/:id',
+  GET_INVENTORY_BROCHURES = 'GET::/admin/inventory/brochures',
+  GET_INVENTORY_BROCHURE = 'GET::/admin/inventory/brochures/:id',
   GET_INVENTORY_ITEM_TRANSACTIONS = 'GET::/admin/inventory/items/:id/transactions',
   GET_INVENTORY_MONTH_END_COUNTS = 'GET::/admin/inventory/counts',
   GET_INVENTORY_REQUESTS = 'GET::/admin/inventory/requests',

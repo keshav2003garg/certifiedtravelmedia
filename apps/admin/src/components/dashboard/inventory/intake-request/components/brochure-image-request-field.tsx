@@ -12,7 +12,7 @@ import { cn } from '@repo/ui/lib/utils';
 
 import ImageUploadField from '@/components/common/image-upload-field';
 
-import type { BrochureImage } from '@/hooks/useBrochures/types';
+import type { BrochureImage } from '@/hooks/useInventoryBrochures/types';
 
 interface BrochureImageRequestFieldProps {
   ownerId: string;

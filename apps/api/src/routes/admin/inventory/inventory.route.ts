@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { isStaffOrAbove } from '@repo/server-utils/middlewares/auth.middleware';
 import { validator } from '@repo/server-utils/middlewares/validator.middleware';
 
+import inventoryBrochuresRoute from './brochures/brochures.route';
 import countsRoute from './counts/counts.route';
 import { listInventoryItemsHandler } from './items/items.handlers';
 import itemsRoute from './items/items.route';
@@ -23,5 +24,6 @@ inventoryRoute.get(
 inventoryRoute.route('/items', itemsRoute);
 inventoryRoute.route('/counts', countsRoute);
 inventoryRoute.route('/requests', requestsRoute);
+inventoryRoute.route('/brochures', inventoryBrochuresRoute);
 
 export default inventoryRoute;

@@ -37,9 +37,12 @@ import SearchableSelect from '@/components/common/searchable-select';
 import BrochureImageRequestField from '@/components/dashboard/inventory/intake-request/components/brochure-image-request-field';
 import DateReceivedField from '@/components/dashboard/inventory/intake-request/components/date-received-field';
 
-import { brochureQueryKeys, useBrochures } from '@/hooks/useBrochures';
 import { useBrochureTypes } from '@/hooks/useBrochureTypes';
 import { useCustomers } from '@/hooks/useCustomers';
+import {
+  inventoryBrochureQueryKeys,
+  useInventoryBrochures,
+} from '@/hooks/useInventoryBrochures';
 import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
 import { useWarehouses, warehouseQueryKeys } from '@/hooks/useWarehouses';
 
@@ -58,12 +61,12 @@ import {
 import ReviewCreatableSearchField from './review-creatable-search-field';
 
 import type { SearchableSelectOption } from '@/components/common/searchable-select';
+import type { ListBrochureTypesRequest } from '@/hooks/useBrochureTypes/types';
+import type { ListCustomersRequest } from '@/hooks/useCustomers/types';
 import type {
   Brochure,
   ListBrochuresRequest,
-} from '@/hooks/useBrochures/types';
-import type { ListBrochureTypesRequest } from '@/hooks/useBrochureTypes/types';
-import type { ListCustomersRequest } from '@/hooks/useCustomers/types';
+} from '@/hooks/useInventoryBrochures/types';
 import type {
   ApproveInventoryRequestPayload,
   InventoryRequest,
@@ -108,7 +111,7 @@ function InventoryRequestReviewForm({
   onReject,
 }: InventoryRequestReviewFormProps) {
   const { brochureQueryOptions, brochuresQueryOptions, getBrochures } =
-    useBrochures();
+    useInventoryBrochures();
   const { getBrochureTypes } = useBrochureTypes();
   const { getCustomers, customersQueryOptions } = useCustomers();
   const { getWarehouses } = useWarehouses();
@@ -302,7 +305,7 @@ function InventoryRequestReviewForm({
     setSearch: setBrochureSearch,
     isSearching: isSearchingBrochures,
   } = useServerSearchSelectOptions({
-    queryKey: (params) => brochureQueryKeys.list(params),
+    queryKey: (params) => inventoryBrochureQueryKeys.list(params),
     queryFn: getBrochures,
     selectOptions: selectBrochureOptions,
     buildParams: buildBrochureSearchParams,

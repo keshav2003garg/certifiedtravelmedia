@@ -26,8 +26,11 @@ import { FileImage, Loader2, Send, Tags, Warehouse } from '@repo/ui/lib/icons';
 
 import SearchableSelect from '@/components/common/searchable-select';
 
-import { brochureQueryKeys, useBrochures } from '@/hooks/useBrochures';
 import { useBrochureTypes } from '@/hooks/useBrochureTypes';
+import {
+  inventoryBrochureQueryKeys,
+  useInventoryBrochures,
+} from '@/hooks/useInventoryBrochures';
 import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
 import { useWarehouses, warehouseQueryKeys } from '@/hooks/useWarehouses';
 
@@ -44,8 +47,8 @@ import DateReceivedField from './date-received-field';
 import { normalizeBrochureName } from './utils';
 
 import type { SearchableSelectOption } from '@/components/common/searchable-select';
-import type { ListBrochuresRequest } from '@/hooks/useBrochures/types';
 import type { ListBrochureTypesRequest } from '@/hooks/useBrochureTypes/types';
+import type { ListBrochuresRequest } from '@/hooks/useInventoryBrochures/types';
 import type { CreateInventoryRequestPayload } from '@/hooks/useInventoryRequests/types';
 import type { ListWarehousesRequest } from '@/hooks/useWarehouses/types';
 import type { InventoryRequestFormData } from '../schema';
@@ -69,7 +72,7 @@ function InventoryRequestForm({
   isSubmitting,
   onSubmit,
 }: InventoryRequestFormProps) {
-  const { brochureQueryOptions, getBrochures } = useBrochures();
+  const { brochureQueryOptions, getBrochures } = useInventoryBrochures();
   const { getBrochureTypes } = useBrochureTypes();
   const { getWarehouses } = useWarehouses();
   const defaultValues = useMemo(getDefaultInventoryRequestValues, []);
@@ -157,7 +160,7 @@ function InventoryRequestForm({
     setSearch: setBrochureSearch,
     isSearching: isSearchingBrochures,
   } = useServerSearchSelectOptions({
-    queryKey: (params) => brochureQueryKeys.list(params),
+    queryKey: (params) => inventoryBrochureQueryKeys.list(params),
     queryFn: getBrochures,
     selectOptions: selectBrochureOptions,
     buildParams: buildSearchParams,

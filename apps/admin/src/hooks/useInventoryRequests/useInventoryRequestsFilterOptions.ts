@@ -1,15 +1,18 @@
 import { useCallback, useMemo } from 'react';
 
-import { brochureQueryKeys, useBrochures } from '@/hooks/useBrochures';
 import { useBrochureTypes } from '@/hooks/useBrochureTypes';
+import {
+  inventoryBrochureQueryKeys,
+  useInventoryBrochures,
+} from '@/hooks/useInventoryBrochures';
 import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
 import { useWarehouses, warehouseQueryKeys } from '@/hooks/useWarehouses';
 
 import { ReactQueryKeys } from '@/types/react-query-keys';
 
 import type { SearchableSelectOption } from '@/components/common/searchable-select';
-import type { ListBrochuresRequest } from '@/hooks/useBrochures/types';
 import type { ListBrochureTypesRequest } from '@/hooks/useBrochureTypes/types';
+import type { ListBrochuresRequest } from '@/hooks/useInventoryBrochures/types';
 import type { ServerSearchSelectParams } from '@/hooks/useServerSearchSelectOptions';
 import type {
   ListWarehousesRequest,
@@ -24,7 +27,7 @@ export const REQUEST_FILTER_ALL = '__all__';
 
 export function useInventoryRequestsFilterOptions() {
   const { getWarehouses } = useWarehouses();
-  const { getBrochures } = useBrochures();
+  const { getBrochures } = useInventoryBrochures();
   const { getBrochureTypes } = useBrochureTypes();
 
   const selectWarehouseOptions = useCallback(
@@ -117,7 +120,7 @@ export function useInventoryRequestsFilterOptions() {
     setSearch: setBrochureSearch,
     isSearching: isSearchingBrochures,
   } = useServerSearchSelectOptions({
-    queryKey: brochureQueryKeys.list,
+    queryKey: inventoryBrochureQueryKeys.list,
     queryFn: getBrochures,
     selectOptions: selectBrochureOptions,
     buildParams: buildBrochureParams,

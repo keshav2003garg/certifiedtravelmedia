@@ -39,10 +39,6 @@ export function getMetadata(path: AppRoute): Head {
       title: 'Brochure Types - CTM Grid Admin',
       description: 'Manage brochure type configuration',
     },
-    '/dashboard/brochure': {
-      title: 'Brochure - CTM Grid Admin',
-      description: 'Manage brochure assets and pack-size configuration',
-    },
     '/dashboard/customers': {
       title: 'Customers - CTM Grid Admin',
       description: 'Manage customer configuration',
