@@ -14,4 +14,10 @@ api.route('ANY /{proxy+}', {
   handler: 'apps/api/src/lambda.handler',
   timeout: '300 seconds',
   environment: serverEnvironment,
+  nodejs: {
+    install: ['sharp', 'pdfkit'],
+    esbuild: {
+      external: ['pdfkit'],
+    },
+  },
 });
