@@ -6,6 +6,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -53,6 +54,9 @@ export const locationsSectors = pgTable(
   (table) => [
     primaryKey({ columns: [table.locationId, table.sectorId] }),
     index('locations_sectors_location_id_idx').on(table.locationId),
+    uniqueIndex('locations_sectors_location_id_unique_idx').on(
+      table.locationId,
+    ),
     index('locations_sectors_sector_id_idx').on(table.sectorId),
   ],
 );

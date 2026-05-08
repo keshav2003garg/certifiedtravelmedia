@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "locations_sectors_location_id_unique_idx" ON "locations_sectors" USING btree ("location_id");

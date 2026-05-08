@@ -43,6 +43,13 @@
       "when": 1778190724186,
       "tag": "0005_stormy_garia",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778243938463,
+      "tag": "0006_petite_molecule_man",
+      "breakpoints": true
     }
   ]
 }
