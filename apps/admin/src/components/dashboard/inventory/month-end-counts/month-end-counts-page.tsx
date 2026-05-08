@@ -32,9 +32,10 @@ function MonthEndCountsPage() {
   const { monthEndCountsQueryOptions, bulkMonthEndCountMutation } =
     useInventoryMonthEndCounts();
 
-  const { data, isError, isFetching, isLoading, refetch } = useQuery(
-    monthEndCountsQueryOptions(filters.params),
-  );
+  const { data, isError, isFetching, isLoading, refetch } = useQuery({
+    ...monthEndCountsQueryOptions(filters.params),
+    enabled: filters.params.month !== undefined,
+  });
 
   const pagination = data?.pagination;
 
@@ -62,7 +63,11 @@ function MonthEndCountsPage() {
       row.countedBoxes > row.item.countBasisBoxes,
   );
   const isSubmitting = bulkMonthEndCountMutation.isPending;
-  const canSubmit = rows.length > 0 && !hasInvalidCount && !isSubmitting;
+  const canSubmit =
+    rows.length > 0 &&
+    !hasInvalidCount &&
+    !isSubmitting &&
+    filters.month !== null;
 
   const handleCountChange = useCallback(
     (inventoryItemId: string, value: number | undefined) => {
@@ -75,7 +80,7 @@ function MonthEndCountsPage() {
   );
 
   const handleSubmit = useCallback(() => {
-    if (!canSubmit) return;
+    if (!canSubmit || filters.month === null) return;
 
     bulkMonthEndCountMutation.mutate(
       {

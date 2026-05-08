@@ -40,7 +40,6 @@ export const INVENTORY_STOCK_LEVEL_OPTIONS = [
 ] as const satisfies readonly InventoryStockLevel[];
 
 const currentDate = new Date();
-const DEFAULT_MONTH = currentDate.getMonth() + 1;
 const DEFAULT_YEAR = currentDate.getFullYear();
 
 export function useInventoryMonthEndCountsFilters() {
@@ -51,10 +50,7 @@ export function useInventoryMonthEndCountsFilters() {
   } = useSearch('search');
   const { page, limit, handlePageChange, handleLimitChange } = usePagination();
 
-  const [month, setMonth] = useQueryState(
-    'month',
-    parseAsInteger.withDefault(DEFAULT_MONTH),
-  );
+  const [month, setMonth] = useQueryState('month', parseAsInteger);
   const [year, setYear] = useQueryState(
     'year',
     parseAsInteger.withDefault(DEFAULT_YEAR),
@@ -81,8 +77,8 @@ export function useInventoryMonthEndCountsFilters() {
   );
 
   const handleMonthChange = useCallback(
-    (value: number) => {
-      setMonth(value === DEFAULT_MONTH ? null : value);
+    (value: number | null) => {
+      setMonth(value);
       handlePageChange(1);
     },
     [setMonth, handlePageChange],
@@ -164,7 +160,7 @@ export function useInventoryMonthEndCountsFilters() {
     () =>
       Boolean(
         search ||
-        month !== DEFAULT_MONTH ||
+        month !== null ||
         year !== DEFAULT_YEAR ||
         sortBy ||
         order ||
@@ -186,7 +182,7 @@ export function useInventoryMonthEndCountsFilters() {
 
   const params = useMemo(
     () => ({
-      month,
+      month: month ?? undefined,
       year,
       search: search || undefined,
       sortBy: sortBy ?? undefined,

@@ -63,7 +63,7 @@ export interface MonthEndCountListItem {
 
 export type ListMonthEndCountsRequest = ApiData<
   {
-    month: number;
+    month?: number;
     year: number;
     page?: number;
     limit?: number;

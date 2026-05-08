@@ -15,7 +15,6 @@ import { CalendarDays, Search, Tags, Warehouse } from '@repo/ui/lib/icons';
 import SearchableSelect from '@/components/common/searchable-select';
 
 import { useBrochureTypes } from '@/hooks/useBrochureTypes';
-import { INVENTORY_STOCK_LEVEL_OPTIONS } from '@/hooks/useInventoryMonthEndCounts/useInventoryMonthEndCountsFilters';
 import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
 import { useWarehouses, warehouseQueryKeys } from '@/hooks/useWarehouses';
 
@@ -26,11 +25,6 @@ import type {
   ListBrochureTypesRequest,
   SortOrder as BrochureTypeSortOrder,
 } from '@/hooks/useBrochureTypes/types';
-import type {
-  InventoryStockLevel,
-  SortOrder,
-} from '@/hooks/useInventoryItems/types';
-import type { MonthEndCountSortBy } from '@/hooks/useInventoryMonthEndCounts/types';
 import type { ServerSearchSelectParams } from '@/hooks/useServerSearchSelectOptions';
 import type {
   ListWarehousesRequest,
@@ -46,8 +40,6 @@ interface MonthEndCountsFilterBarProps {
 }
 
 const FILTER_ALL = '__all__';
-const DEFAULT_SORT_BY = 'brochureName' satisfies MonthEndCountSortBy;
-const DEFAULT_ORDER = 'asc' satisfies SortOrder;
 
 const MONTH_OPTIONS = [
   { value: 1, label: 'January' },
@@ -63,27 +55,6 @@ const MONTH_OPTIONS = [
   { value: 11, label: 'November' },
   { value: 12, label: 'December' },
 ] as const;
-
-const sortOptions = [
-  { value: 'brochureName', label: 'Brochure name' },
-  { value: 'warehouseName', label: 'Warehouse' },
-  { value: 'brochureTypeName', label: 'Brochure type' },
-  { value: 'customerName', label: 'Customer' },
-  { value: 'boxes', label: 'Current boxes' },
-  { value: 'unitsPerBox', label: 'Units per box' },
-  { value: 'stockLevel', label: 'Stock level' },
-  { value: 'countedBoxes', label: 'End count' },
-  { value: 'distributionBoxes', label: 'Distribution' },
-  { value: 'updatedAt', label: 'Updated date' },
-] as const satisfies readonly {
-  value: MonthEndCountSortBy;
-  label: string;
-}[];
-
-const orderOptions = [
-  { value: 'asc', label: 'Ascending' },
-  { value: 'desc', label: 'Descending' },
-] as const satisfies readonly { value: SortOrder; label: string }[];
 
 function MonthEndCountsFilterBar({ filters }: MonthEndCountsFilterBarProps) {
   const { getWarehouses } = useWarehouses();
@@ -175,18 +146,20 @@ function MonthEndCountsFilterBar({ filters }: MonthEndCountsFilterBarProps) {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 xl:grid-cols-[minmax(260px,1.4fr)_minmax(200px,1fr)_minmax(200px,1fr)_minmax(180px,0.8fr)]">
-        <div className="relative">
-          <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-          <Input
-            value={filters.searchInputValue}
-            onChange={(event) => filters.setSearch(event.target.value)}
-            placeholder="Search by brochure or customer name"
-            aria-label="Search by brochure or customer name"
-            className="h-11 pl-9"
-          />
-        </div>
+      {/* Row 1 — full-width search */}
+      <div className="relative">
+        <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+        <Input
+          value={filters.searchInputValue}
+          onChange={(event) => filters.setSearch(event.target.value)}
+          placeholder="Search by brochure or customer name"
+          aria-label="Search by brochure or customer name"
+          className="h-11 pl-9"
+        />
+      </div>
 
+      {/* Row 2 — warehouse · brochure type · month · year */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SearchableSelect
           options={warehouseOptions}
           value={filters.warehouseId ?? FILTER_ALL}
@@ -217,110 +190,50 @@ function MonthEndCountsFilterBar({ filters }: MonthEndCountsFilterBarProps) {
           onSearchChange={setBrochureTypeSearch}
         />
 
+        {/* Month — blank by default, must be selected manually */}
         <Select
-          value={filters.stockLevel ?? FILTER_ALL}
+          value={filters.month !== null ? String(filters.month) : ''}
           onValueChange={(value) =>
-            filters.handleStockLevelChange(
-              value === FILTER_ALL ? null : (value as InventoryStockLevel),
+            filters.handleMonthChange(
+              value === FILTER_ALL ? null : Number(value),
             )
           }
         >
           <SelectTrigger className="h-11">
-            <SelectValue placeholder="All stock levels" />
+            <CalendarDays className="text-muted-foreground size-4" />
+            <SelectValue placeholder="Select month" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={FILTER_ALL}>All stock levels</SelectItem>
-            {INVENTORY_STOCK_LEVEL_OPTIONS.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
+            <SelectItem value={FILTER_ALL}>All months</SelectItem>
+            {MONTH_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={String(option.value)}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        <NumericInput
+          value={filters.year}
+          onChange={filters.handleYearChange}
+          min={2000}
+          max={2100}
+          integerOnly
+          className="h-11"
+          placeholder="Year"
+        />
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="grid gap-3 sm:grid-cols-[180px_140px]">
-          <Select
-            value={String(filters.month)}
-            onValueChange={(value) => filters.handleMonthChange(Number(value))}
-          >
-            <SelectTrigger className="h-11">
-              <CalendarDays className="text-muted-foreground size-4" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTH_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={String(option.value)}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <NumericInput
-            value={filters.year}
-            onChange={filters.handleYearChange}
-            min={2000}
-            max={2100}
-            integerOnly
-            className="h-11"
-          />
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-[minmax(180px,220px)_minmax(160px,180px)_auto]">
-          <Select
-            value={filters.sortBy ?? DEFAULT_SORT_BY}
-            onValueChange={(value) =>
-              filters.handleSortByChange(
-                value === DEFAULT_SORT_BY
-                  ? null
-                  : (value as MonthEndCountSortBy),
-              )
-            }
-          >
-            <SelectTrigger className="h-11" aria-label="Sort type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.order ?? DEFAULT_ORDER}
-            onValueChange={(value) =>
-              filters.handleOrderChange(
-                value === DEFAULT_ORDER ? null : (value as SortOrder),
-              )
-            }
-          >
-            <SelectTrigger className="h-11" aria-label="Sort order">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {orderOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11"
-            disabled={!filters.hasActiveFilters}
-            onClick={filters.clearFilters}
-          >
-            Clear filters
-          </Button>
-        </div>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11"
+          disabled={!filters.hasActiveFilters}
+          onClick={filters.clearFilters}
+        >
+          Clear filters
+        </Button>
       </div>
     </div>
   );
