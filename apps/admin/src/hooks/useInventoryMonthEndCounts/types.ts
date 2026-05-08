@@ -1,8 +1,6 @@
 import type {
-  InventoryStockLevel,
   InventoryTransaction,
   Pagination,
-  SortOrder,
 } from '@/hooks/useInventoryItems/types';
 import type { ApiData } from '@/lib/api/types';
 
@@ -11,27 +9,10 @@ export interface InventoryMonthEndCount {
   inventoryItemId: string;
   month: number;
   year: number;
-  countedBoxes: number;
-  balanceBeforeBoxes: number;
-  distributionBoxes: number;
-  balanceAfterBoxes: number;
-  distributionTransactionId: string | null;
-  countedBy: string | null;
+  endCount: number;
   createdAt: string;
   updatedAt: string;
 }
-
-export type MonthEndCountSortBy =
-  | 'warehouseName'
-  | 'brochureName'
-  | 'brochureTypeName'
-  | 'customerName'
-  | 'boxes'
-  | 'unitsPerBox'
-  | 'stockLevel'
-  | 'countedBoxes'
-  | 'distributionBoxes'
-  | 'updatedAt';
 
 export interface MonthEndCountListItem {
   inventoryItemId: string;
@@ -42,22 +23,15 @@ export interface MonthEndCountListItem {
   brochureName: string;
   brochureTypeId: string;
   brochureTypeName: string;
-  customerId: string | null;
-  customerName: string | null;
   brochureImageId: string;
   brochureImagePackSizeId: string;
   imageUrl: string | null;
   unitsPerBox: number;
-  stockLevel: InventoryStockLevel;
-  currentBoxes: number;
-  countBasisBoxes: number;
   countId: string | null;
-  countedBoxes: number | null;
-  distributionBoxes: number;
-  balanceAfterBoxes: number | null;
-  distributionTransactionId: string | null;
-  countedBy: string | null;
-  countedAt: string | null;
+  previousMonthEndCount: number;
+  transactionBoxes: number;
+  distributionBoxes: number | null;
+  endCount: number | null;
   inventoryUpdatedAt: string;
 }
 
@@ -68,11 +42,8 @@ export type ListMonthEndCountsRequest = ApiData<
     page?: number;
     limit?: number;
     search?: string;
-    sortBy?: MonthEndCountSortBy;
-    order?: SortOrder;
     warehouseId?: string;
     brochureTypeId?: string;
-    stockLevel?: InventoryStockLevel;
   },
   {
     items: MonthEndCountListItem[];
@@ -86,7 +57,7 @@ export type BulkMonthEndCountRequest = ApiData<
     year: number;
     counts: Array<{
       inventoryItemId: string;
-      countedBoxes: number;
+      endCount: number;
     }>;
   },
   {

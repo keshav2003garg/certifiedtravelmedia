@@ -36,6 +36,8 @@ import {
   warehouses,
 } from '@services/database/schemas';
 
+import { inventoryCountsService } from '../counts/counts.services';
+
 import type { SQL } from 'drizzle-orm';
 import type {
   CreateInventoryIntakeInput,
@@ -961,6 +963,11 @@ class InventoryItemsService {
       notes: params.values.notes,
       userId: params.userId,
     });
+    await inventoryCountsService.syncMonthEndCountForTransaction({
+      tx: params.tx,
+      inventoryItemId: transaction.inventoryItemId,
+      transactionDate: transaction.transactionDate,
+    });
 
     return { item, transaction };
   }
@@ -1089,6 +1096,10 @@ class InventoryItemsService {
         userId: params.userId,
       }),
     ]);
+    await inventoryCountsService.syncMonthEndCountsForTransactions({
+      tx: params.tx,
+      transactions: [sourceTransaction, destinationTransaction],
+    });
 
     return {
       item: sourceItem,
@@ -1138,6 +1149,11 @@ class InventoryItemsService {
         balanceBefore: inventoryResult.balanceBefore,
         balanceAfter: inventoryResult.balanceAfter,
         userId,
+      });
+      await inventoryCountsService.syncMonthEndCountForTransaction({
+        tx,
+        inventoryItemId: transaction.inventoryItemId,
+        transactionDate: transaction.transactionDate,
       });
 
       return {

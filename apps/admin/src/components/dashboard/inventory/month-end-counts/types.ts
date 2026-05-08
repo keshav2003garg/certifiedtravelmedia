@@ -7,6 +7,5 @@ export type MonthEndCountFilters = ReturnType<
 
 export interface MonthEndCountRow {
   item: MonthEndCountListItem;
-  countedBoxes: number | null;
-  distributionBoxes: number;
+  endCount: number | null;
 }

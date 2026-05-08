@@ -44,27 +44,19 @@ function MonthEndCountsPage() {
 
     return items.map((item) => {
       const editedCount = countValues[item.inventoryItemId];
-      const countedBoxes = hasEditedCount(countValues, item.inventoryItemId)
+      const endCount = hasEditedCount(countValues, item.inventoryItemId)
         ? (editedCount ?? null)
-        : (item.countedBoxes ?? item.countBasisBoxes);
-      const distributionBoxes =
-        countedBoxes === null
-          ? 0
-          : Math.max(item.countBasisBoxes - countedBoxes, 0);
+        : item.endCount;
 
-      return { item, countedBoxes, distributionBoxes };
+      return { item, endCount };
     });
   }, [countValues, data?.items]);
 
-  const hasInvalidCount = rows.some(
-    (row) =>
-      row.countedBoxes === null ||
-      row.countedBoxes < 0 ||
-      row.countedBoxes > row.item.countBasisBoxes,
-  );
+  const filledRows = rows.filter((row) => row.endCount !== null);
+  const hasInvalidCount = filledRows.some((row) => (row.endCount ?? 0) < 0);
   const isSubmitting = bulkMonthEndCountMutation.isPending;
   const canSubmit =
-    rows.length > 0 &&
+    filledRows.length > 0 &&
     !hasInvalidCount &&
     !isSubmitting &&
     filters.month !== null;
@@ -86,9 +78,9 @@ function MonthEndCountsPage() {
       {
         month: filters.month,
         year: filters.year,
-        counts: rows.map((row) => ({
+        counts: filledRows.map((row) => ({
           inventoryItemId: row.item.inventoryItemId,
-          countedBoxes: row.countedBoxes ?? 0,
+          endCount: row.endCount ?? 0,
         })),
       },
       {
@@ -97,7 +89,13 @@ function MonthEndCountsPage() {
         },
       },
     );
-  }, [bulkMonthEndCountMutation, canSubmit, filters.month, filters.year, rows]);
+  }, [
+    bulkMonthEndCountMutation,
+    canSubmit,
+    filledRows,
+    filters.month,
+    filters.year,
+  ]);
 
   return (
     <div className="space-y-6">

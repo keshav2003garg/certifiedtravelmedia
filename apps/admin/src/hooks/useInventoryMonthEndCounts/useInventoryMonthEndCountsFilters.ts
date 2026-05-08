@@ -1,43 +1,8 @@
 import { useCallback, useMemo } from 'react';
 
-import {
-  parseAsInteger,
-  parseAsString,
-  parseAsStringLiteral,
-  useQueryState,
-} from '@repo/hooks/nuqs';
+import { parseAsInteger, parseAsString, useQueryState } from '@repo/hooks/nuqs';
 import { usePagination } from '@repo/hooks/usePagination/index';
 import { useSearch } from '@repo/hooks/useSearch/index';
-
-import type {
-  InventoryStockLevel,
-  SortOrder,
-} from '@/hooks/useInventoryItems/types';
-import type { MonthEndCountSortBy } from './types';
-
-export const MONTH_END_COUNT_SORT_OPTIONS = [
-  'warehouseName',
-  'brochureName',
-  'brochureTypeName',
-  'customerName',
-  'boxes',
-  'unitsPerBox',
-  'stockLevel',
-  'countedBoxes',
-  'distributionBoxes',
-  'updatedAt',
-] as const satisfies readonly MonthEndCountSortBy[];
-
-export const SORT_ORDER_OPTIONS = [
-  'asc',
-  'desc',
-] as const satisfies readonly SortOrder[];
-
-export const INVENTORY_STOCK_LEVEL_OPTIONS = [
-  'Low',
-  'On Target',
-  'Overstock',
-] as const satisfies readonly InventoryStockLevel[];
 
 const currentDate = new Date();
 const DEFAULT_YEAR = currentDate.getFullYear();
@@ -55,14 +20,6 @@ export function useInventoryMonthEndCountsFilters() {
     'year',
     parseAsInteger.withDefault(DEFAULT_YEAR),
   );
-  const [sortBy, setSortBy] = useQueryState(
-    'sortBy',
-    parseAsStringLiteral(MONTH_END_COUNT_SORT_OPTIONS),
-  );
-  const [order, setOrder] = useQueryState(
-    'order',
-    parseAsStringLiteral(SORT_ORDER_OPTIONS),
-  );
   const [warehouseId, setWarehouseId] = useQueryState(
     'warehouseId',
     parseAsString,
@@ -70,10 +27,6 @@ export function useInventoryMonthEndCountsFilters() {
   const [brochureTypeId, setBrochureTypeId] = useQueryState(
     'brochureTypeId',
     parseAsString,
-  );
-  const [stockLevel, setStockLevel] = useQueryState(
-    'stockLevel',
-    parseAsStringLiteral(INVENTORY_STOCK_LEVEL_OPTIONS),
   );
 
   const handleMonthChange = useCallback(
@@ -94,22 +47,6 @@ export function useInventoryMonthEndCountsFilters() {
     [setYear, handlePageChange],
   );
 
-  const handleSortByChange = useCallback(
-    (value: MonthEndCountSortBy | null) => {
-      setSortBy(value);
-      handlePageChange(1);
-    },
-    [setSortBy, handlePageChange],
-  );
-
-  const handleOrderChange = useCallback(
-    (value: SortOrder | null) => {
-      setOrder(value);
-      handlePageChange(1);
-    },
-    [setOrder, handlePageChange],
-  );
-
   const handleWarehouseChange = useCallback(
     (value: string | null) => {
       setWarehouseId(value);
@@ -126,33 +63,19 @@ export function useInventoryMonthEndCountsFilters() {
     [setBrochureTypeId, handlePageChange],
   );
 
-  const handleStockLevelChange = useCallback(
-    (value: InventoryStockLevel | null) => {
-      setStockLevel(value);
-      handlePageChange(1);
-    },
-    [setStockLevel, handlePageChange],
-  );
-
   const clearFilters = useCallback(() => {
     setSearch('');
     setMonth(null);
     setYear(null);
-    setSortBy(null);
-    setOrder(null);
     setWarehouseId(null);
     setBrochureTypeId(null);
-    setStockLevel(null);
     handlePageChange(1);
   }, [
     setSearch,
     setMonth,
     setYear,
-    setSortBy,
-    setOrder,
     setWarehouseId,
     setBrochureTypeId,
-    setStockLevel,
     handlePageChange,
   ]);
 
@@ -162,22 +85,10 @@ export function useInventoryMonthEndCountsFilters() {
         search ||
         month !== null ||
         year !== DEFAULT_YEAR ||
-        sortBy ||
-        order ||
         warehouseId ||
-        brochureTypeId ||
-        stockLevel,
+        brochureTypeId,
       ),
-    [
-      search,
-      month,
-      year,
-      sortBy,
-      order,
-      warehouseId,
-      brochureTypeId,
-      stockLevel,
-    ],
+    [search, month, year, warehouseId, brochureTypeId],
   );
 
   const params = useMemo(
@@ -185,26 +96,12 @@ export function useInventoryMonthEndCountsFilters() {
       month: month ?? undefined,
       year,
       search: search || undefined,
-      sortBy: sortBy ?? undefined,
-      order: order ?? undefined,
       warehouseId: warehouseId ?? undefined,
       brochureTypeId: brochureTypeId ?? undefined,
-      stockLevel: stockLevel ?? undefined,
       page,
       limit,
     }),
-    [
-      month,
-      year,
-      search,
-      sortBy,
-      order,
-      warehouseId,
-      brochureTypeId,
-      stockLevel,
-      page,
-      limit,
-    ],
+    [month, year, search, warehouseId, brochureTypeId, page, limit],
   );
 
   return {
@@ -212,19 +109,13 @@ export function useInventoryMonthEndCountsFilters() {
     searchInputValue,
     month,
     year,
-    sortBy,
-    order,
     warehouseId,
     brochureTypeId,
-    stockLevel,
     setSearch,
     handleMonthChange,
     handleYearChange,
-    handleSortByChange,
-    handleOrderChange,
     handleWarehouseChange,
     handleBrochureTypeChange,
-    handleStockLevelChange,
     page,
     limit,
     handlePageChange,

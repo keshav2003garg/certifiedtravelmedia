@@ -37,24 +37,10 @@ function MonthEndCountsTableRow({
           <div className="min-w-0 space-y-1">
             <p className="truncate font-medium">{row.item.brochureName}</p>
             <p className="text-muted-foreground truncate text-xs">
-              {formatQuantity(row.item.unitsPerBox)} units per box
+              {row.item.brochureTypeName}
             </p>
           </div>
         </div>
-      </TableCell>
-      <TableCell>
-        <Badge variant="secondary" className="max-w-36 rounded-md">
-          <span className="truncate">{row.item.brochureTypeName}</span>
-        </Badge>
-      </TableCell>
-      <TableCell>
-        {row.item.customerName ? (
-          <span className="truncate text-sm font-medium">
-            {row.item.customerName}
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-sm">Unassigned</span>
-        )}
       </TableCell>
       <TableCell>
         <div className="min-w-0 space-y-1">
@@ -69,17 +55,19 @@ function MonthEndCountsTableRow({
         </div>
       </TableCell>
       <TableCell className="text-right text-sm font-medium">
-        {formatQuantity(row.item.countBasisBoxes)}
+        {formatQuantity(row.item.unitsPerBox)}
       </TableCell>
       <TableCell className="text-right text-sm font-medium">
-        {formatQuantity(row.item.currentBoxes)}
+        {formatQuantity(row.item.previousMonthEndCount)}
+      </TableCell>
+      <TableCell className="text-right text-sm font-medium">
+        {formatQuantity(row.item.transactionBoxes)}
       </TableCell>
       <TableCell>
         <NumericInput
-          value={row.countedBoxes}
+          value={row.endCount}
           onChange={(value) => onCountChange(row.item.inventoryItemId, value)}
           min={0}
-          max={row.item.countBasisBoxes}
           step={0.01}
           decimals={2}
           placeholder="0"
@@ -87,15 +75,16 @@ function MonthEndCountsTableRow({
         />
       </TableCell>
       <TableCell className="text-right text-sm font-medium">
-        {formatQuantity(row.distributionBoxes)}
+        {row.item.distributionBoxes === null
+          ? '—'
+          : formatQuantity(row.item.distributionBoxes)}
       </TableCell>
       <TableCell>
-        <Badge
-          variant={row.item.countId ? 'default' : 'secondary'}
-          className="rounded-md"
-        >
-          {row.item.countId ? 'Saved' : 'Open'}
-        </Badge>
+        {row.item.countId ? (
+          <Badge>Counted</Badge>
+        ) : (
+          <Badge variant="outline">Pending</Badge>
+        )}
       </TableCell>
     </TableRow>
   );

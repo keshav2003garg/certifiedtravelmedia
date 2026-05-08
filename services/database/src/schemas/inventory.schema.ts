@@ -135,19 +135,7 @@ export const inventoryMonthEndCounts = pgTable(
     month: integer('month').notNull(),
     year: integer('year').notNull(),
 
-    countedBoxes: real('counted_boxes').notNull(),
-    balanceBeforeBoxes: real('balance_before_boxes').notNull(),
-    distributionBoxes: real('distribution_boxes').notNull(),
-    balanceAfterBoxes: real('balance_after_boxes').notNull(),
-
-    distributionTransactionId: uuid('distribution_transaction_id').references(
-      () => inventoryTransactions.id,
-      { onDelete: 'set null' },
-    ),
-
-    countedBy: text('counted_by').references(() => userSchema.id, {
-      onDelete: 'set null',
-    }),
+    endCount: real('end_count').notNull(),
 
     createdAt: timestamp('created_at', { mode: 'string' })
       .notNull()
@@ -351,14 +339,6 @@ export const inventoryMonthEndCountsRelations = relations(
     inventoryItem: one(inventoryItems, {
       fields: [inventoryMonthEndCounts.inventoryItemId],
       references: [inventoryItems.id],
-    }),
-    distributionTransaction: one(inventoryTransactions, {
-      fields: [inventoryMonthEndCounts.distributionTransactionId],
-      references: [inventoryTransactions.id],
-    }),
-    countedByUser: one(userSchema, {
-      fields: [inventoryMonthEndCounts.countedBy],
-      references: [userSchema.id],
     }),
   }),
 );
