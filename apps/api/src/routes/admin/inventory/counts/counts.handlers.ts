@@ -4,7 +4,10 @@ import { inventoryCountsService } from './counts.services';
 
 import type {
   BulkMonthEndCountContext,
+  GetScanInventoryItemContext,
   ListMonthEndCountsContext,
+  ResolveScanInventoryItemContext,
+  SaveScanMonthEndCountContext,
 } from './counts.validators';
 
 export async function listMonthEndCountsHandler(
@@ -26,5 +29,44 @@ export async function bulkMonthEndCountHandler(ctx: BulkMonthEndCountContext) {
 
   return sendResponse(ctx, 200, 'Month-end counts saved successfully', {
     counts: result.counts,
+  });
+}
+
+export async function resolveScanInventoryItemHandler(
+  ctx: ResolveScanInventoryItemContext,
+) {
+  const { id } = ctx.req.valid('param');
+  const result = await inventoryCountsService.resolveScanInventoryItemId(id);
+
+  return sendResponse(ctx, 200, 'Scan inventory item resolved successfully', {
+    resolved: result,
+  });
+}
+
+export async function getScanInventoryItemHandler(
+  ctx: GetScanInventoryItemContext,
+) {
+  const { id } = ctx.req.valid('param');
+  const result = await inventoryCountsService.getScanInventoryItem(id);
+
+  return sendResponse(ctx, 200, 'Scan inventory item retrieved successfully', {
+    item: result,
+  });
+}
+
+export async function saveScanMonthEndCountHandler(
+  ctx: SaveScanMonthEndCountContext,
+) {
+  const user = ctx.get('user')!;
+  const { id } = ctx.req.valid('param');
+  const body = ctx.req.valid('json');
+  const result = await inventoryCountsService.saveScanMonthEndCount(
+    id,
+    body,
+    user.id,
+  );
+
+  return sendResponse(ctx, 200, 'Scan count saved successfully', {
+    count: result,
   });
 }

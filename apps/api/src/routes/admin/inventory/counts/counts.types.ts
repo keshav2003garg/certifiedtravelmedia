@@ -3,7 +3,10 @@ import type { z } from '@repo/utils/zod';
 import type { InventoryTransaction } from '@services/database/types';
 import type {
   bulkMonthEndCountValidator,
+  getScanInventoryItemValidator,
   listMonthEndCountsValidator,
+  resolveScanInventoryItemValidator,
+  saveScanMonthEndCountValidator,
 } from './counts.validators';
 
 export type ListMonthEndCountsInput = z.infer<
@@ -59,3 +62,46 @@ export interface BulkMonthEndCountResultItem {
 export interface BulkMonthEndCountResult {
   counts: BulkMonthEndCountResultItem[];
 }
+
+export type ResolveScanInventoryItemInput = z.infer<
+  (typeof resolveScanInventoryItemValidator)['param']
+>;
+
+export type GetScanInventoryItemInput = z.infer<
+  (typeof getScanInventoryItemValidator)['param']
+>;
+
+export type SaveScanMonthEndCountInput = z.infer<
+  (typeof saveScanMonthEndCountValidator)['json']
+>;
+
+export interface ResolvedScanInventoryItem {
+  requestedInventoryItemId: string;
+  inventoryItemId: string;
+  isLegacy: boolean;
+  shouldRedirect: boolean;
+}
+
+export interface ScanInventoryItem {
+  inventoryItemId: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseAcumaticaId: string | null;
+  brochureId: string;
+  brochureName: string;
+  brochureTypeId: string;
+  brochureTypeName: string;
+  customerId: string | null;
+  customerName: string | null;
+  brochureImageId: string;
+  brochureImagePackSizeId: string;
+  imageUrl: string | null;
+  boxes: number;
+  unitsPerBox: number;
+  stockLevel: string;
+  inventoryUpdatedAt: string;
+}
+
+export type ScanMonthEndCountResult = BulkMonthEndCountResultItem & {
+  resolved: ResolvedScanInventoryItem;
+};

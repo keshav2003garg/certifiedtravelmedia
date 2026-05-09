@@ -17,6 +17,22 @@ const monthEndCountItemSchema = z.object({
   endCount: endCountSchema,
 });
 
+const inventoryItemIdParamSchema = z.object({
+  id: z.uuid('Invalid inventory item ID'),
+});
+
+const monthSchema = z.coerce
+  .number()
+  .int('Month must be a whole number')
+  .min(1, 'Month must be between 1 and 12')
+  .max(12, 'Month must be between 1 and 12');
+
+const yearSchema = z.coerce
+  .number()
+  .int('Year must be a whole number')
+  .min(2000, 'Year must be 2000 or later')
+  .max(2100, 'Year must be 2100 or earlier');
+
 const optionalInventoryTextSchema = (field: string) =>
   z
     .string()
@@ -27,16 +43,8 @@ const optionalInventoryTextSchema = (field: string) =>
 
 export const listMonthEndCountsValidator = createValidatorSchema({
   query: paginationSchema.extend(searchFilterSchema.shape).extend({
-    month: z.coerce
-      .number()
-      .int('Month must be a whole number')
-      .min(1, 'Month must be between 1 and 12')
-      .max(12, 'Month must be between 1 and 12'),
-    year: z.coerce
-      .number()
-      .int('Year must be a whole number')
-      .min(2000, 'Year must be 2000 or later')
-      .max(2100, 'Year must be 2100 or earlier'),
+    month: monthSchema,
+    year: yearSchema,
     search: optionalInventoryTextSchema('Search'),
     warehouseId: z.uuid('Invalid warehouse ID').optional(),
     brochureTypeId: z.uuid('Invalid brochure type ID').optional(),
@@ -50,16 +58,8 @@ export type ListMonthEndCountsContext = TypedContext<
 export const bulkMonthEndCountValidator = createValidatorSchema({
   json: z
     .object({
-      month: z.coerce
-        .number()
-        .int('Month must be a whole number')
-        .min(1, 'Month must be between 1 and 12')
-        .max(12, 'Month must be between 1 and 12'),
-      year: z.coerce
-        .number()
-        .int('Year must be a whole number')
-        .min(2000, 'Year must be 2000 or later')
-        .max(2100, 'Year must be 2100 or earlier'),
+      month: monthSchema,
+      year: yearSchema,
       counts: z
         .array(monthEndCountItemSchema)
         .min(1, 'At least one inventory item is required')
@@ -74,4 +74,30 @@ export const bulkMonthEndCountValidator = createValidatorSchema({
 });
 export type BulkMonthEndCountContext = TypedContext<
   typeof bulkMonthEndCountValidator
+>;
+
+export const resolveScanInventoryItemValidator = createValidatorSchema({
+  param: inventoryItemIdParamSchema,
+});
+export type ResolveScanInventoryItemContext = TypedContext<
+  typeof resolveScanInventoryItemValidator
+>;
+
+export const getScanInventoryItemValidator = createValidatorSchema({
+  param: inventoryItemIdParamSchema,
+});
+export type GetScanInventoryItemContext = TypedContext<
+  typeof getScanInventoryItemValidator
+>;
+
+export const saveScanMonthEndCountValidator = createValidatorSchema({
+  param: inventoryItemIdParamSchema,
+  json: z.object({
+    month: monthSchema,
+    year: yearSchema,
+    endCount: endCountSchema,
+  }),
+});
+export type SaveScanMonthEndCountContext = TypedContext<
+  typeof saveScanMonthEndCountValidator
 >;

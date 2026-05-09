@@ -19,6 +19,7 @@ import {
   inventoryItems,
   inventoryMonthEndCounts,
   inventoryTransactions,
+  oldInventoryItemMappings,
   warehouses,
 } from '@services/database/schemas';
 
@@ -28,7 +29,11 @@ import type {
   BulkMonthEndCountInput,
   BulkMonthEndCountResultItem,
   ListMonthEndCountsInput,
+  ResolvedScanInventoryItem,
   SavedMonthEndCount,
+  SaveScanMonthEndCountInput,
+  ScanInventoryItem,
+  ScanMonthEndCountResult,
 } from './counts.types';
 
 type InventoryCountWriteTx = Parameters<
@@ -613,6 +618,149 @@ class InventoryCountsService {
         transactionDate: transaction.transactionDate,
       });
     }
+  }
+
+  async resolveScanInventoryItemId(
+    id: string,
+  ): Promise<ResolvedScanInventoryItem> {
+    const [mapping] = await db
+      .select({
+        newInventoryItemId: oldInventoryItemMappings.newInventoryItemId,
+        migratedAs: oldInventoryItemMappings.migratedAs,
+      })
+      .from(oldInventoryItemMappings)
+      .where(eq(oldInventoryItemMappings.oldInventoryItemId, id))
+      .limit(1);
+
+    if (mapping) {
+      if (!mapping.newInventoryItemId) {
+        throw new HttpError(
+          404,
+          mapping.migratedAs === 'inventory_transaction_request'
+            ? 'This legacy QR code is linked to an intake request, not an active inventory item'
+            : 'This legacy QR code is not linked to an active inventory item',
+          'NOT_FOUND',
+        );
+      }
+
+      const [item] = await db
+        .select({ id: inventoryItems.id })
+        .from(inventoryItems)
+        .where(eq(inventoryItems.id, mapping.newInventoryItemId))
+        .limit(1);
+
+      if (!item) {
+        throw new HttpError(
+          404,
+          'The mapped inventory item no longer exists',
+          'NOT_FOUND',
+        );
+      }
+
+      return {
+        requestedInventoryItemId: id,
+        inventoryItemId: item.id,
+        isLegacy: true,
+        shouldRedirect: item.id !== id,
+      };
+    }
+
+    const [item] = await db
+      .select({ id: inventoryItems.id })
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, id))
+      .limit(1);
+
+    if (!item) {
+      throw new HttpError(404, 'Inventory item not found', 'NOT_FOUND');
+    }
+
+    return {
+      requestedInventoryItemId: id,
+      inventoryItemId: item.id,
+      isLegacy: false,
+      shouldRedirect: false,
+    };
+  }
+
+  async getScanInventoryItem(id: string): Promise<ScanInventoryItem> {
+    const resolved = await this.resolveScanInventoryItemId(id);
+    const [row] = await db
+      .select({
+        inventoryItemId: inventoryItems.id,
+        warehouseId: inventoryItems.warehouseId,
+        warehouseName: warehouses.name,
+        warehouseAcumaticaId: warehouses.acumaticaId,
+        brochureId: brochures.id,
+        brochureName: brochures.name,
+        brochureTypeId: brochures.brochureTypeId,
+        brochureTypeName: brochureTypes.name,
+        customerId: customers.id,
+        customerName: customers.name,
+        brochureImageId: brochureImages.id,
+        brochureImagePackSizeId: inventoryItems.brochureImagePackSizeId,
+        imageUrl: brochureImages.imageUrl,
+        boxes: inventoryItems.boxes,
+        unitsPerBox: brochureImagePackSizes.unitsPerBox,
+        stockLevel: inventoryItems.stockLevel,
+        inventoryUpdatedAt: inventoryItems.updatedAt,
+      })
+      .from(inventoryItems)
+      .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+      .innerJoin(
+        brochureImagePackSizes,
+        eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+      )
+      .innerJoin(
+        brochureImages,
+        eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+      )
+      .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+      .innerJoin(brochureTypes, eq(brochures.brochureTypeId, brochureTypes.id))
+      .leftJoin(customers, eq(brochures.customerId, customers.id))
+      .where(eq(inventoryItems.id, resolved.inventoryItemId))
+      .limit(1);
+
+    if (!row) {
+      throw new HttpError(404, 'Inventory item not found', 'NOT_FOUND');
+    }
+
+    return {
+      ...row,
+      boxes: roundDecimals(row.boxes, 2),
+      unitsPerBox: roundDecimals(row.unitsPerBox, 2),
+    };
+  }
+
+  async saveScanMonthEndCount(
+    id: string,
+    input: SaveScanMonthEndCountInput,
+    userId: string,
+  ): Promise<ScanMonthEndCountResult> {
+    const resolved = await this.resolveScanInventoryItemId(id);
+    const result = await this.bulkMonthEndCount(
+      {
+        month: input.month,
+        year: input.year,
+        counts: [
+          {
+            inventoryItemId: resolved.inventoryItemId,
+            endCount: input.endCount,
+          },
+        ],
+      },
+      userId,
+    );
+    const [count] = result.counts;
+
+    if (!count) {
+      throw new HttpError(500, 'Failed to save scan count', 'INTERNAL_SERVER');
+    }
+
+    return {
+      ...count,
+      resolved,
+    };
   }
 
   async bulkMonthEndCount(input: BulkMonthEndCountInput, userId: string) {

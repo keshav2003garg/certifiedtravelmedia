@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ScanIdRouteImport } from './routes/scan/$id'
 import { Route as ChartsSectorIdRouteImport } from './routes/charts/$sectorId'
 import { Route as DashboardroutesIndexRouteImport } from './routes/dashboard/(routes)/index'
 import { Route as DashboardroutesWarehousesRouteImport } from './routes/dashboard/(routes)/warehouses'
@@ -45,6 +46,11 @@ const authRouteRoute = authRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScanIdRoute = ScanIdRouteImport.update({
+  id: '/scan/$id',
+  path: '/scan/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChartsSectorIdRoute = ChartsSectorIdRouteImport.update({
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/charts/$sectorId': typeof ChartsSectorIdRoute
+  '/scan/$id': typeof ScanIdRoute
   '/forgot-password': typeof authroutesForgotPasswordRoute
   '/login': typeof authroutesLoginRoute
   '/reset-password': typeof authroutesResetPasswordRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/charts/$sectorId': typeof ChartsSectorIdRoute
+  '/scan/$id': typeof ScanIdRoute
   '/forgot-password': typeof authroutesForgotPasswordRoute
   '/login': typeof authroutesLoginRoute
   '/reset-password': typeof authroutesResetPasswordRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/(auth)': typeof authRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/charts/$sectorId': typeof ChartsSectorIdRoute
+  '/scan/$id': typeof ScanIdRoute
   '/(auth)/(routes)/forgot-password': typeof authroutesForgotPasswordRoute
   '/(auth)/(routes)/login': typeof authroutesLoginRoute
   '/(auth)/(routes)/reset-password': typeof authroutesResetPasswordRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/charts/$sectorId'
+    | '/scan/$id'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/charts/$sectorId'
+    | '/scan/$id'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
@@ -288,6 +299,7 @@ export interface FileRouteTypes {
     | '/(auth)'
     | '/dashboard'
     | '/charts/$sectorId'
+    | '/scan/$id'
     | '/(auth)/(routes)/forgot-password'
     | '/(auth)/(routes)/login'
     | '/(auth)/(routes)/reset-password'
@@ -314,6 +326,7 @@ export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   ChartsSectorIdRoute: typeof ChartsSectorIdRoute
+  ScanIdRoute: typeof ScanIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scan/$id': {
+      id: '/scan/$id'
+      path: '/scan/$id'
+      fullPath: '/scan/$id'
+      preLoaderRoute: typeof ScanIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/charts/$sectorId': {
@@ -549,6 +569,7 @@ const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   ChartsSectorIdRoute: ChartsSectorIdRoute,
+  ScanIdRoute: ScanIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
