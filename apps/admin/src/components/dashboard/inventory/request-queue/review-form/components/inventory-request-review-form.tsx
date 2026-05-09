@@ -11,6 +11,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@repo/ui/components/base/form';
+import { Input } from '@repo/ui/components/base/input';
 import { NumericInput } from '@repo/ui/components/base/numeric-input';
 import {
   Select,
@@ -52,11 +53,7 @@ import {
   inventoryRequestReviewFormSchema,
   REVIEW_TRANSACTION_TYPE_OPTIONS,
 } from '../schema';
-import {
-  normalizeReviewKey,
-  normalizeReviewText,
-  reviewTextMatches,
-} from '../utils';
+import { normalizeReviewText, reviewTextMatches } from '../utils';
 import ReviewCreatableSearchField from './review-creatable-search-field';
 
 import type { SearchableSelectOption } from '@/components/common/searchable-select';
@@ -112,7 +109,7 @@ function InventoryRequestReviewForm({
   const { brochureQueryOptions, brochuresQueryOptions, getBrochures } =
     useInventoryBrochures();
   const { getBrochureTypes } = useBrochureTypes();
-  const { getCustomers, customersQueryOptions } = useCustomers();
+  const { getCustomers } = useCustomers();
   const { getWarehouses } = useWarehouses();
 
   const defaultValues = useMemo(
@@ -137,7 +134,6 @@ function InventoryRequestReviewForm({
   const brochureTypeId = form.watch('brochureTypeId');
   const brochureName = form.watch('brochureName');
   const customerId = form.watch('customerId');
-  const customerName = form.watch('customerName');
 
   const addBrochureOption = useCallback((option: ReviewBrochureOption) => {
     setBrochureOptionCache((prev) => {
@@ -311,27 +307,6 @@ function InventoryRequestReviewForm({
     baseOptions: brochureOptionCache,
   });
 
-  const customerMatchQuery = useQuery({
-    ...customersQueryOptions({
-      search: request.customerName ?? undefined,
-      limit: 10,
-    }),
-    enabled: Boolean(request.customerName),
-  });
-
-  const matchedCustomer = useMemo(() => {
-    const requestCustomerKey = normalizeReviewKey(request.customerName);
-    if (!requestCustomerKey) return null;
-
-    return (
-      customerMatchQuery.data?.customers.find(
-        (customer) =>
-          normalizeReviewKey(customer.name) === requestCustomerKey ||
-          normalizeReviewKey(customer.acumaticaId) === requestCustomerKey,
-      ) ?? null
-    );
-  }, [customerMatchQuery.data?.customers, request.customerName]);
-
   const brochureMatchQuery = useQuery({
     ...brochuresQueryOptions({
       search: request.brochureName ?? undefined,
@@ -359,18 +334,10 @@ function InventoryRequestReviewForm({
     request.customerName,
   ]);
 
-  const autoCustomerId = useMemo(() => {
-    if (!matchedCustomer) return '';
-    return reviewTextMatches(customerName, request.customerName)
-      ? matchedCustomer.id
-      : '';
-  }, [customerName, matchedCustomer, request.customerName]);
-
   const canUseMatchedBrochure = Boolean(
     matchedBrochure &&
     reviewTextMatches(brochureName, request.brochureName) &&
-    brochureTypeId === request.brochureTypeId &&
-    reviewTextMatches(customerName, request.customerName),
+    brochureTypeId === request.brochureTypeId,
   );
   const effectiveSelectedBrochureId = hasManualBrochureSelection
     ? selectedBrochureId
@@ -400,20 +367,6 @@ function InventoryRequestReviewForm({
       });
     },
     [addCustomerOption, form],
-  );
-
-  const handleCustomerUseText = useCallback(
-    (name: string) => {
-      form.setValue('customerId', '', {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      form.setValue('customerName', normalizeReviewText(name), {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    },
-    [form],
   );
 
   const handleBrochureSelect = useCallback(
@@ -463,12 +416,10 @@ function InventoryRequestReviewForm({
 
   const handleSubmit = useCallback(
     (values: InventoryRequestReviewFormData) => {
-      const selectedCustomerId = values.customerId || autoCustomerId;
-
       onSubmit({
         warehouseId: values.warehouseId,
         brochureTypeId: values.brochureTypeId,
-        customerId: selectedCustomerId || undefined,
+        customerId: values.customerId || undefined,
         customerName: values.customerName || undefined,
         brochureName: values.brochureName,
         imageUrl: values.imageUrl || undefined,
@@ -479,7 +430,7 @@ function InventoryRequestReviewForm({
         notes: values.notes || undefined,
       });
     },
-    [autoCustomerId, onSubmit],
+    [onSubmit],
   );
 
   const isLoadingOptions = isLoadingWarehouses || isLoadingBrochureTypes;
@@ -541,6 +492,22 @@ function InventoryRequestReviewForm({
           )}
         />
 
+        {request.customerName ? (
+          <div className="space-y-1.5">
+            <label className="text-sm leading-none font-medium">
+              Customer name
+            </label>
+            <div className="relative">
+              <UserRound className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                readOnly
+                value={request.customerName}
+                className="bg-muted/50 pl-9"
+              />
+            </div>
+          </div>
+        ) : null}
+
         <FormField
           control={form.control}
           name="customerName"
@@ -550,20 +517,17 @@ function InventoryRequestReviewForm({
               <FormControl>
                 <ReviewCreatableSearchField
                   value={field.value}
-                  selectedValue={customerId || autoCustomerId}
+                  selectedValue={customerId}
                   options={customerOptions}
                   search={customerSearch}
                   onSearchChange={setCustomerSearch}
                   onSelect={handleCustomerSelect}
-                  onUseText={handleCustomerUseText}
                   isLoading={isSearchingCustomers}
                   disabled={isSubmitting}
-                  placeholder="Select or keep customer"
+                  placeholder="Select Acumatica customer"
                   searchPlaceholder="Search Acumatica customers"
                   emptyMessage="No customers found"
                   icon={<UserRound className="size-4 shrink-0" />}
-                  getTextLabel={(value) => `Keep "${value}" as customer`}
-                  textDescription="Keeps the staff-entered customer text"
                 />
               </FormControl>
               <FormMessage />

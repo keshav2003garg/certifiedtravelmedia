@@ -29,15 +29,15 @@ interface ReviewCreatableSearchFieldProps<
   search: string;
   onSearchChange: (value: string) => void;
   onSelect: (option: TOption) => void;
-  onUseText: (value: string) => void;
+  onUseText?: (value: string) => void;
   isLoading: boolean;
   disabled: boolean;
   placeholder: string;
   searchPlaceholder: string;
   emptyMessage: string;
   icon: React.ReactNode;
-  getTextLabel: (value: string) => string;
-  textDescription: string;
+  getTextLabel?: (value: string) => string;
+  textDescription?: string;
 }
 
 function ReviewCreatableSearchField<TOption extends SearchableSelectOption>({
@@ -76,7 +76,8 @@ function ReviewCreatableSearchField<TOption extends SearchableSelectOption>({
       (option) => normalizeReviewText(option.label).toLowerCase() === target,
     );
   }, [normalizedSearch, options]);
-  const canUseText = normalizedSearch.length > 0 && !hasExactOption;
+  const canUseText =
+    Boolean(onUseText) && normalizedSearch.length > 0 && !hasExactOption;
 
   const closeAndClear = useCallback(() => {
     setOpen(false);
@@ -100,7 +101,7 @@ function ReviewCreatableSearchField<TOption extends SearchableSelectOption>({
   );
 
   const handleUseText = useCallback(() => {
-    if (!canUseText) return;
+    if (!canUseText || !onUseText) return;
     onUseText(normalizedSearch);
     closeAndClear();
   }, [canUseText, closeAndClear, normalizedSearch, onUseText]);
@@ -198,7 +199,7 @@ function ReviewCreatableSearchField<TOption extends SearchableSelectOption>({
                   <Plus className="size-4 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
-                      {getTextLabel(normalizedSearch)}
+                      {getTextLabel?.(normalizedSearch)}
                     </p>
                     <p className="text-muted-foreground truncate text-xs">
                       {textDescription}

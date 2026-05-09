@@ -60,7 +60,7 @@ export function getInventoryRequestReviewValues(request: InventoryRequest) {
     warehouseId: request.warehouseId ?? '',
     brochureTypeId: request.brochureTypeId ?? '',
     customerId: '',
-    customerName: request.customerName ?? '',
+    customerName: '',
     brochureName: request.brochureName ?? '',
     imageUrl: request.imageUrl ?? '',
     dateReceived: request.dateReceived,
