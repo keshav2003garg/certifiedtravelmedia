@@ -101,9 +101,6 @@ export interface ChartTileResult {
 export interface ChartCustomFillerResult {
   id: string;
   name: string;
-  customerId: string;
-  customerName: string;
-  customerAcumaticaId: string;
   createdAt: string;
   updatedAt: string;
 }

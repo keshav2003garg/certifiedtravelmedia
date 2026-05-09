@@ -35,8 +35,7 @@ function InventoryTransactionsTable({
               <TableHead className="w-[16%]">Type</TableHead>
               <TableHead className="w-[12%]">Boxes</TableHead>
               <TableHead className="w-[18%]">Balance</TableHead>
-              <TableHead className="w-[18%]">Recorded by</TableHead>
-              <TableHead className="w-[24%]">Notes</TableHead>
+              <TableHead className="w-[42%]">Notes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -61,24 +60,6 @@ function InventoryTransactionsTable({
                   <span className="text-foreground font-medium">
                     {formatQuantity(transaction.balanceAfterBoxes)}
                   </span>
-                </TableCell>
-                <TableCell>
-                  {transaction.createdByName ? (
-                    <div className="min-w-0 space-y-1">
-                      <p className="truncate text-sm font-medium">
-                        {transaction.createdByName}
-                      </p>
-                      {transaction.createdByEmail ? (
-                        <p className="text-muted-foreground truncate text-xs">
-                          {transaction.createdByEmail}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">
-                      System
-                    </span>
-                  )}
                 </TableCell>
                 <TableCell>
                   {transaction.notes ? (

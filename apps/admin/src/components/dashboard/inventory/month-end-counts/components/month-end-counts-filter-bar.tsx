@@ -1,6 +1,5 @@
 import { memo, useCallback, useMemo } from 'react';
 
-import { Button } from '@repo/ui/components/base/button';
 import { Input } from '@repo/ui/components/base/input';
 import { NumericInput } from '@repo/ui/components/base/numeric-input';
 import {
@@ -222,18 +221,6 @@ function MonthEndCountsFilterBar({ filters }: MonthEndCountsFilterBarProps) {
           className="h-11"
           placeholder="Year"
         />
-      </div>
-
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11"
-          disabled={!filters.hasActiveFilters}
-          onClick={filters.clearFilters}
-        >
-          Clear filters
-        </Button>
       </div>
     </div>
   );

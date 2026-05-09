@@ -62,9 +62,9 @@ function InventoryRequestRejectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Reject inventory request</DialogTitle>
+          <DialogTitle>Reject unconfirmed brochure</DialogTitle>
           <DialogDescription>
-            Let the requester know why this request is being rejected.
+            Add the reason this brochure is being rejected.
           </DialogDescription>
         </DialogHeader>
 
@@ -83,7 +83,7 @@ function InventoryRequestRejectDialog({
                     <Textarea
                       {...field}
                       rows={4}
-                      placeholder="Explain why this request is being rejected"
+                      placeholder="Explain why this brochure is being rejected"
                       disabled={isSubmitting}
                     />
                   </FormControl>
@@ -109,7 +109,7 @@ function InventoryRequestRejectDialog({
                 {isSubmitting ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : null}
-                Reject request
+                Reject brochure
               </Button>
             </DialogFooter>
           </form>

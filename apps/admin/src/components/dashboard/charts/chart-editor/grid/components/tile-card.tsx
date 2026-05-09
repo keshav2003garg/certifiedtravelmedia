@@ -48,9 +48,6 @@ export const TileCard = memo(function TileCard({
         {hasDetails && tile.label ? (
           <span className="font-semibold">{tile.label}</span>
         ) : null}
-        {hasDetails && tile.customerName ? (
-          <span>{tile.customerName}</span>
-        ) : null}
         {hasDetails && tile.acumaticaContractId ? (
           <span>Contract: {tile.acumaticaContractId}</span>
         ) : null}

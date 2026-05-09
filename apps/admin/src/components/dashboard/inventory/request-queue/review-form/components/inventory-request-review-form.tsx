@@ -6,7 +6,6 @@ import { Button } from '@repo/ui/components/base/button';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -508,9 +507,6 @@ function InventoryRequestReviewForm({
                   onSearchChange={setWarehouseSearch}
                 />
               </FormControl>
-              <FormDescription>
-                Final warehouse where this stock will be counted.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -540,9 +536,6 @@ function InventoryRequestReviewForm({
                   onSearchChange={setBrochureTypeSearch}
                 />
               </FormControl>
-              <FormDescription>
-                Category used for this brochure in inventory.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -573,9 +566,6 @@ function InventoryRequestReviewForm({
                   textDescription="Keeps the staff-entered customer text"
                 />
               </FormControl>
-              <FormDescription>
-                Customer name from the staff request, matched when possible.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -606,9 +596,6 @@ function InventoryRequestReviewForm({
                   textDescription="Creates the brochure if no exact match exists"
                 />
               </FormControl>
-              <FormDescription>
-                Brochure name that will be used for the stock item.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -667,70 +654,62 @@ function InventoryRequestReviewForm({
                   ))}
                 </SelectContent>
               </Select>
-              <FormDescription>
-                Delivery adds to the current balance; Start Count sets it.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="boxes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Boxes</FormLabel>
-              <FormControl>
-                <NumericInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  name={field.name}
-                  ref={field.ref}
-                  min={0.01}
-                  step={0.01}
-                  decimals={2}
-                  placeholder="1"
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormDescription>
-                Number of boxes from the reviewed request.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="boxes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Boxes</FormLabel>
+                <FormControl>
+                  <NumericInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    min={0.01}
+                    step={0.01}
+                    decimals={2}
+                    placeholder="1"
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="unitsPerBox"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Units per box</FormLabel>
-              <FormControl>
-                <NumericInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  name={field.name}
-                  ref={field.ref}
-                  min={0.01}
-                  step={0.01}
-                  decimals={2}
-                  placeholder="225"
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormDescription>
-                Pack size that will be matched or created for the brochure
-                image.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="unitsPerBox"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Units per box</FormLabel>
+                <FormControl>
+                  <NumericInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    min={0.01}
+                    step={0.01}
+                    decimals={2}
+                    placeholder="225"
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -746,9 +725,6 @@ function InventoryRequestReviewForm({
                   disabled={isSubmitting}
                 />
               </FormControl>
-              <FormDescription>
-                Notes saved on the request and approval transaction.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

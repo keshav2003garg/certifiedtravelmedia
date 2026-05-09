@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react';
 
 import { Badge } from '@repo/ui/components/base/badge';
-import { Button } from '@repo/ui/components/base/button';
 import { Input } from '@repo/ui/components/base/input';
 import { FileText, Search, Tags, Warehouse, X } from '@repo/ui/lib/icons';
 
@@ -45,8 +44,6 @@ function InventoryRequestsFilterBar({
     handleWarehouseChange,
     handleBrochureChange,
     handleBrochureTypeChange,
-    clearFilters,
-    hasActiveFilters,
   } = filters;
 
   const activeChips = useMemo(() => {
@@ -181,16 +178,6 @@ function InventoryRequestsFilterBar({
             ))}
           </div>
         ) : null}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="ml-auto"
-          disabled={!hasActiveFilters}
-          onClick={clearFilters}
-        >
-          Clear filters
-        </Button>
       </div>
     </div>
   );

@@ -43,8 +43,8 @@ function ManagerOnlyAccessCard() {
           Managers and admins only
         </h1>
         <p className="text-muted-foreground mt-2 max-w-md text-sm">
-          The request queue is reserved for managers and admins reviewing staff
-          intake submissions.
+          Unconfirmed brochures are reserved for managers and admins reviewing
+          staff intake submissions.
         </p>
       </CardContent>
     </Card>
@@ -108,10 +108,10 @@ function InventoryRequestsQueuePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-foreground text-2xl font-semibold tracking-normal">
-            Request Queue
+            Unconfirmed Brochures
           </h1>
           <p className="text-muted-foreground max-w-2xl text-sm">
-            All inventory intake requests submitted by staff for review.
+            Staff-entered brochures waiting for inventory approval.
           </p>
         </div>
 
@@ -142,7 +142,7 @@ function InventoryRequestsQueuePage() {
             size="icon"
             onClick={handleRefresh}
             disabled={isListFetching}
-            aria-label="Refresh inventory requests"
+            aria-label="Refresh unconfirmed brochures"
           >
             {isListFetching ? (
               <Loader2 className="size-4 animate-spin" />
@@ -168,7 +168,7 @@ function InventoryRequestsQueuePage() {
                 <AlertCircle className="size-6" />
               </div>
               <h3 className="text-lg font-semibold tracking-normal">
-                Inventory requests could not be loaded
+                Unconfirmed brochures could not be loaded
               </h3>
               <p className="text-muted-foreground mt-2 max-w-md text-sm">
                 Refresh the list or try again after checking the API connection.
@@ -188,10 +188,7 @@ function InventoryRequestsQueuePage() {
           ) : isListLoading ? (
             <InventoryRequestsSkeleton />
           ) : requests.length === 0 ? (
-            <InventoryRequestsEmpty
-              hasFilters={filters.hasActiveFilters}
-              onClearFilters={filters.clearFilters}
-            />
+            <InventoryRequestsEmpty hasFilters={filters.hasActiveFilters} />
           ) : (
             <div className="space-y-4">
               <InventoryRequestsTable

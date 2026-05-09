@@ -3,7 +3,6 @@ import { memo } from 'react';
 import { DatePicker } from '@repo/ui/components/base/date-picker';
 import {
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -52,15 +51,10 @@ function InventoryTransactionDetailsFields({
                   }
                   step={0.01}
                   decimals={2}
-                  placeholder="1"
+                  placeholder="Enter boxes"
                   disabled={isSubmitting}
                 />
               </FormControl>
-              <FormDescription>
-                {isAdditionTransaction
-                  ? 'Boxes to add to this inventory item.'
-                  : 'Boxes to move out of this inventory item.'}
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

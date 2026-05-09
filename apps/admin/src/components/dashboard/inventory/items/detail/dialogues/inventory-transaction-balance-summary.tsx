@@ -6,7 +6,6 @@ import type { InventoryItemDetail } from '@/hooks/useInventoryItems/types';
 
 interface InventoryTransactionBalanceSummaryProps {
   item: InventoryItemDetail;
-  projectedBalance: number;
 }
 
 function formatQuantity(value: number) {
@@ -15,10 +14,9 @@ function formatQuantity(value: number) {
 
 function InventoryTransactionBalanceSummary({
   item,
-  projectedBalance,
 }: InventoryTransactionBalanceSummaryProps) {
   return (
-    <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-3">
+    <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
       <div>
         <p className="text-muted-foreground text-xs font-medium tracking-normal uppercase">
           Current boxes
@@ -33,14 +31,6 @@ function InventoryTransactionBalanceSummary({
         </p>
         <p className="mt-1 text-sm font-semibold">
           {formatQuantity(item.unitsPerBox)}
-        </p>
-      </div>
-      <div>
-        <p className="text-muted-foreground text-xs font-medium tracking-normal uppercase">
-          Projected boxes
-        </p>
-        <p className="mt-1 text-sm font-semibold">
-          {formatQuantity(projectedBalance)}
         </p>
       </div>
     </div>

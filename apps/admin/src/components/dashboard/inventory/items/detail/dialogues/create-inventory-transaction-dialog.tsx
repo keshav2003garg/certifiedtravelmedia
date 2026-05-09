@@ -24,7 +24,6 @@ import {
 } from './create-inventory-transaction-dialog.schema';
 import {
   buildInventoryTransactionPayload,
-  getProjectedInventoryBalance,
   shouldReduceInventory,
 } from './create-inventory-transaction-dialog.utils';
 import InventoryAdjustmentDirectionField from './inventory-adjustment-direction-field';
@@ -65,20 +64,12 @@ function CreateInventoryTransactionDialog({
 
   const transactionType = form.watch('transactionType');
   const adjustmentDirection = form.watch('adjustmentDirection');
-  const boxes = form.watch('boxes');
 
   const isTransferTransaction = transactionType === 'Transfer';
   const isAdjustmentTransaction = transactionType === 'Adjustment';
   const isAdditionTransaction =
     isAdjustmentTransaction && adjustmentDirection === 'Addition';
   const isSubmitting = createTransactionMutation.isPending;
-
-  const projectedBalance = getProjectedInventoryBalance({
-    currentBoxes: item.boxes,
-    boxes,
-    transactionType,
-    adjustmentDirection,
-  });
 
   const handleSubmit: SubmitHandler<
     CreateInventoryTransactionFormData
@@ -94,6 +85,11 @@ function CreateInventoryTransactionDialog({
       return;
     }
 
+    if (values.boxes === undefined) {
+      form.setError('boxes', { message: 'Boxes is required' });
+      return;
+    }
+
     if (
       shouldReduceInventory(values) &&
       values.boxes > item.boxes + INVENTORY_TRANSACTION_DECIMAL_EPSILON
@@ -106,7 +102,10 @@ function CreateInventoryTransactionDialog({
 
     await createTransactionMutation.mutateAsync({
       id: item.id,
-      body: buildInventoryTransactionPayload(values),
+      body: buildInventoryTransactionPayload({
+        ...values,
+        boxes: values.boxes,
+      }),
     });
 
     onOpenChange(false);
@@ -123,10 +122,7 @@ function CreateInventoryTransactionDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <InventoryTransactionBalanceSummary
-          item={item}
-          projectedBalance={projectedBalance}
-        />
+        <InventoryTransactionBalanceSummary item={item} />
 
         <Form {...form}>
           <form

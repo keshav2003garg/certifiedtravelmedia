@@ -8,7 +8,7 @@ function InventoryRequestsSkeleton() {
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="grid gap-4 rounded-md border p-4 md:grid-cols-[1.6fr_100px_140px_140px_160px_120px]"
+          className="grid gap-4 rounded-md border p-4 md:grid-cols-[1.8fr_100px_160px_140px_120px]"
         >
           <div className="space-y-2">
             <Skeleton className="h-4 w-48" />
@@ -16,14 +16,7 @@ function InventoryRequestsSkeleton() {
           </div>
           <Skeleton className="h-6 w-20" />
           <Skeleton className="h-4 w-28" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-20" />
-          </div>
+          <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-24" />
         </div>
       ))}

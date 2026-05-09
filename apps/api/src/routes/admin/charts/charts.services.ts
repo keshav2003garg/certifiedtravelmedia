@@ -100,11 +100,7 @@ type ChartTileWithRelations = typeof schema.chartTiles.$inferSelect & {
         customer: typeof schema.customers.$inferSelect | null;
       })
     | null;
-  customFiller:
-    | (typeof schema.chartCustomFillers.$inferSelect & {
-        customer: typeof schema.customers.$inferSelect | null;
-      })
-    | null;
+  customFiller: typeof schema.chartCustomFillers.$inferSelect | null;
 };
 
 type ChartLayoutWithRelations = typeof schema.chartLayouts.$inferSelect & {
@@ -149,9 +145,6 @@ interface InventoryItemRow {
 interface CustomFillerRow {
   id: string;
   name: string;
-  customerId: string;
-  customerName: string;
-  customerAcumaticaId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -195,11 +188,7 @@ class ChartsService {
                 customer: true,
               },
             },
-            customFiller: {
-              with: {
-                customer: true,
-              },
-            },
+            customFiller: true,
           },
         },
       },
@@ -351,9 +340,6 @@ class ChartsService {
     return {
       id: row.id,
       name: row.name,
-      customerId: row.customerId,
-      customerName: row.customerName,
-      customerAcumaticaId: row.customerAcumaticaId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -364,19 +350,12 @@ class ChartsService {
       .select({
         id: schema.chartCustomFillers.id,
         name: schema.chartCustomFillers.name,
-        customerId: schema.chartCustomFillers.customerId,
-        customerName: schema.customers.name,
-        customerAcumaticaId: schema.customers.acumaticaId,
         createdAt: schema.chartCustomFillers.createdAt,
         updatedAt: schema.chartCustomFillers.updatedAt,
       })
       .from(schema.chartCustomFillers)
-      .innerJoin(
-        schema.customers,
-        eq(schema.chartCustomFillers.customerId, schema.customers.id),
-      )
       .where(isNull(schema.chartCustomFillers.deletedAt))
-      .orderBy(asc(schema.chartCustomFillers.name), asc(schema.customers.name));
+      .orderBy(asc(schema.chartCustomFillers.name));
 
     return rows.map((row) => this.formatCustomFiller(row));
   }
@@ -533,10 +512,7 @@ class ChartsService {
           tier: tile.contract?.tier ?? null,
           contractEndDate: tile.contract?.endDate ?? null,
           customerName:
-            tile.contract?.customer?.name ??
-            tile.customFiller?.customer?.name ??
-            inventory?.customerName ??
-            null,
+            tile.contract?.customer?.name ?? inventory?.customerName ?? null,
           acumaticaContractId: tile.contract?.acumaticaContractId ?? null,
         };
       });
@@ -1240,11 +1216,7 @@ class ChartsService {
                 customer: true,
               },
             },
-            customFiller: {
-              with: {
-                customer: true,
-              },
-            },
+            customFiller: true,
           },
         },
       },
@@ -1329,7 +1301,7 @@ class ChartsService {
       contractId: tile.contract?.acumaticaContractId ?? null,
       contractEndDate: tile.contract?.endDate ?? null,
       tier: tile.contract?.tier ?? null,
-      customerName: tile.customFiller?.customer?.name ?? null,
+      customerName: null,
       isNew: tile.isNew,
       isFlagged: tile.isFlagged,
       flagNote: tile.flagNote,
@@ -1741,13 +1713,7 @@ class ChartsService {
 
     if (params.search) {
       const term = `%${this.escapeLike(params.search)}%`;
-      conditions.push(
-        or(
-          ilike(schema.chartCustomFillers.name, term),
-          ilike(schema.customers.name, term),
-          ilike(schema.customers.acumaticaId, term),
-        )!,
-      );
+      conditions.push(ilike(schema.chartCustomFillers.name, term));
     }
 
     const whereClause = and(...conditions);
@@ -1755,31 +1721,17 @@ class ChartsService {
       db
         .select({ total: count() })
         .from(schema.chartCustomFillers)
-        .innerJoin(
-          schema.customers,
-          eq(schema.chartCustomFillers.customerId, schema.customers.id),
-        )
         .where(whereClause),
       db
         .select({
           id: schema.chartCustomFillers.id,
           name: schema.chartCustomFillers.name,
-          customerId: schema.chartCustomFillers.customerId,
-          customerName: schema.customers.name,
-          customerAcumaticaId: schema.customers.acumaticaId,
           createdAt: schema.chartCustomFillers.createdAt,
           updatedAt: schema.chartCustomFillers.updatedAt,
         })
         .from(schema.chartCustomFillers)
-        .innerJoin(
-          schema.customers,
-          eq(schema.chartCustomFillers.customerId, schema.customers.id),
-        )
         .where(whereClause)
-        .orderBy(
-          asc(schema.chartCustomFillers.name),
-          asc(schema.customers.name),
-        )
+        .orderBy(asc(schema.chartCustomFillers.name))
         .limit(params.limit)
         .offset(offset),
     ]);
@@ -1793,17 +1745,8 @@ class ChartsService {
   }
 
   async createCustomFiller(values: CreateCustomFillerInput, userId: string) {
-    const customer = await db.query.customers.findFirst({
-      where: eq(schema.customers.id, values.customerId),
-    });
-
-    if (!customer) {
-      throw new HttpError(400, 'Customer not found', 'BAD_REQUEST');
-    }
-
     const existing = await db.query.chartCustomFillers.findFirst({
       where: and(
-        eq(schema.chartCustomFillers.customerId, values.customerId),
         isNull(schema.chartCustomFillers.deletedAt),
         sql`lower(${schema.chartCustomFillers.name}) = lower(${values.name})`,
       ),
@@ -1812,7 +1755,7 @@ class ChartsService {
     if (existing) {
       throw new HttpError(
         409,
-        'A custom filler with this name already exists for this customer',
+        'A custom filler with this name already exists',
         'CONFLICT',
       );
     }
@@ -1821,7 +1764,6 @@ class ChartsService {
       .insert(schema.chartCustomFillers)
       .values({
         name: values.name,
-        customerId: values.customerId,
         createdBy: userId,
       })
       .returning();
@@ -1838,9 +1780,6 @@ class ChartsService {
       customFiller: this.formatCustomFiller({
         id: created.id,
         name: created.name,
-        customerId: created.customerId,
-        customerName: customer.name,
-        customerAcumaticaId: customer.acumaticaId,
         createdAt: created.createdAt,
         updatedAt: created.updatedAt,
       }),

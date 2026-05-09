@@ -126,7 +126,7 @@ function createCustomFillerTile(
     flagNote: null,
     tier: null,
     contractEndDate: null,
-    customerName: filler.customerName,
+    customerName: null,
     acumaticaContractId: null,
   };
 }

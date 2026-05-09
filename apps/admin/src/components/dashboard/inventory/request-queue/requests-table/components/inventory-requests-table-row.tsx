@@ -3,7 +3,7 @@ import { memo, useCallback } from 'react';
 import { TableCell, TableRow } from '@repo/ui/components/base/table';
 import { cn } from '@repo/ui/lib/utils';
 import { formatShortDate } from '@repo/utils/date';
-import { formatCount, formatDecimal } from '@repo/utils/number';
+import { formatDecimal } from '@repo/utils/number';
 
 import InventoryRequestStatusBadge from './inventory-request-status-badge';
 
@@ -18,10 +18,6 @@ function InventoryRequestsTableRow({
   request,
   onSelect,
 }: InventoryRequestsTableRowProps) {
-  const totalUnits = request.boxes * request.unitsPerBox;
-  const requesterLabel =
-    request.requestedByName ?? request.requestedByEmail ?? 'Unknown';
-
   const isReviewable = request.status === 'Pending' && Boolean(onSelect);
 
   const handleClick = useCallback(() => {
@@ -49,24 +45,9 @@ function InventoryRequestsTableRow({
         <span className="text-sm">{request.warehouseName ?? '—'}</span>
       </TableCell>
       <TableCell>
-        <div className="space-y-0.5">
-          <p className="text-sm font-medium">
-            {formatCount(request.boxes)} boxes
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {formatDecimal(totalUnits)} units
-            <span className="px-1">·</span>
-            {formatDecimal(request.unitsPerBox)}/box
-          </p>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="min-w-0 space-y-0.5">
-          <p className="truncate text-sm">{requesterLabel}</p>
-          <p className="text-muted-foreground text-xs">
-            {formatShortDate(request.dateReceived)}
-          </p>
-        </div>
+        <span className="text-sm font-medium">
+          {formatDecimal(request.unitsPerBox)} units/box
+        </span>
       </TableCell>
       <TableCell>
         <span className="text-muted-foreground text-sm">

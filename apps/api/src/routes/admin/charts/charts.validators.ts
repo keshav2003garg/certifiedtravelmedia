@@ -122,7 +122,6 @@ export const createCustomFillerValidator = createValidatorSchema({
       .min(1, 'Filler name is required')
       .max(255, 'Filler name must be 255 characters or less')
       .transform((value) => value.replace(/\s+/g, ' ')),
-    customerId: z.uuid('Invalid customer ID'),
   }),
 });
 export type CreateCustomFillerContext = TypedContext<

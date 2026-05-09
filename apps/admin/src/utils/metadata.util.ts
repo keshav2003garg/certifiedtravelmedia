@@ -68,12 +68,12 @@ export function getMetadata(path: AppRoute): Head {
       description: 'Manage your profile, password, and active sessions',
     },
     '/dashboard/inventory/request-queue': {
-      title: 'Inventory Request Queue - CTM Grid Admin',
-      description: 'Review staff inventory intake requests',
+      title: 'Unconfirmed Brochures - CTM Grid Admin',
+      description: 'Review staff-entered unconfirmed brochures',
     },
     '/dashboard/inventory/request-queue/$id': {
-      title: 'Review Inventory Request - CTM Grid Admin',
-      description: 'Review and approve a staff inventory intake request',
+      title: 'Review Unconfirmed Brochure - CTM Grid Admin',
+      description: 'Review and approve a staff-entered brochure',
     },
     '/dashboard/inventory/intake-request': {
       title: 'New Inventory Intake - CTM Grid Admin',

@@ -26,7 +26,7 @@ function ReviewAccessCard() {
           Managers and admins only
         </h1>
         <p className="text-muted-foreground mt-2 max-w-md text-sm">
-          Reviewing inventory requests is restricted to managers and admins.
+          Reviewing unconfirmed brochures is restricted to managers and admins.
         </p>
       </CardContent>
     </Card>
@@ -51,13 +51,13 @@ function RequestNotFoundCard({ onBack }: BackActionProps) {
           <AlertCircle className="size-6" />
         </div>
         <h2 className="text-lg font-semibold tracking-normal">
-          Request not found
+          Unconfirmed brochure not found
         </h2>
         <p className="text-muted-foreground mt-2 max-w-md text-sm">
-          This inventory request could not be loaded.
+          This unconfirmed brochure could not be loaded.
         </p>
         <Button type="button" onClick={onBack} className="mt-5">
-          Back to queue
+          Back to unconfirmed brochures
         </Button>
       </CardContent>
     </Card>
@@ -86,8 +86,6 @@ function ClosedRequestCard({
   onBack,
 }: BackActionProps & { request: InventoryRequest }) {
   const dateReceived = parseISODate(request.dateReceived);
-  const requesterLabel =
-    request.requestedByName ?? request.requestedByEmail ?? 'Unknown';
 
   return (
     <Card className="shadow-none">
@@ -95,7 +93,7 @@ function ClosedRequestCard({
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold tracking-normal">
-              Request already reviewed
+              Unconfirmed brochure already reviewed
             </h2>
             {request.status === 'Rejected' && request.rejectionReason ? (
               <p className="text-muted-foreground mt-1 text-sm">
@@ -141,7 +139,6 @@ function ClosedRequestCard({
             label="Date received"
             value={dateReceived ? formatFullDate(dateReceived) : '-'}
           />
-          <FieldLine label="Requested by" value={requesterLabel} />
           {request.notes ? (
             <FieldLine label="Notes" value={request.notes} />
           ) : null}
@@ -149,7 +146,7 @@ function ClosedRequestCard({
 
         <div className="flex justify-end">
           <Button type="button" variant="outline" onClick={onBack}>
-            Back to queue
+            Back to unconfirmed brochures
           </Button>
         </div>
       </CardContent>

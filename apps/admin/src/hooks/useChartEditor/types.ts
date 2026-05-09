@@ -58,9 +58,6 @@ export interface ChartTile {
 export interface ChartCustomFiller {
   id: string;
   name: string;
-  customerId: string;
-  customerName: string;
-  customerAcumaticaId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -240,7 +237,6 @@ export type ListCustomFillersRequest = ApiData<
 export type CreateCustomFillerRequest = ApiData<
   {
     name: string;
-    customerId: string;
   },
   { customFiller: ChartCustomFiller }
 >;

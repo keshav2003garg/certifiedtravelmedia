@@ -62,7 +62,7 @@ export const navigationItems: SidebarItem[] = [
         allowedRoles: ['manager', 'admin'],
       },
       {
-        title: 'Request Queue',
+        title: 'Unconfirmed Brochures',
         url: '/dashboard/inventory/request-queue',
         allowedRoles: ['manager', 'admin'],
       },

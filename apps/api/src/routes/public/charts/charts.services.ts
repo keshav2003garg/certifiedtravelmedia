@@ -41,7 +41,7 @@ class ChartsService {
         contractId: tile.contract?.acumaticaContractId ?? null,
         contractEndDate: tile.contract?.endDate ?? null,
         tier: tile.contract?.tier ?? null,
-        customerName: tile.customFiller?.customer?.name ?? null,
+        customerName: null,
         isNew: tile.isNew,
         isFlagged: tile.isFlagged,
         flagNote: tile.flagNote,
@@ -142,11 +142,7 @@ class ChartsService {
         tiles: {
           with: {
             contract: true,
-            customFiller: {
-              with: {
-                customer: true,
-              },
-            },
+            customFiller: true,
           },
         },
       },
@@ -161,11 +157,7 @@ class ChartsService {
         tiles: {
           with: {
             contract: true,
-            customFiller: {
-              with: {
-                customer: true,
-              },
-            },
+            customFiller: true,
           },
         },
       },

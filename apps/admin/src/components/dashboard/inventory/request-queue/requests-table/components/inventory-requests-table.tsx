@@ -26,11 +26,10 @@ function InventoryRequestsTable({
       <Table className="table-fixed" style={{ minWidth: '960px' }}>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="w-[28%]">Brochure</TableHead>
+            <TableHead className="w-[34%]">Brochure</TableHead>
             <TableHead className="w-[12%]">Status</TableHead>
-            <TableHead className="w-[16%]">Warehouse</TableHead>
-            <TableHead className="w-[16%]">Quantity</TableHead>
-            <TableHead className="w-[16%]">Requested by</TableHead>
+            <TableHead className="w-[18%]">Warehouse</TableHead>
+            <TableHead className="w-[18%]">Units/box</TableHead>
             <TableHead className="w-[12%]">Created</TableHead>
           </TableRow>
         </TableHeader>

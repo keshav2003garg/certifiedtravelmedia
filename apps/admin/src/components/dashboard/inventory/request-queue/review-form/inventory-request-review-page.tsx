@@ -97,15 +97,12 @@ function InventoryRequestReviewPage({
           onClick={goBack}
         >
           <ArrowLeft className="size-4" />
-          Back to queue
+          Back to unconfirmed brochures
         </Button>
         <div className="space-y-1">
           <h1 className="text-foreground text-2xl font-semibold tracking-normal">
-            Review request
+            Review unconfirmed brochure
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Check each staff-entered value, then approve it into inventory.
-          </p>
         </div>
       </div>
 

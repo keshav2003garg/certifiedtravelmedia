@@ -18,23 +18,8 @@ export function shouldReduceInventory(
   );
 }
 
-export function getProjectedInventoryBalance(values: {
-  adjustmentDirection: CreateInventoryTransactionFormData['adjustmentDirection'];
-  boxes: number | undefined;
-  currentBoxes: number;
-  transactionType: CreateInventoryTransactionFormData['transactionType'];
-}) {
-  const boxes = values.boxes ?? 0;
-
-  if (!shouldReduceInventory(values)) {
-    return values.currentBoxes + boxes;
-  }
-
-  return values.currentBoxes - boxes;
-}
-
 export function buildInventoryTransactionPayload(
-  values: CreateInventoryTransactionFormData,
+  values: CreateInventoryTransactionFormData & { boxes: number },
 ): CreateInventoryItemTransactionPayload {
   const base = {
     boxes: values.boxes,

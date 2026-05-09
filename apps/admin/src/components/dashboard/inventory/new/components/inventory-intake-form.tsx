@@ -23,7 +23,6 @@ import { Textarea } from '@repo/ui/components/base/textarea';
 import { useForm, zodResolver } from '@repo/ui/lib/form';
 import {
   Building2,
-  FileImage,
   Loader2,
   Send,
   Tags,
@@ -414,6 +413,16 @@ function InventoryIntakeForm({
 
   const handleSubmit = useCallback(
     (values: InventoryIntakeFormData) => {
+      if (values.boxes === undefined) {
+        form.setError('boxes', { message: 'Boxes is required' });
+        return;
+      }
+
+      if (values.unitsPerBox === undefined) {
+        form.setError('unitsPerBox', { message: 'Units per box is required' });
+        return;
+      }
+
       onSubmit(
         {
           warehouseId: values.warehouseId,
@@ -433,7 +442,7 @@ function InventoryIntakeForm({
         },
       );
     },
-    [onSubmit, resetForm, resetOnSuccess],
+    [form, onSubmit, resetForm, resetOnSuccess],
   );
 
   const isLoadingOptions = isLoadingWarehouses || isLoadingBrochureTypes;
@@ -629,7 +638,7 @@ function InventoryIntakeForm({
                   min={0.01}
                   step={0.01}
                   decimals={2}
-                  placeholder="1"
+                  placeholder="Enter boxes"
                   disabled={isSubmitting}
                 />
               </FormControl>
@@ -654,7 +663,7 @@ function InventoryIntakeForm({
                   min={0.01}
                   step={0.01}
                   decimals={2}
-                  placeholder="225"
+                  placeholder="Enter units/box"
                   disabled={isSubmitting}
                 />
               </FormControl>
@@ -684,15 +693,6 @@ function InventoryIntakeForm({
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           {extraFooterActions}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={resetForm}
-            disabled={isSubmitting}
-          >
-            <FileImage className="size-4" />
-            Reset
-          </Button>
           <Button type="submit" disabled={isSubmitting || isLoadingOptions}>
             {isSubmitting ? (
               <Loader2 className="size-4 animate-spin" />

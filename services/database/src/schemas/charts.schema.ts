@@ -14,7 +14,6 @@ import {
 
 import { userSchema } from './auth.schema';
 import { contracts } from './contract.schema';
-import { customers } from './customer.schema';
 import { inventoryItems } from './inventory.schema';
 import { sectors } from './sector.schema';
 
@@ -32,10 +31,6 @@ export const chartCustomFillers = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
 
     name: varchar('name', { length: 255 }).notNull(),
-
-    customerId: uuid('customer_id')
-      .notNull()
-      .references(() => customers.id),
 
     createdBy: text('created_by').references(() => userSchema.id, {
       onDelete: 'set null',
@@ -55,7 +50,6 @@ export const chartCustomFillers = pgTable(
   },
   (table) => [
     index('chart_custom_fillers_name_idx').on(table.name),
-    index('chart_custom_fillers_customer_id_idx').on(table.customerId),
     index('chart_custom_fillers_deleted_at_idx').on(table.deletedAt),
   ],
 );
@@ -201,10 +195,6 @@ export const chartTilesRelations = relations(chartTiles, ({ one }) => ({
 export const chartCustomFillersRelations = relations(
   chartCustomFillers,
   ({ one, many }) => ({
-    customer: one(customers, {
-      fields: [chartCustomFillers.customerId],
-      references: [customers.id],
-    }),
     createdByUser: one(userSchema, {
       fields: [chartCustomFillers.createdBy],
       references: [userSchema.id],

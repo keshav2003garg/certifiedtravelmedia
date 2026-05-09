@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 import { Badge } from '@repo/ui/components/base/badge';
 import { Button } from '@repo/ui/components/base/button';
@@ -18,25 +18,13 @@ import {
 } from '@repo/ui/components/base/dialog';
 import { Input } from '@repo/ui/components/base/input';
 import { Label } from '@repo/ui/components/base/label';
-import { Loader2, Plus, Square, UserRound } from '@repo/ui/lib/icons';
+import { Loader2, Plus, Square } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
 
-import SearchableSelect from '@/components/common/searchable-select';
-
 import { useChartEditor } from '@/hooks/useChartEditor';
-import { useCustomers } from '@/hooks/useCustomers';
-import { useServerSearchSelectOptions } from '@/hooks/useServerSearchSelectOptions';
-
-import { ReactQueryKeys } from '@/types/react-query-keys';
 
 import type { DragEvent, FormEvent } from 'react';
-import type { SearchableSelectOption } from '@/components/common/searchable-select';
 import type { ChartCustomFiller } from '@/hooks/useChartEditor/types';
-import type {
-  ListCustomersRequest,
-  SortOrder as CustomerSortOrder,
-} from '@/hooks/useCustomers/types';
-import type { ServerSearchSelectParams } from '@/hooks/useServerSearchSelectOptions';
 
 export const CHART_CUSTOM_FILLER_DRAG_MIME_TYPE =
   'application/x-chart-custom-filler-id';
@@ -51,8 +39,6 @@ interface CustomFillersSidebarProps {
   onFillerDragStart: (filler: ChartCustomFiller) => void;
   onFillerDragEnd: () => void;
 }
-
-type CustomerOptionData = ListCustomersRequest['response']['data'];
 
 function getDisabledReason(
   filler: ChartCustomFiller,
@@ -96,19 +82,7 @@ function createCustomFillerDragPreview(filler: ChartCustomFiller) {
     lineHeight: '16px',
   });
 
-  const meta = document.createElement('div');
-  meta.textContent = filler.customerName;
-  Object.assign(meta.style, {
-    marginTop: '3px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    color: '#6b7280',
-    fontSize: '10px',
-    lineHeight: '14px',
-  });
-
-  preview.append(name, meta);
+  preview.append(name);
   document.body.appendChild(preview);
 
   return preview;
@@ -125,62 +99,12 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
   onFillerDragEnd,
 }: CustomFillersSidebarProps) {
   const { createCustomFillerMutation } = useChartEditor();
-  const { getCustomers } = useCustomers();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState('');
-  const [customerId, setCustomerId] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
-
-  const selectCustomerOptions = useCallback(
-    (data: CustomerOptionData | undefined): SearchableSelectOption[] =>
-      (data?.customers ?? []).map((customer) => ({
-        value: customer.id,
-        label: customer.name,
-        description: customer.acumaticaId,
-      })),
-    [],
-  );
-
-  const selectedCustomerOption = useMemo<SearchableSelectOption | null>(() => {
-    const customer = fillers.find((filler) => filler.customerId === customerId);
-
-    if (!customer) return null;
-
-    return {
-      value: customer.customerId,
-      label: customer.customerName,
-      description: customer.customerAcumaticaId,
-    };
-  }, [customerId, fillers]);
-
-  const buildCustomerParams = useCallback(
-    ({ page, limit, search }: ServerSearchSelectParams) => ({
-      page,
-      limit,
-      search,
-      sortBy: 'name' as const,
-      order: 'asc' as CustomerSortOrder,
-    }),
-    [],
-  );
-
-  const {
-    options: customerOptions,
-    setSearch: setCustomerSearch,
-    isSearching: isSearchingCustomers,
-  } = useServerSearchSelectOptions({
-    queryKey: (params: ListCustomersRequest['payload']) =>
-      [ReactQueryKeys.GET_CUSTOMERS, 'custom-filler-dialog', params] as const,
-    queryFn: getCustomers,
-    selectOptions: selectCustomerOptions,
-    buildParams: buildCustomerParams,
-    baseOptions: selectedCustomerOption ? [selectedCustomerOption] : [],
-    enabled: dialogOpen,
-  });
 
   const resetForm = useCallback(() => {
     setName('');
-    setCustomerId('');
     setFormError(null);
   }, []);
 
@@ -209,14 +133,9 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
         return;
       }
 
-      if (!customerId) {
-        setFormError('Customer is required');
-        return;
-      }
-
       setFormError(null);
       createCustomFillerMutation.mutate(
-        { name: normalizedName, customerId },
+        { name: normalizedName },
         {
           onSuccess: () => {
             setDialogOpen(false);
@@ -225,7 +144,7 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
         },
       );
     },
-    [createCustomFillerMutation, customerId, name, resetForm],
+    [createCustomFillerMutation, name, resetForm],
   );
 
   function handleDragStart(
@@ -299,7 +218,7 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
                     onDragEnd={onFillerDragEnd}
                     onClick={() => onAddFiller(filler)}
                     className={cn(
-                      'group flex w-full items-start gap-2 rounded-md border p-2 text-left transition-colors',
+                      'group flex w-full items-center gap-2 rounded-md border p-2 text-left transition-colors',
                       isDisabled
                         ? 'cursor-not-allowed border-gray-100 bg-gray-50 opacity-70'
                         : 'cursor-grab border-gray-100 hover:border-gray-300 hover:bg-gray-50 active:cursor-grabbing',
@@ -312,9 +231,6 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-xs font-semibold">
                         {filler.name}
-                      </span>
-                      <span className="text-muted-foreground mt-1 block truncate text-[10px]">
-                        {filler.customerName}
                       </span>
                     </span>
 
@@ -334,7 +250,7 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
           <DialogHeader>
             <DialogTitle>New custom filler</DialogTitle>
             <DialogDescription>
-              Create a customer-backed filler tile for chart placement.
+              Create a filler tile for chart placement.
             </DialogDescription>
           </DialogHeader>
 
@@ -348,21 +264,6 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
                 placeholder="Lobby display"
                 autoComplete="off"
                 maxLength={255}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Customer</Label>
-              <SearchableSelect
-                options={customerOptions}
-                value={customerId || undefined}
-                onChange={setCustomerId}
-                placeholder="Select customer"
-                searchPlaceholder="Search customers"
-                emptyMessage="No customers found"
-                isLoading={isSearchingCustomers}
-                icon={<UserRound className="size-4 shrink-0" />}
-                onSearchChange={setCustomerSearch}
               />
             </div>
 

@@ -15,10 +15,10 @@ import {
 import { Skeleton } from '@repo/ui/components/base/skeleton';
 import {
   ArrowLeft,
-  ExternalLink,
   FileImage,
   Loader2,
   Plus,
+  Printer,
   RefreshCw,
 } from '@repo/ui/lib/icons';
 import { formatCount, formatDecimal } from '@repo/utils/number';
@@ -150,6 +150,86 @@ function InventoryOverviewCard({ item }: { item: InventoryItemDetail }) {
   );
 }
 
+function printQrLabel(item: InventoryItemDetail) {
+  const iframe = document.createElement('iframe');
+  Object.assign(iframe.style, {
+    position: 'fixed',
+    top: '-9999px',
+    left: '-9999px',
+    width: '1px',
+    height: '1px',
+    border: 'none',
+    visibility: 'hidden',
+  });
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    return;
+  }
+
+  const coverHtml = item.imageUrl
+    ? `<img src="${item.imageUrl}" style="width:72px;height:96px;object-fit:contain;border-radius:4px;border:1px solid #e5e7eb;" />`
+    : '';
+
+  doc.open();
+  doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #fff; padding: 24px; }
+    .label { display: flex; align-items: center; gap: 14px; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; width: fit-content; }
+    .cover { flex-shrink: 0; }
+    .info { display: flex; flex-direction: column; gap: 3px; max-width: 140px; }
+    .info-name { font-size: 11px; font-weight: 700; line-height: 1.3; color: #111827; word-break: break-word; }
+    .info-meta { font-size: 10px; color: #6b7280; line-height: 1.3; }
+    .qr img { width: 96px; height: 96px; display: block; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="cover">${coverHtml}</div>
+    <div class="info">
+      <span class="info-name">${item.brochureName}</span>
+      <span class="info-meta">${item.unitsPerBox.toLocaleString()} units/box</span>
+    </div>
+    <div class="qr"><img src="${item.qrCodeUrl}" alt="QR code" /></div>
+  </div>
+</body>
+</html>`);
+  doc.close();
+
+  const triggerPrint = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  };
+
+  const images = Array.from(doc.images);
+  if (images.length === 0) {
+    triggerPrint();
+    return;
+  }
+
+  let remaining = images.length;
+  const onSettled = () => {
+    remaining -= 1;
+    if (remaining === 0) triggerPrint();
+  };
+  images.forEach((img) => {
+    if (img.complete) {
+      onSettled();
+    } else {
+      img.addEventListener('load', onSettled, { once: true });
+      img.addEventListener('error', onSettled, { once: true });
+    }
+  });
+}
+
 function InventoryReferenceCard({ item }: { item: InventoryItemDetail }) {
   return (
     <Card className="shadow-none">
@@ -168,12 +248,16 @@ function InventoryReferenceCard({ item }: { item: InventoryItemDetail }) {
                 alt="QR code"
                 className="h-40 w-40 rounded-md border object-contain"
               />
-              <Button asChild variant="outline" size="sm">
-                <a href={item.qrCodeUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink className="size-3.5" />
-                  Open full size
-                </a>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => printQrLabel(item)}
+                >
+                  <Printer className="size-3.5" />
+                  Print QR
+                </Button>
+              </div>
             </div>
           ) : (
             <p className="text-sm font-medium">Not generated</p>

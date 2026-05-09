@@ -57,6 +57,13 @@
       "when": 1778277264030,
       "tag": "0007_wise_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778340198991,
+      "tag": "0008_dapper_changeling",
+      "breakpoints": true
     }
   ]
 }
