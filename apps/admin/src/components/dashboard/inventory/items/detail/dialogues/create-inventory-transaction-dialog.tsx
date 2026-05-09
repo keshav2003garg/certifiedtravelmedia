@@ -24,9 +24,9 @@ import {
 } from './create-inventory-transaction-dialog.schema';
 import {
   buildInventoryTransactionPayload,
+  getInventoryReductionBoxes,
   shouldReduceInventory,
 } from './create-inventory-transaction-dialog.utils';
-import InventoryAdjustmentDirectionField from './inventory-adjustment-direction-field';
 import InventoryTransactionBalanceSummary from './inventory-transaction-balance-summary';
 import InventoryTransactionDestinationField from './inventory-transaction-destination-field';
 import InventoryTransactionDetailsFields from './inventory-transaction-details-fields';
@@ -63,12 +63,9 @@ function CreateInventoryTransactionDialog({
   useResetFormOnActivation(open, form.reset, defaultValues, item.id);
 
   const transactionType = form.watch('transactionType');
-  const adjustmentDirection = form.watch('adjustmentDirection');
 
   const isTransferTransaction = transactionType === 'Transfer';
   const isAdjustmentTransaction = transactionType === 'Adjustment';
-  const isAdditionTransaction =
-    isAdjustmentTransaction && adjustmentDirection === 'Addition';
   const isSubmitting = createTransactionMutation.isPending;
 
   const handleSubmit: SubmitHandler<
@@ -92,7 +89,8 @@ function CreateInventoryTransactionDialog({
 
     if (
       shouldReduceInventory(values) &&
-      values.boxes > item.boxes + INVENTORY_TRANSACTION_DECIMAL_EPSILON
+      getInventoryReductionBoxes(values) >
+        item.boxes + INVENTORY_TRANSACTION_DECIMAL_EPSILON
     ) {
       form.setError('boxes', {
         message: 'Boxes cannot exceed current inventory balance',
@@ -143,17 +141,10 @@ function CreateInventoryTransactionDialog({
               />
             ) : null}
 
-            {isAdjustmentTransaction ? (
-              <InventoryAdjustmentDirectionField
-                form={form}
-                isSubmitting={isSubmitting}
-              />
-            ) : null}
-
             <InventoryTransactionDetailsFields
               form={form}
               currentBoxes={item.boxes}
-              isAdditionTransaction={isAdditionTransaction}
+              isAdjustmentTransaction={isAdjustmentTransaction}
               isSubmitting={isSubmitting}
             />
 

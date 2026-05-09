@@ -7,15 +7,17 @@ export function normalizeOptionalTransactionText(value: string) {
 }
 
 export function shouldReduceInventory(
-  values: Pick<
-    CreateInventoryTransactionFormData,
-    'adjustmentDirection' | 'transactionType'
-  >,
+  values: Pick<CreateInventoryTransactionFormData, 'boxes' | 'transactionType'>,
 ) {
-  return (
-    values.transactionType !== 'Adjustment' ||
-    values.adjustmentDirection === 'Subtraction'
-  );
+  return values.transactionType !== 'Adjustment' || values.boxes < 0;
+}
+
+export function getInventoryReductionBoxes(
+  values: Pick<CreateInventoryTransactionFormData, 'boxes' | 'transactionType'>,
+) {
+  return values.transactionType === 'Adjustment'
+    ? Math.abs(Math.min(values.boxes, 0))
+    : values.boxes;
 }
 
 export function buildInventoryTransactionPayload(
@@ -32,14 +34,6 @@ export function buildInventoryTransactionPayload(
       ...base,
       transactionType: values.transactionType,
       destinationWarehouseId: values.destinationWarehouseId,
-    };
-  }
-
-  if (values.transactionType === 'Adjustment') {
-    return {
-      ...base,
-      transactionType: values.transactionType,
-      adjustmentDirection: values.adjustmentDirection,
     };
   }
 

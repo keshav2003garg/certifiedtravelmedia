@@ -17,14 +17,14 @@ import type { CreateInventoryTransactionFormData } from './create-inventory-tran
 interface InventoryTransactionDetailsFieldsProps {
   currentBoxes: number;
   form: UseFormReturn<CreateInventoryTransactionFormData>;
-  isAdditionTransaction: boolean;
+  isAdjustmentTransaction: boolean;
   isSubmitting: boolean;
 }
 
 function InventoryTransactionDetailsFields({
   currentBoxes,
   form,
-  isAdditionTransaction,
+  isAdjustmentTransaction,
   isSubmitting,
 }: InventoryTransactionDetailsFieldsProps) {
   return (
@@ -43,9 +43,9 @@ function InventoryTransactionDetailsFields({
                   onBlur={field.onBlur}
                   name={field.name}
                   ref={field.ref}
-                  min={0.01}
+                  min={isAdjustmentTransaction ? undefined : 0.01}
                   max={
-                    isAdditionTransaction || currentBoxes <= 0
+                    isAdjustmentTransaction || currentBoxes <= 0
                       ? undefined
                       : currentBoxes
                   }

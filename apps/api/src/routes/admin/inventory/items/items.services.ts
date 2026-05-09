@@ -932,21 +932,28 @@ class InventoryItemsService {
     userId: string;
   }): Promise<InventoryItemTransactionResult> {
     const balanceBefore = params.item.boxes;
-    const isAddition =
-      params.values.transactionType === 'Adjustment' &&
-      params.values.adjustmentDirection === 'Addition';
+    const isAdjustment = params.values.transactionType === 'Adjustment';
+    const reductionBoxes = isAdjustment
+      ? Math.abs(Math.min(params.boxes, 0))
+      : params.boxes;
 
-    if (!isAddition) {
+    if (
+      isAdjustment &&
+      Math.abs(params.boxes) <= InventoryItemsService.DECIMAL_EPSILON
+    ) {
+      throw new HttpError(400, 'Boxes cannot be 0', 'BAD_REQUEST');
+    }
+
+    if (reductionBoxes > InventoryItemsService.DECIMAL_EPSILON) {
       this.assertCanReduceStock({
         balanceBeforeBoxes: balanceBefore,
-        boxes: params.boxes,
+        boxes: reductionBoxes,
         action: params.values.transactionType,
       });
     }
 
-    const balanceAfter = roundDecimals(
-      isAddition ? balanceBefore + params.boxes : balanceBefore - params.boxes,
-    );
+    const balanceChange = isAdjustment ? params.boxes : -params.boxes;
+    const balanceAfter = roundDecimals(balanceBefore + balanceChange);
     const item = await this.updateInventoryBalance({
       tx: params.tx,
       itemId: params.item.id,

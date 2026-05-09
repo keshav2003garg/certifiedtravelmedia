@@ -26,14 +26,22 @@ const ALLOWED_INTAKE_TRANSACTION_TYPES = [
   (typeof transactionTypeEnum.enumValues)[number]
 >;
 
-const ADJUSTMENT_DIRECTIONS = ['Addition', 'Subtraction'] as const;
-
-const positiveBoxesSchema = z.coerce
+const decimalBoxesSchema = z.coerce
   .number()
-  .positive('Boxes must be greater than 0')
   .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
     message: 'Boxes can have at most two decimal places',
   });
+
+const positiveBoxesSchema = decimalBoxesSchema.refine((value) => value > 0, {
+  message: 'Boxes must be greater than 0',
+});
+
+const adjustmentBoxesSchema = decimalBoxesSchema.refine(
+  (value) => value !== 0,
+  {
+    message: 'Boxes cannot be 0',
+  },
+);
 
 const unitsPerBoxSchema = z.coerce
   .number()
@@ -76,7 +84,6 @@ const inventoryItemFilterSchema = z.object({
 });
 
 const detailTransactionBaseSchema = z.object({
-  boxes: positiveBoxesSchema,
   transactionDate: z.iso.date('Transaction date must be a valid date'),
   notes: optionalTextSchema(2000, 'Notes must be 2000 characters or less'),
 });
@@ -133,17 +140,20 @@ export const createInventoryItemTransactionValidator = createValidatorSchema({
   json: z.discriminatedUnion('transactionType', [
     detailTransactionBaseSchema.extend({
       transactionType: z.literal('Transfer'),
+      boxes: positiveBoxesSchema,
       destinationWarehouseId: z.uuid('Destination warehouse is required'),
     }),
     detailTransactionBaseSchema.extend({
       transactionType: z.literal('Return to Client'),
+      boxes: positiveBoxesSchema,
     }),
     detailTransactionBaseSchema.extend({
       transactionType: z.literal('Recycle'),
+      boxes: positiveBoxesSchema,
     }),
     detailTransactionBaseSchema.extend({
       transactionType: z.literal('Adjustment'),
-      adjustmentDirection: z.enum(ADJUSTMENT_DIRECTIONS),
+      boxes: adjustmentBoxesSchema,
     }),
   ]),
 });

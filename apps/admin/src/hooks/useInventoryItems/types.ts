@@ -24,8 +24,6 @@ export type InventoryItemTransactionActionType =
       'Return to Client' | 'Recycle' | 'Adjustment'
     >;
 
-export type InventoryAdjustmentDirection = 'Addition' | 'Subtraction';
-
 export type InventoryItemSortBy =
   | 'warehouseName'
   | 'brochureName'
@@ -140,7 +138,6 @@ export type CreateInventoryItemTransactionPayload = {
     }
   | {
       transactionType: 'Adjustment';
-      adjustmentDirection: InventoryAdjustmentDirection;
     }
 );
 

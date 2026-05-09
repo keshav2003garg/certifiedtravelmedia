@@ -5,10 +5,7 @@ import {
   SlidersHorizontal,
 } from '@repo/ui/lib/icons';
 
-import type {
-  InventoryAdjustmentDirection,
-  InventoryItemTransactionActionType,
-} from '@/hooks/useInventoryItems/types';
+import type { InventoryItemTransactionActionType } from '@/hooks/useInventoryItems/types';
 
 export const INVENTORY_TRANSACTION_ACTION_TYPES = [
   'Transfer',
@@ -16,11 +13,6 @@ export const INVENTORY_TRANSACTION_ACTION_TYPES = [
   'Recycle',
   'Adjustment',
 ] as const satisfies readonly InventoryItemTransactionActionType[];
-
-export const INVENTORY_ADJUSTMENT_DIRECTIONS = [
-  'Addition',
-  'Subtraction',
-] as const satisfies readonly InventoryAdjustmentDirection[];
 
 export const INVENTORY_TRANSACTION_DECIMAL_EPSILON = 0.000_001;
 
