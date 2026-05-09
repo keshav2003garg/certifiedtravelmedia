@@ -1,6 +1,6 @@
 import db from '@/db';
 
-import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, eq, inArray, or } from 'drizzle-orm';
 
 import HttpError from '@repo/server-utils/errors/http-error';
 
@@ -132,27 +132,12 @@ class ChartsService {
       eq(schema.chartLayouts.year, year),
     );
 
-    const exact = await db.query.chartLayouts.findFirst({
+    return db.query.chartLayouts.findFirst({
       where: and(
         baseFilter,
         eq(schema.chartLayouts.standWidth, pockets.width),
         eq(schema.chartLayouts.standHeight, pockets.height),
       ),
-      with: {
-        tiles: {
-          with: {
-            contract: true,
-            customFiller: true,
-          },
-        },
-      },
-    });
-
-    if (exact) return exact;
-
-    return db.query.chartLayouts.findFirst({
-      where: baseFilter,
-      orderBy: [desc(schema.chartLayouts.updatedAt)],
       with: {
         tiles: {
           with: {
