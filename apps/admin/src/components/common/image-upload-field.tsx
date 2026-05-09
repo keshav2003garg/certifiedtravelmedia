@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@repo/ui/components/base/alert';
 import { Button } from '@repo/ui/components/base/button';
 import {
   AlertCircle,
-  FileImage,
+  Camera,
   Loader2,
   Trash2,
   Upload,
@@ -27,13 +27,13 @@ interface ImageUploadFieldProps {
   onChange: (url: string) => void;
   /** Called when the field is cleared. */
   onClear?: () => void;
-  /** Optional help text displayed below the dropzone. */
+  /** Optional help text displayed below the buttons. */
   helperText?: string;
   /** Disables interaction. */
   disabled?: boolean;
   /** Marks the field invalid. */
   invalid?: boolean;
-  /** Aspect ratio classes for the preview thumbnail. */
+  /** Unused — kept for API compatibility. */
   className?: string;
 }
 
@@ -47,10 +47,11 @@ function ImageUploadField({
   helperText,
   disabled,
   invalid,
-  className,
 }: ImageUploadFieldProps) {
   const inputId = useId();
+  const cameraInputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const previousValueRef = useRef(value);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -61,10 +62,6 @@ function ImageUploadField({
   });
 
   const acceptAttribute = config.allowedMimeTypes.join(',');
-  const maxMb = (config.maxFileSizeBytes / (1024 * 1024)).toFixed(1);
-  const allowedLabel = config.allowedExtensions
-    .map((ext) => ext.toUpperCase())
-    .join(', ');
 
   useEffect(() => {
     const valueChanged = previousValueRef.current !== value;
@@ -88,17 +85,6 @@ function ImageUploadField({
     [onChange, upload],
   );
 
-  const onDrop = useCallback(
-    (event: React.DragEvent<HTMLLabelElement>) => {
-      event.preventDefault();
-      setIsDragging(false);
-      if (disabled || isUploading) return;
-      const file = event.dataTransfer.files?.[0];
-      void handleFile(file);
-    },
-    [disabled, handleFile, isUploading],
-  );
-
   const onPick = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -106,6 +92,17 @@ function ImageUploadField({
       event.target.value = '';
     },
     [handleFile],
+  );
+
+  const onDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setIsDragging(false);
+      if (disabled || isUploading) return;
+      const file = event.dataTransfer.files?.[0];
+      void handleFile(file);
+    },
+    [disabled, handleFile, isUploading],
   );
 
   const handleClear = useCallback(() => {
@@ -118,90 +115,118 @@ function ImageUploadField({
 
   return (
     <div className="space-y-2">
-      <label
-        htmlFor={inputId}
-        onDragOver={(event) => {
-          event.preventDefault();
-          if (disabled || isUploading) return;
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={onDrop}
-        className={cn(
-          'group bg-muted/30 relative flex h-44 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-dashed transition-colors',
-          isDragging && 'border-primary bg-primary/5',
-          invalid && 'border-destructive',
-          (disabled || isUploading) && 'pointer-events-none opacity-70',
-          className,
-        )}
-      >
-        {value ? (
-          <>
-            <img
-              src={value}
-              alt=""
-              className="size-full object-contain"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 flex items-end justify-end gap-2 bg-linear-to-t from-black/50 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={(event) => {
-                  event.preventDefault();
-                  inputRef.current?.click();
-                }}
-                disabled={disabled || isUploading}
-              >
-                <Upload className="size-4" />
-                Replace
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                onClick={(event) => {
-                  event.preventDefault();
-                  handleClear();
-                }}
-                disabled={disabled || isUploading}
-              >
-                <Trash2 className="size-4" />
-                Remove
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="text-muted-foreground flex flex-col items-center gap-2 px-4 text-center text-sm">
-            {isUploading ? (
-              <>
-                <Loader2 className="size-6 animate-spin" />
-                <span>Uploading…</span>
-              </>
-            ) : (
-              <>
-                <FileImage className="size-6" />
-                <span className="font-medium">
-                  Drop an image or click to browse
-                </span>
-                <span className="text-xs">
-                  {allowedLabel} · up to {maxMb} MB
-                </span>
-              </>
-            )}
+      {/* Image preview — shown only when a value is selected */}
+      {value ? (
+        <div
+          className={cn(
+            'bg-muted relative overflow-hidden rounded-md border',
+            invalid && 'border-destructive',
+          )}
+        >
+          <img
+            src={value}
+            alt=""
+            className="h-56 w-full object-contain"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 flex items-end justify-end gap-2 bg-linear-to-t from-black/50 to-transparent p-2 opacity-0 transition-opacity hover:opacity-100">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => inputRef.current?.click()}
+              disabled={disabled || isUploading}
+            >
+              <Upload className="size-4" />
+              Replace
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              onClick={handleClear}
+              disabled={disabled || isUploading}
+            >
+              <Trash2 className="size-4" />
+              Remove
+            </Button>
           </div>
-        )}
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="file"
-          accept={acceptAttribute}
-          className="sr-only"
-          onChange={onPick}
-          disabled={disabled || isUploading}
-        />
-      </label>
+        </div>
+      ) : null}
+
+      {/* Two-button row (always visible when no value; hidden while uploading) */}
+      {!value ? (
+        isUploading ? (
+          <div className="flex items-center justify-center gap-2 py-2">
+            <Loader2 className="text-muted-foreground size-4 animate-spin" />
+            <span className="text-muted-foreground text-sm">Uploading…</span>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'grid grid-cols-2 gap-3',
+              (disabled || isUploading) && 'pointer-events-none opacity-60',
+            )}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (disabled || isUploading) return;
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={onDrop}
+          >
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                'h-12 w-full gap-2',
+                isDragging && 'border-primary',
+                invalid && 'border-destructive',
+              )}
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={disabled || isUploading}
+            >
+              <Camera className="size-5" />
+              Take Photo
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                'h-12 w-full gap-2',
+                isDragging && 'border-primary',
+                invalid && 'border-destructive',
+              )}
+              onClick={() => inputRef.current?.click()}
+              disabled={disabled || isUploading}
+            >
+              <Upload className="size-5" />
+              Upload
+            </Button>
+          </div>
+        )
+      ) : null}
+
+      {/* Hidden file inputs */}
+      <input
+        ref={inputRef}
+        id={inputId}
+        type="file"
+        accept={acceptAttribute}
+        className="sr-only"
+        onChange={onPick}
+        disabled={disabled || isUploading}
+      />
+      <input
+        ref={cameraInputRef}
+        id={cameraInputId}
+        type="file"
+        accept={acceptAttribute}
+        capture="environment"
+        className="sr-only"
+        onChange={onPick}
+        disabled={disabled || isUploading}
+      />
 
       {helperText ? (
         <p className="text-muted-foreground text-xs">{helperText}</p>
