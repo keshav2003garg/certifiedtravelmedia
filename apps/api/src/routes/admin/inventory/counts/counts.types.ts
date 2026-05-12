@@ -5,6 +5,7 @@ import type {
   bulkMonthEndCountValidator,
   getScanInventoryItemValidator,
   listMonthEndCountsValidator,
+  listSubmittedMonthEndCountsValidator,
   resolveScanInventoryItemValidator,
   saveScanMonthEndCountValidator,
 } from './counts.validators';
@@ -35,6 +36,33 @@ export interface MonthEndCountListItem {
 }
 
 export type ListMonthEndCountsResult = PaginatedResponse<MonthEndCountListItem>;
+
+export type ListSubmittedMonthEndCountsInput = z.infer<
+  (typeof listSubmittedMonthEndCountsValidator)['query']
+>;
+
+export interface SubmittedMonthEndCountListItem {
+  inventoryItemId: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseAcumaticaId: string | null;
+  brochureId: string;
+  brochureName: string;
+  brochureTypeId: string;
+  brochureTypeName: string;
+  brochureImageId: string;
+  brochureImagePackSizeId: string;
+  imageUrl: string | null;
+  unitsPerBox: number;
+  countId: string;
+  month: number;
+  year: number;
+  endCount: number;
+  submittedAt: string;
+}
+
+export type ListSubmittedMonthEndCountsResult =
+  PaginatedResponse<SubmittedMonthEndCountListItem>;
 
 export type BulkMonthEndCountInput = z.infer<
   (typeof bulkMonthEndCountValidator)['json']

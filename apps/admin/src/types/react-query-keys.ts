@@ -30,6 +30,7 @@ export enum ReactQueryKeys {
   GET_INVENTORY_BROCHURE = 'GET::/admin/inventory/brochures/:id',
   GET_INVENTORY_ITEM_TRANSACTIONS = 'GET::/admin/inventory/items/:id/transactions',
   GET_INVENTORY_MONTH_END_COUNTS = 'GET::/admin/inventory/counts',
+  GET_INVENTORY_SUBMITTED_MONTH_END_COUNTS = 'GET::/admin/inventory/counts/submitted',
   GET_SCAN_INVENTORY_RESOLVE = 'GET::/admin/inventory/counts/scan/:id/resolve',
   GET_SCAN_INVENTORY_ITEM = 'GET::/admin/inventory/counts/scan/:id',
   GET_INVENTORY_REQUESTS = 'GET::/admin/inventory/requests',

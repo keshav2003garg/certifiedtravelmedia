@@ -68,6 +68,7 @@ export function useScan() {
       successMessage: 'Month-end count saved successfully',
       invalidateQueries: [
         ReactQueryKeys.GET_INVENTORY_MONTH_END_COUNTS,
+        ReactQueryKeys.GET_INVENTORY_SUBMITTED_MONTH_END_COUNTS,
         ReactQueryKeys.GET_INVENTORY_ITEMS,
         ReactQueryKeys.GET_INVENTORY_ITEM,
         ReactQueryKeys.GET_INVENTORY_ITEM_TRANSACTIONS,

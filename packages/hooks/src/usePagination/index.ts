@@ -2,24 +2,34 @@ import { useCallback } from 'react';
 
 import { parseAsInteger, useQueryState } from 'nuqs';
 
-export function usePagination() {
-  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1));
+export interface UsePaginationOptions {
+  pageKey?: string;
+  limitKey?: string;
+  defaultLimit?: number;
+}
+
+export function usePagination(options: UsePaginationOptions = {}) {
+  const pageKey = options.pageKey ?? 'page';
+  const limitKey = options.limitKey ?? 'limit';
+  const defaultLimit = options.defaultLimit ?? 10;
+
+  const [page, setPage] = useQueryState(pageKey, parseAsInteger.withDefault(1));
   const [limit, setLimit] = useQueryState(
-    'limit',
-    parseAsInteger.withDefault(10),
+    limitKey,
+    parseAsInteger.withDefault(defaultLimit),
   );
 
   const handleLimitChange = useCallback(
     (limit: number) => {
       if (limit < 1) return;
 
-      if (limit === 10) {
+      if (limit === defaultLimit) {
         setLimit(null);
       } else {
         setLimit(limit);
       }
     },
-    [setLimit],
+    [defaultLimit, setLimit],
   );
 
   const handlePageChange = useCallback(

@@ -7,25 +7,39 @@ import { useSearch } from '@repo/hooks/useSearch/index';
 const currentDate = new Date();
 const DEFAULT_YEAR = currentDate.getFullYear();
 
-export function useInventoryMonthEndCountsFilters() {
+function getScopedKey(scope: string | undefined, key: string) {
+  if (!scope) return key;
+
+  return `${scope}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+}
+
+export function useInventoryMonthEndCountsFilters(scope?: string) {
+  const pageKey = getScopedKey(scope, 'page');
+  const limitKey = getScopedKey(scope, 'limit');
   const {
     search,
     inputValue: searchInputValue,
     setSearch,
-  } = useSearch('search');
-  const { page, limit, handlePageChange, handleLimitChange } = usePagination();
+  } = useSearch(getScopedKey(scope, 'search'), { pageKey, limitKey });
+  const { page, limit, handlePageChange, handleLimitChange } = usePagination({
+    pageKey,
+    limitKey,
+  });
 
-  const [month, setMonth] = useQueryState('month', parseAsInteger);
+  const [month, setMonth] = useQueryState(
+    getScopedKey(scope, 'month'),
+    parseAsInteger,
+  );
   const [year, setYear] = useQueryState(
-    'year',
+    getScopedKey(scope, 'year'),
     parseAsInteger.withDefault(DEFAULT_YEAR),
   );
   const [warehouseId, setWarehouseId] = useQueryState(
-    'warehouseId',
+    getScopedKey(scope, 'warehouseId'),
     parseAsString,
   );
   const [brochureTypeId, setBrochureTypeId] = useQueryState(
-    'brochureTypeId',
+    getScopedKey(scope, 'brochureTypeId'),
     parseAsString,
   );
 

@@ -20,6 +20,8 @@ import MonthEndCountsEmpty from './components/month-end-counts-empty';
 import MonthEndCountsFilterBar from './components/month-end-counts-filter-bar';
 import MonthEndCountsSkeleton from './components/month-end-counts-skeleton';
 import MonthEndCountsTable from './components/month-end-counts-table';
+import SubmittedMonthEndCountsSkeleton from './components/submitted-month-end-counts-skeleton';
+import SubmittedMonthEndCountsTable from './components/submitted-month-end-counts-table';
 import { hasEditedCount } from './utils';
 
 import type { MonthEndCountRow } from './types';
@@ -29,8 +31,12 @@ function MonthEndCountsPage() {
     {},
   );
   const filters = useInventoryMonthEndCountsFilters();
-  const { monthEndCountsQueryOptions, bulkMonthEndCountMutation } =
-    useInventoryMonthEndCounts();
+  const submittedFilters = useInventoryMonthEndCountsFilters('submitted');
+  const {
+    monthEndCountsQueryOptions,
+    submittedMonthEndCountsQueryOptions,
+    bulkMonthEndCountMutation,
+  } = useInventoryMonthEndCounts();
 
   const { data, isError, isFetching, isLoading, refetch } = useQuery({
     ...monthEndCountsQueryOptions(filters.params),
@@ -38,6 +44,28 @@ function MonthEndCountsPage() {
   });
 
   const pagination = data?.pagination;
+
+  const {
+    data: submittedData,
+    isError: isSubmittedError,
+    isFetching: isSubmittedFetching,
+    isLoading: isSubmittedLoading,
+    refetch: refetchSubmitted,
+  } = useQuery({
+    ...submittedMonthEndCountsQueryOptions(submittedFilters.params),
+    enabled: submittedFilters.params.month !== undefined,
+  });
+
+  const submittedRows = submittedData?.items ?? [];
+  const submittedPagination = submittedData?.pagination;
+  const submittedEmptyTitle =
+    submittedFilters.month === null
+      ? 'Select a month to view submitted counts'
+      : 'No submitted counts found';
+  const submittedEmptyDescription =
+    submittedFilters.month === null
+      ? 'Choose a month and year to load previously submitted counts.'
+      : 'Adjust filters to find submitted counts for this period.';
 
   const rows = useMemo<MonthEndCountRow[]>(() => {
     const items = data?.items ?? [];
@@ -188,6 +216,90 @@ function MonthEndCountsPage() {
           )}
         </CardContent>
       </Card>
+
+      <section className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-foreground text-xl font-semibold tracking-normal">
+              Previously Submitted
+            </h2>
+            <p className="text-muted-foreground max-w-2xl text-sm">
+              Review saved month-end counts by period, warehouse, and brochure
+              type.
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => refetchSubmitted()}
+            disabled={
+              submittedFilters.params.month === undefined || isSubmittedFetching
+            }
+            aria-label="Refresh submitted month-end counts"
+          >
+            {isSubmittedFetching ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+          </Button>
+        </div>
+
+        <Card className="shadow-none">
+          <CardContent className="space-y-5 p-5">
+            <MonthEndCountsFilterBar filters={submittedFilters} />
+
+            {isSubmittedError ? (
+              <div className="flex min-h-72 flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+                <div className="bg-destructive/10 text-destructive mb-4 flex size-12 items-center justify-center rounded-md">
+                  <AlertCircle className="size-6" />
+                </div>
+                <h2 className="text-lg font-semibold tracking-normal">
+                  Submitted counts could not be loaded
+                </h2>
+                <p className="text-muted-foreground mt-2 max-w-md text-sm">
+                  Refresh the list or try again after checking the API
+                  connection.
+                </p>
+                <Button
+                  type="button"
+                  className="mt-5"
+                  onClick={() => refetchSubmitted()}
+                  disabled={isSubmittedFetching}
+                >
+                  {isSubmittedFetching ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : null}
+                  Retry
+                </Button>
+              </div>
+            ) : isSubmittedLoading ? (
+              <SubmittedMonthEndCountsSkeleton />
+            ) : submittedRows.length === 0 ? (
+              <MonthEndCountsEmpty
+                hasFilters={submittedFilters.hasActiveFilters}
+                onClearFilters={submittedFilters.clearFilters}
+                title={submittedEmptyTitle}
+                description={submittedEmptyDescription}
+              />
+            ) : (
+              <div className="space-y-4">
+                <SubmittedMonthEndCountsTable items={submittedRows} />
+                {submittedPagination ? (
+                  <DataPaginationControls
+                    pagination={submittedPagination}
+                    currentLimit={submittedFilters.limit}
+                    onPageChange={submittedFilters.handlePageChange}
+                    onLimitChange={submittedFilters.handleLimitChange}
+                  />
+                ) : null}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

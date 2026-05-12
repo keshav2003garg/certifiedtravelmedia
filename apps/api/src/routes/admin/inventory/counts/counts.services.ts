@@ -29,6 +29,7 @@ import type {
   BulkMonthEndCountInput,
   BulkMonthEndCountResultItem,
   ListMonthEndCountsInput,
+  ListSubmittedMonthEndCountsInput,
   ResolvedScanInventoryItem,
   SavedMonthEndCount,
   SaveScanMonthEndCountInput,
@@ -77,7 +78,12 @@ function normalizeNullableNumber(value: number | string | null | undefined) {
 }
 
 class InventoryCountsService {
-  private buildListWhereClause(params: ListMonthEndCountsInput) {
+  private buildListWhereClause(
+    params: Pick<
+      ListMonthEndCountsInput,
+      'search' | 'warehouseId' | 'brochureTypeId'
+    >,
+  ) {
     const conditions: SQL[] = [];
 
     if (params.search) {
@@ -294,6 +300,114 @@ class InventoryCountsService {
           inventoryUpdatedAt: row.inventoryUpdatedAt,
         };
       }),
+      page: params.page,
+      limit: params.limit,
+      total: countRows[0]?.total ?? 0,
+    });
+  }
+
+  async listSubmitted(params: ListSubmittedMonthEndCountsInput) {
+    const whereClause = this.buildListWhereClause(params);
+    const submittedCounts = alias(inventoryMonthEndCounts, 'submitted_counts');
+
+    const [countRows, rows] = await Promise.all([
+      db
+        .select({ total: count(inventoryItems.id) })
+        .from(inventoryItems)
+        .innerJoin(
+          submittedCounts,
+          and(
+            eq(submittedCounts.inventoryItemId, inventoryItems.id),
+            eq(submittedCounts.month, params.month),
+            eq(submittedCounts.year, params.year),
+          ),
+        )
+        .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+        .innerJoin(
+          brochureImagePackSizes,
+          eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+        )
+        .innerJoin(
+          brochureImages,
+          eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+        )
+        .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+        .innerJoin(
+          brochureTypes,
+          eq(brochures.brochureTypeId, brochureTypes.id),
+        )
+        .leftJoin(customers, eq(brochures.customerId, customers.id))
+        .where(whereClause),
+      db
+        .select({
+          inventoryItemId: inventoryItems.id,
+          warehouseId: inventoryItems.warehouseId,
+          warehouseName: warehouses.name,
+          warehouseAcumaticaId: warehouses.acumaticaId,
+          brochureId: brochures.id,
+          brochureName: brochures.name,
+          brochureTypeId: brochures.brochureTypeId,
+          brochureTypeName: brochureTypes.name,
+          brochureImageId: brochureImages.id,
+          brochureImagePackSizeId: inventoryItems.brochureImagePackSizeId,
+          imageUrl: brochureImages.imageUrl,
+          unitsPerBox: brochureImagePackSizes.unitsPerBox,
+          countId: submittedCounts.id,
+          month: submittedCounts.month,
+          year: submittedCounts.year,
+          endCount: submittedCounts.endCount,
+          submittedAt: submittedCounts.updatedAt,
+        })
+        .from(inventoryItems)
+        .innerJoin(
+          submittedCounts,
+          and(
+            eq(submittedCounts.inventoryItemId, inventoryItems.id),
+            eq(submittedCounts.month, params.month),
+            eq(submittedCounts.year, params.year),
+          ),
+        )
+        .innerJoin(warehouses, eq(inventoryItems.warehouseId, warehouses.id))
+        .innerJoin(
+          brochureImagePackSizes,
+          eq(inventoryItems.brochureImagePackSizeId, brochureImagePackSizes.id),
+        )
+        .innerJoin(
+          brochureImages,
+          eq(brochureImagePackSizes.brochureImageId, brochureImages.id),
+        )
+        .innerJoin(brochures, eq(brochureImages.brochureId, brochures.id))
+        .innerJoin(
+          brochureTypes,
+          eq(brochures.brochureTypeId, brochureTypes.id),
+        )
+        .leftJoin(customers, eq(brochures.customerId, customers.id))
+        .where(whereClause)
+        .orderBy(...this.getListOrderBy())
+        .limit(params.limit)
+        .offset(getPaginationOffset(params)),
+    ]);
+
+    return createPaginatedResult({
+      data: rows.map((row) => ({
+        inventoryItemId: row.inventoryItemId,
+        warehouseId: row.warehouseId,
+        warehouseName: row.warehouseName,
+        warehouseAcumaticaId: row.warehouseAcumaticaId,
+        brochureId: row.brochureId,
+        brochureName: row.brochureName,
+        brochureTypeId: row.brochureTypeId,
+        brochureTypeName: row.brochureTypeName,
+        brochureImageId: row.brochureImageId,
+        brochureImagePackSizeId: row.brochureImagePackSizeId,
+        imageUrl: row.imageUrl,
+        unitsPerBox: row.unitsPerBox,
+        countId: row.countId,
+        month: row.month,
+        year: row.year,
+        endCount: roundDecimals(Number(row.endCount), 2),
+        submittedAt: row.submittedAt,
+      })),
       page: params.page,
       limit: params.limit,
       total: countRows[0]?.total ?? 0,

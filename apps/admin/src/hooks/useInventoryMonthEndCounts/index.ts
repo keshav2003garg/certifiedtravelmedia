@@ -9,6 +9,7 @@ import { ReactQueryKeys } from '@/types/react-query-keys';
 import type {
   BulkMonthEndCountRequest,
   ListMonthEndCountsRequest,
+  ListSubmittedMonthEndCountsRequest,
 } from './types';
 
 const INVENTORY_MONTH_END_COUNTS_ENDPOINT = '/admin/inventory/counts';
@@ -16,6 +17,8 @@ const INVENTORY_MONTH_END_COUNTS_ENDPOINT = '/admin/inventory/counts';
 export const inventoryMonthEndCountsQueryKeys = {
   list: (params: ListMonthEndCountsRequest['payload']) =>
     [ReactQueryKeys.GET_INVENTORY_MONTH_END_COUNTS, params] as const,
+  submittedList: (params: ListSubmittedMonthEndCountsRequest['payload']) =>
+    [ReactQueryKeys.GET_INVENTORY_SUBMITTED_MONTH_END_COUNTS, params] as const,
 };
 
 export function useInventoryMonthEndCounts() {
@@ -43,6 +46,17 @@ export function useInventoryMonthEndCounts() {
     [],
   );
 
+  const getSubmittedMonthEndCounts = useCallback(
+    async (params: ListSubmittedMonthEndCountsRequest['payload']) => {
+      const response = await api<
+        ListSubmittedMonthEndCountsRequest['response']
+      >(`${INVENTORY_MONTH_END_COUNTS_ENDPOINT}/submitted`, { query: params });
+
+      return response.data;
+    },
+    [],
+  );
+
   const monthEndCountsQueryOptions = (
     params: ListMonthEndCountsRequest['payload'],
   ) =>
@@ -51,12 +65,21 @@ export function useInventoryMonthEndCounts() {
       queryFn: () => getMonthEndCounts(params),
     });
 
+  const submittedMonthEndCountsQueryOptions = (
+    params: ListSubmittedMonthEndCountsRequest['payload'],
+  ) =>
+    queryOptions({
+      queryKey: inventoryMonthEndCountsQueryKeys.submittedList(params),
+      queryFn: () => getSubmittedMonthEndCounts(params),
+    });
+
   const bulkMonthEndCountMutation = useMutation({
     mutationFn: bulkMonthEndCount,
     meta: {
       successMessage: 'Month-end counts saved successfully',
       invalidateQueries: [
         ReactQueryKeys.GET_INVENTORY_MONTH_END_COUNTS,
+        ReactQueryKeys.GET_INVENTORY_SUBMITTED_MONTH_END_COUNTS,
         ReactQueryKeys.GET_INVENTORY_ITEMS,
         ReactQueryKeys.GET_INVENTORY_ITEM,
         ReactQueryKeys.GET_INVENTORY_ITEM_TRANSACTIONS,
@@ -66,7 +89,9 @@ export function useInventoryMonthEndCounts() {
 
   return {
     getMonthEndCounts,
+    getSubmittedMonthEndCounts,
     monthEndCountsQueryOptions,
+    submittedMonthEndCountsQueryOptions,
     bulkMonthEndCountMutation,
   };
 }

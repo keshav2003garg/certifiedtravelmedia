@@ -6,8 +6,13 @@ import { debounce } from '@repo/utils/debounce';
 
 import { usePagination } from '../usePagination';
 
-export function useSearch(key?: string) {
-  const { handlePageChange } = usePagination();
+import type { UsePaginationOptions } from '../usePagination';
+
+export function useSearch(
+  key?: string,
+  paginationOptions?: UsePaginationOptions,
+) {
+  const { handlePageChange } = usePagination(paginationOptions);
 
   const [search, setSearch] = useQueryState(key ?? 'q', parseAsString);
   const [inputValue, setInputValue] = useState(search ?? '');

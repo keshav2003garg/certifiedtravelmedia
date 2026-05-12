@@ -41,18 +41,30 @@ const optionalInventoryTextSchema = (field: string) =>
     .optional()
     .transform((value) => (value ? value.replace(/\s+/g, ' ') : undefined));
 
-export const listMonthEndCountsValidator = createValidatorSchema({
-  query: paginationSchema.extend(searchFilterSchema.shape).extend({
+const monthEndCountsListQuerySchema = paginationSchema
+  .extend(searchFilterSchema.shape)
+  .extend({
     month: monthSchema,
     year: yearSchema,
     search: optionalInventoryTextSchema('Search'),
     warehouseId: z.uuid('Invalid warehouse ID').optional(),
     brochureTypeId: z.uuid('Invalid brochure type ID').optional(),
-  }),
+  });
+
+export const listMonthEndCountsValidator = createValidatorSchema({
+  query: monthEndCountsListQuerySchema,
 });
 
 export type ListMonthEndCountsContext = TypedContext<
   typeof listMonthEndCountsValidator
+>;
+
+export const listSubmittedMonthEndCountsValidator = createValidatorSchema({
+  query: monthEndCountsListQuerySchema,
+});
+
+export type ListSubmittedMonthEndCountsContext = TypedContext<
+  typeof listSubmittedMonthEndCountsValidator
 >;
 
 export const bulkMonthEndCountValidator = createValidatorSchema({

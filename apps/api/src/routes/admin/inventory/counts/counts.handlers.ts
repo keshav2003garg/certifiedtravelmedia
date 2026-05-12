@@ -6,6 +6,7 @@ import type {
   BulkMonthEndCountContext,
   GetScanInventoryItemContext,
   ListMonthEndCountsContext,
+  ListSubmittedMonthEndCountsContext,
   ResolveScanInventoryItemContext,
   SaveScanMonthEndCountContext,
 } from './counts.validators';
@@ -20,6 +21,23 @@ export async function listMonthEndCountsHandler(
     items: result.data,
     pagination: result.pagination,
   });
+}
+
+export async function listSubmittedMonthEndCountsHandler(
+  ctx: ListSubmittedMonthEndCountsContext,
+) {
+  const query = ctx.req.valid('query');
+  const result = await inventoryCountsService.listSubmitted(query);
+
+  return sendResponse(
+    ctx,
+    200,
+    'Submitted month-end counts retrieved successfully',
+    {
+      items: result.data,
+      pagination: result.pagination,
+    },
+  );
 }
 
 export async function bulkMonthEndCountHandler(ctx: BulkMonthEndCountContext) {

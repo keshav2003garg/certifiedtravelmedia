@@ -35,18 +35,48 @@ export interface MonthEndCountListItem {
   inventoryUpdatedAt: string;
 }
 
+export interface SubmittedMonthEndCountListItem {
+  inventoryItemId: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseAcumaticaId: string | null;
+  brochureId: string;
+  brochureName: string;
+  brochureTypeId: string;
+  brochureTypeName: string;
+  brochureImageId: string;
+  brochureImagePackSizeId: string;
+  imageUrl: string | null;
+  unitsPerBox: number;
+  countId: string;
+  month: number;
+  year: number;
+  endCount: number;
+  submittedAt: string;
+}
+
+export interface MonthEndCountsListPayload {
+  month?: number;
+  year: number;
+  page?: number;
+  limit?: number;
+  search?: string;
+  warehouseId?: string;
+  brochureTypeId?: string;
+}
+
 export type ListMonthEndCountsRequest = ApiData<
-  {
-    month?: number;
-    year: number;
-    page?: number;
-    limit?: number;
-    search?: string;
-    warehouseId?: string;
-    brochureTypeId?: string;
-  },
+  MonthEndCountsListPayload,
   {
     items: MonthEndCountListItem[];
+    pagination: Pagination;
+  }
+>;
+
+export type ListSubmittedMonthEndCountsRequest = ApiData<
+  MonthEndCountsListPayload,
+  {
+    items: SubmittedMonthEndCountListItem[];
     pagination: Pagination;
   }
 >;

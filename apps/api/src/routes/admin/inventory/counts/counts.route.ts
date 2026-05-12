@@ -10,6 +10,7 @@ import {
   bulkMonthEndCountHandler,
   getScanInventoryItemHandler,
   listMonthEndCountsHandler,
+  listSubmittedMonthEndCountsHandler,
   resolveScanInventoryItemHandler,
   saveScanMonthEndCountHandler,
 } from './counts.handlers';
@@ -17,6 +18,7 @@ import {
   bulkMonthEndCountValidator,
   getScanInventoryItemValidator,
   listMonthEndCountsValidator,
+  listSubmittedMonthEndCountsValidator,
   resolveScanInventoryItemValidator,
   saveScanMonthEndCountValidator,
 } from './counts.validators';
@@ -44,6 +46,13 @@ countsRoute.post(
   isStaffOrAbove,
   validator(saveScanMonthEndCountValidator),
   saveScanMonthEndCountHandler,
+);
+
+countsRoute.get(
+  '/submitted',
+  isManagerOrAbove,
+  validator(listSubmittedMonthEndCountsValidator),
+  listSubmittedMonthEndCountsHandler,
 );
 
 countsRoute.get(
