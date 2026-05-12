@@ -161,7 +161,7 @@ export const AvailableInventorySidebar = memo(
       >
         <CardHeader className={cn(isCompact ? 'px-3 py-2' : 'pb-3')}>
           <CardTitle className="flex items-center justify-between text-sm">
-            <span>Inventory</span>
+            <span>Fillers</span>
             <span className="text-muted-foreground font-normal">
               {items.length} items
             </span>

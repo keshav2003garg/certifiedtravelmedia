@@ -42,18 +42,6 @@ function MonthEndCountsTableRow({
           </div>
         </div>
       </TableCell>
-      <TableCell>
-        <div className="min-w-0 space-y-1">
-          <p className="truncate text-sm font-medium">
-            {row.item.warehouseName}
-          </p>
-          {row.item.warehouseAcumaticaId ? (
-            <p className="text-muted-foreground truncate text-xs">
-              {row.item.warehouseAcumaticaId}
-            </p>
-          ) : null}
-        </div>
-      </TableCell>
       <TableCell className="text-right text-sm font-medium">
         {formatQuantity(row.item.unitsPerBox)}
       </TableCell>

@@ -133,17 +133,6 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
         onSelectTile={(tile) => onSelectTileId(tile.id)}
       />
 
-      <CustomFillersSidebar
-        fillers={chart.customFillers}
-        isLocked={isReadOnly}
-        isCompact={isFullscreen}
-        hasEmptyCells={hasEmptyCells}
-        canPlaceFiller={canPlaceCustomFiller}
-        onAddFiller={onAddCustomFiller}
-        onFillerDragStart={onCustomFillerDragStart}
-        onFillerDragEnd={onCustomFillerDragEnd}
-      />
-
       <AvailableInventorySidebar
         items={chart.availableInventory}
         isLocked={isReadOnly}
@@ -153,6 +142,17 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
         onAddInventoryItem={onAddInventoryItem}
         onInventoryItemDragStart={onInventoryItemDragStart}
         onInventoryItemDragEnd={onInventoryItemDragEnd}
+      />
+
+      <CustomFillersSidebar
+        fillers={chart.customFillers}
+        isLocked={isReadOnly}
+        isCompact={isFullscreen}
+        hasEmptyCells={hasEmptyCells}
+        canPlaceFiller={canPlaceCustomFiller}
+        onAddFiller={onAddCustomFiller}
+        onFillerDragStart={onCustomFillerDragStart}
+        onFillerDragEnd={onCustomFillerDragEnd}
       />
     </div>
   );

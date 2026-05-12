@@ -24,20 +24,19 @@ function MonthEndCountsTable({
   return (
     <div className="overflow-hidden rounded-md border">
       <div className="overflow-x-auto">
-        <Table className="table-fixed" style={{ minWidth: '1180px' }}>
+        <Table className="table-fixed" style={{ minWidth: '1000px' }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[25%]">Brochure</TableHead>
-              <TableHead className="w-[15%]">Warehouse</TableHead>
-              <TableHead className="w-[8%] text-right">Units/Box</TableHead>
-              <TableHead className="w-[12%] text-right">
+              <TableHead className="w-[32%]">Brochure</TableHead>
+              <TableHead className="w-[9%] text-right">Units/Box</TableHead>
+              <TableHead className="w-[14%] text-right">
                 Prev month count
               </TableHead>
-              <TableHead className="w-[12%] text-right">
+              <TableHead className="w-[14%] text-right">
                 This month transactions
               </TableHead>
-              <TableHead className="w-[10%]">End count</TableHead>
-              <TableHead className="w-[9%] text-right">Distribution</TableHead>
+              <TableHead className="w-[12%]">End count</TableHead>
+              <TableHead className="w-[10%] text-right">Distribution</TableHead>
               <TableHead className="w-[9%]">Status</TableHead>
             </TableRow>
           </TableHeader>

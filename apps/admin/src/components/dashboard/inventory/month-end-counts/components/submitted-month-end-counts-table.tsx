@@ -24,13 +24,12 @@ function SubmittedMonthEndCountsTable({
   return (
     <div className="overflow-hidden rounded-md border">
       <div className="overflow-x-auto">
-        <Table className="table-fixed" style={{ minWidth: '860px' }}>
+        <Table className="table-fixed" style={{ minWidth: '660px' }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[42%]">Brochure</TableHead>
-              <TableHead className="w-[24%]">Warehouse</TableHead>
-              <TableHead className="w-[14%] text-right">Units/Box</TableHead>
-              <TableHead className="w-[20%] text-right">
+              <TableHead className="w-[55%]">Brochure</TableHead>
+              <TableHead className="w-[18%] text-right">Units/Box</TableHead>
+              <TableHead className="w-[27%] text-right">
                 Submitted count
               </TableHead>
             </TableRow>
@@ -60,18 +59,6 @@ function SubmittedMonthEndCountsTable({
                         {item.brochureTypeName}
                       </p>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="min-w-0 space-y-1">
-                    <p className="truncate text-sm font-medium">
-                      {item.warehouseName}
-                    </p>
-                    {item.warehouseAcumaticaId ? (
-                      <p className="text-muted-foreground truncate text-xs">
-                        {item.warehouseAcumaticaId}
-                      </p>
-                    ) : null}
                   </div>
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium">

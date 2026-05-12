@@ -129,10 +129,7 @@ function MonthEndCountsFilterBar({ filters }: MonthEndCountsFilterBarProps) {
   });
 
   const warehouseOptions = useMemo(
-    () => [
-      { value: FILTER_ALL, label: 'All warehouses' },
-      ...warehouseSearchOptions,
-    ],
+    () => warehouseSearchOptions,
     [warehouseSearchOptions],
   );
   const brochureTypeOptions = useMemo(
@@ -161,11 +158,9 @@ function MonthEndCountsFilterBar({ filters }: MonthEndCountsFilterBarProps) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SearchableSelect
           options={warehouseOptions}
-          value={filters.warehouseId ?? FILTER_ALL}
-          onChange={(value) =>
-            filters.handleWarehouseChange(value === FILTER_ALL ? null : value)
-          }
-          placeholder="All warehouses"
+          value={filters.warehouseId ?? ''}
+          onChange={(value) => filters.handleWarehouseChange(value || null)}
+          placeholder="Select warehouse"
           searchPlaceholder="Search warehouses"
           emptyMessage="No warehouses found"
           isLoading={isSearchingWarehouses}

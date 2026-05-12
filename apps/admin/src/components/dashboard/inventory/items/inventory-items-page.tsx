@@ -152,9 +152,6 @@ function InventoryItemsPage() {
           <h1 className="text-foreground text-2xl font-semibold tracking-normal">
             Inventory
           </h1>
-          <p className="text-muted-foreground max-w-2xl text-sm">
-            Current stock by warehouse, brochure, image, and pack size.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

@@ -40,7 +40,7 @@ function MonthEndCountsPage() {
 
   const { data, isError, isFetching, isLoading, refetch } = useQuery({
     ...monthEndCountsQueryOptions(filters.params),
-    enabled: filters.params.month !== undefined,
+    enabled: filters.params.month !== undefined && !!filters.params.warehouseId,
   });
 
   const pagination = data?.pagination;
@@ -53,19 +53,45 @@ function MonthEndCountsPage() {
     refetch: refetchSubmitted,
   } = useQuery({
     ...submittedMonthEndCountsQueryOptions(submittedFilters.params),
-    enabled: submittedFilters.params.month !== undefined,
+    enabled:
+      submittedFilters.params.month !== undefined &&
+      !!submittedFilters.params.warehouseId,
   });
 
   const submittedRows = submittedData?.items ?? [];
   const submittedPagination = submittedData?.pagination;
+  const emptyTitle =
+    filters.warehouseId === null && filters.month === null
+      ? 'Select a warehouse and month'
+      : filters.warehouseId === null
+        ? 'Select a warehouse to load counts'
+        : filters.month === null
+          ? 'Select a month to load counts'
+          : 'No counts found';
+  const emptyDescription =
+    filters.warehouseId === null && filters.month === null
+      ? 'Choose a warehouse and month to view inventory counts.'
+      : filters.warehouseId === null
+        ? 'Choose a warehouse to load counts for this period.'
+        : filters.month === null
+          ? 'Choose a month to load counts for this warehouse.'
+          : 'Adjust filters to find counts for this period.';
   const submittedEmptyTitle =
-    submittedFilters.month === null
-      ? 'Select a month to view submitted counts'
-      : 'No submitted counts found';
+    submittedFilters.warehouseId === null && submittedFilters.month === null
+      ? 'Select a warehouse and month'
+      : submittedFilters.warehouseId === null
+        ? 'Select a warehouse to view submitted counts'
+        : submittedFilters.month === null
+          ? 'Select a month to view submitted counts'
+          : 'No submitted counts found';
   const submittedEmptyDescription =
-    submittedFilters.month === null
-      ? 'Choose a month and year to load previously submitted counts.'
-      : 'Adjust filters to find submitted counts for this period.';
+    submittedFilters.warehouseId === null && submittedFilters.month === null
+      ? 'Choose a warehouse and month to load previously submitted counts.'
+      : submittedFilters.warehouseId === null
+        ? 'Choose a warehouse to load submitted counts for this period.'
+        : submittedFilters.month === null
+          ? 'Choose a month and year to load previously submitted counts.'
+          : 'Adjust filters to find submitted counts for this period.';
 
   const rows = useMemo<MonthEndCountRow[]>(() => {
     const items = data?.items ?? [];
@@ -197,6 +223,8 @@ function MonthEndCountsPage() {
             <MonthEndCountsEmpty
               hasFilters={filters.hasActiveFilters}
               onClearFilters={filters.clearFilters}
+              title={emptyTitle}
+              description={emptyDescription}
             />
           ) : (
             <div className="space-y-4">
@@ -235,7 +263,9 @@ function MonthEndCountsPage() {
             size="icon"
             onClick={() => refetchSubmitted()}
             disabled={
-              submittedFilters.params.month === undefined || isSubmittedFetching
+              submittedFilters.params.month === undefined ||
+              !submittedFilters.params.warehouseId ||
+              isSubmittedFetching
             }
             aria-label="Refresh submitted month-end counts"
           >

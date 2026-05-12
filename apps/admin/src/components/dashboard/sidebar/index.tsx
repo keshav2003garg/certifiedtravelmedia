@@ -40,24 +40,19 @@ export const navigationItems: SidebarItem[] = [
     icon: MapPin,
   },
   {
-    title: 'Charts',
-    url: '/dashboard/charts',
-    icon: LayoutGrid,
-  },
-  {
     title: 'Inventory',
     url: '/dashboard/inventory',
     icon: Package,
     minRole: 'staff',
     items: [
-      { title: 'Inventory', url: '/dashboard/inventory' },
+      { title: 'All Inventory', url: '/dashboard/inventory' },
       {
-        title: 'New Inventory Intake',
+        title: 'New Intake',
         url: '/dashboard/inventory/intake-request',
         allowedRoles: ['staff'],
       },
       {
-        title: 'New Inventory',
+        title: 'New Intake',
         url: '/dashboard/inventory/new',
         allowedRoles: ['manager', 'admin'],
       },
@@ -67,11 +62,16 @@ export const navigationItems: SidebarItem[] = [
         allowedRoles: ['manager', 'admin'],
       },
       {
-        title: 'Month End Counts',
+        title: 'Counts',
         url: '/dashboard/inventory/month-end-counts',
         allowedRoles: ['manager', 'admin'],
       },
     ],
+  },
+  {
+    title: 'Charts',
+    url: '/dashboard/charts',
+    icon: LayoutGrid,
   },
   {
     title: 'Reports',
