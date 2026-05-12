@@ -69,13 +69,13 @@ function InventoryItemsTableRow({ item }: InventoryItemsTableRowProps) {
         </Badge>
       </TableCell>
       <TableCell>
-        {item.customerName ? (
-          <span className="truncate text-sm font-medium">
-            {item.customerName}
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-sm">Unassigned</span>
-        )}
+        <div className="min-w-0">
+          {item.customerName ? (
+            <p className="truncate text-sm font-medium">{item.customerName}</p>
+          ) : (
+            <p className="text-muted-foreground text-sm">Unassigned</p>
+          )}
+        </div>
       </TableCell>
       <TableCell>
         <div className="min-w-0 space-y-1">

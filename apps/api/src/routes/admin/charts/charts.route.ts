@@ -21,6 +21,7 @@ import {
   listArchivesHandler,
   listChartsHandler,
   listCustomFillersHandler,
+  listSectorInventoryHandler,
   saveChartHandler,
   upsertTileHandler,
 } from './charts.handlers';
@@ -36,6 +37,7 @@ import {
   listArchivesValidator,
   listChartsValidator,
   listCustomFillersValidator,
+  listSectorInventoryValidator,
   saveChartValidator,
   upsertTileValidator,
 } from './charts.validators';
@@ -63,6 +65,13 @@ chartsRoute.get(
   isStaffOrAbove,
   validator(exportPocketsSoldReportValidator),
   exportPocketsSoldReportHandler,
+);
+
+chartsRoute.get(
+  '/sectors/:sectorId/inventory',
+  isStaffOrAbove,
+  validator(listSectorInventoryValidator),
+  listSectorInventoryHandler,
 );
 
 chartsRoute.get(

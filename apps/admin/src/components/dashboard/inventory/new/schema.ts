@@ -45,8 +45,8 @@ export const inventoryIntakeFormSchema = z.object({
     .trim()
     .max(500, 'Image URL must be 500 characters or less')
     .refine(isValidOptionalUrl, 'Image URL must be a valid URL'),
-  boxes: twoDecimalPositiveNumber('Boxes'),
-  unitsPerBox: twoDecimalPositiveNumber('Units per box'),
+  boxes: twoDecimalPositiveNumber('Boxes').optional(),
+  unitsPerBox: twoDecimalPositiveNumber('Units per box').optional(),
   transactionType: z.enum(TRANSACTION_TYPES),
   transactionDate: z.iso.date('Transaction date must be a valid date'),
   notes: z.string().trim().max(2000, 'Notes must be 2000 characters or less'),
@@ -62,8 +62,8 @@ export function getDefaultInventoryIntakeValues(): InventoryIntakeFormData {
     customerName: '',
     brochureName: '',
     imageUrl: '',
-    boxes: 0,
-    unitsPerBox: 0,
+    boxes: undefined,
+    unitsPerBox: undefined,
     transactionType: 'Delivery',
     transactionDate: todayISODate(),
     notes: '',

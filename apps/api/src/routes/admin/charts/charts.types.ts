@@ -9,6 +9,7 @@ import type {
   listArchivesValidator,
   listChartsValidator,
   listCustomFillersValidator,
+  listSectorInventoryValidator,
   saveChartValidator,
   upsertTileValidator,
 } from './charts.validators';
@@ -25,6 +26,9 @@ export type InitializeSectorChartInput = z.infer<
 >;
 export type ListCustomFillersParams = z.infer<
   typeof listCustomFillersValidator.query
+>;
+export type ListSectorInventoryParams = z.infer<
+  typeof listSectorInventoryValidator.query
 >;
 export type CreateCustomFillerInput = z.infer<
   typeof createCustomFillerValidator.json
@@ -124,6 +128,9 @@ export interface ChartInventoryItemResult {
   colSpan: number;
   customerName: string | null;
 }
+
+export type ListSectorInventoryResult =
+  PaginatedResponse<ChartInventoryItemResult>;
 
 export interface ChartLayoutResult {
   id: string | null;

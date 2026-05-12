@@ -1,9 +1,4 @@
-import {
-  createFileRoute,
-  redirect,
-  useNavigate,
-  useRouter,
-} from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 
 import { Button } from '@repo/ui/components/base/button';
 import { ArrowLeft } from '@repo/ui/lib/icons';
@@ -37,18 +32,12 @@ function RouteComponent() {
   const { sectorId } = Route.useParams();
   const { user } = Route.useLoaderData();
 
-  const router = useRouter();
   const navigate = useNavigate();
 
   const isManager =
     typeof user.role === 'string' && MANAGER_ROLES.has(user.role);
 
   function goBackToCharts() {
-    if (router.history.canGoBack()) {
-      router.history.back();
-      return;
-    }
-
     void navigate({ to: '/dashboard/charts' });
   }
 

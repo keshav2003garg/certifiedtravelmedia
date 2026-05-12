@@ -234,6 +234,16 @@ export type ListCustomFillersRequest = ApiData<
   { customFillers: ChartCustomFiller[]; pagination: Pagination }
 >;
 
+export type ListSectorInventoryRequest = ApiData<
+  {
+    sectorId: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+  },
+  { inventory: ChartInventoryItem[]; pagination: Pagination }
+>;
+
 export type CreateCustomFillerRequest = ApiData<
   {
     name: string;

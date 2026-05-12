@@ -225,6 +225,16 @@ function InventoryRequestForm({
   );
 
   function handleSubmit(values: InventoryRequestFormData) {
+    if (values.boxes === undefined) {
+      form.setError('boxes', { message: 'Boxes is required' });
+      return;
+    }
+
+    if (values.unitsPerBox === undefined) {
+      form.setError('unitsPerBox', { message: 'Units per box is required' });
+      return;
+    }
+
     onSubmit(
       {
         warehouseId: values.warehouseId,

@@ -158,9 +158,9 @@ function MonthEndCountsPage() {
           <h1 className="text-foreground text-2xl font-semibold tracking-normal">
             Month-end counts
           </h1>
-          <p className="text-muted-foreground max-w-2xl text-sm">
-            Enter physical end counts by inventory item and save one monthly
-            Distribution transaction per item.
+          <p className="text-muted-foreground text-sm">
+            Enter physical inventory counts for each brochure at the end of the
+            month. End count number can be entered with up to 2 decimal places
           </p>
         </div>
 
@@ -251,10 +251,6 @@ function MonthEndCountsPage() {
             <h2 className="text-foreground text-xl font-semibold tracking-normal">
               Previously Submitted
             </h2>
-            <p className="text-muted-foreground max-w-2xl text-sm">
-              Review saved month-end counts by period, warehouse, and brochure
-              type.
-            </p>
           </div>
 
           <Button

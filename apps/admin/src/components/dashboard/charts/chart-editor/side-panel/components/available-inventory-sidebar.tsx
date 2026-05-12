@@ -1,28 +1,45 @@
 import { memo } from 'react';
 
 import { Badge } from '@repo/ui/components/base/badge';
+import { Button } from '@repo/ui/components/base/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/base/card';
-import { PackagePlus } from '@repo/ui/lib/icons';
+import { Input } from '@repo/ui/components/base/input';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  PackagePlus,
+  Search,
+} from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
 
 import type { DragEvent } from 'react';
-import type { ChartInventoryItem } from '@/hooks/useChartEditor/types';
+import type {
+  ChartInventoryItem,
+  Pagination,
+} from '@/hooks/useChartEditor/types';
 
 export const CHART_INVENTORY_DRAG_MIME_TYPE =
   'application/x-chart-inventory-item-id';
 
 interface AvailableInventorySidebarProps {
   items: ChartInventoryItem[];
+  pagination: Pagination;
+  searchValue: string;
+  isFetching: boolean;
   isLocked: boolean;
   isCompact?: boolean;
   hasEmptyCells: boolean;
   canPlaceItem: (item: ChartInventoryItem) => boolean;
   onAddInventoryItem: (item: ChartInventoryItem) => void;
+  onSearchChange: (value: string) => void;
+  onNextPage: () => void;
+  onPreviousPage: () => void;
   onInventoryItemDragStart: (item: ChartInventoryItem) => void;
   onInventoryItemDragEnd: () => void;
 }
@@ -132,11 +149,17 @@ function createInventoryDragPreview(item: ChartInventoryItem) {
 export const AvailableInventorySidebar = memo(
   function AvailableInventorySidebar({
     items,
+    pagination,
+    searchValue,
+    isFetching,
     isLocked,
     isCompact = false,
     hasEmptyCells,
     canPlaceItem,
     onAddInventoryItem,
+    onSearchChange,
+    onNextPage,
+    onPreviousPage,
     onInventoryItemDragStart,
     onInventoryItemDragEnd,
   }: AvailableInventorySidebarProps) {
@@ -162,22 +185,40 @@ export const AvailableInventorySidebar = memo(
         <CardHeader className={cn(isCompact ? 'px-3 py-2' : 'pb-3')}>
           <CardTitle className="flex items-center justify-between text-sm">
             <span>Fillers</span>
-            <span className="text-muted-foreground font-normal">
-              {items.length} items
+            <span className="text-muted-foreground flex items-center gap-1 font-normal">
+              {isFetching ? <Loader2 className="size-3 animate-spin" /> : null}
+              {pagination.total} items
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className={cn('p-0', isCompact && 'min-h-0 flex-1')}>
+        <CardContent
+          className={cn('p-0', isCompact && 'flex min-h-0 flex-1 flex-col')}
+        >
+          <div className={cn(isCompact ? 'px-3 pb-2' : 'px-4 pb-3')}>
+            <div className="relative">
+              <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              <Input
+                value={searchValue}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Search inventory"
+                aria-label="Search available inventory"
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
+
           <div
             className={cn(
               'overflow-y-auto',
-              isCompact ? 'h-full px-3 pb-3' : 'max-h-90 px-4 pb-4',
+              isCompact ? 'min-h-0 flex-1 px-3 pb-3' : 'max-h-90 px-4 pb-4',
             )}
           >
             <div className={cn(isCompact ? 'space-y-1.5' : 'space-y-2')}>
               {items.length === 0 ? (
                 <p className="text-muted-foreground py-4 text-center text-xs">
-                  No linked warehouse inventory
+                  {searchValue.trim()
+                    ? 'No matching warehouse inventory'
+                    : 'No linked warehouse inventory'}
                 </p>
               ) : (
                 items.map((item) => {
@@ -246,6 +287,42 @@ export const AvailableInventorySidebar = memo(
                   );
                 })
               )}
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              'flex items-center justify-between border-t',
+              isCompact ? 'px-3 py-2' : 'px-4 py-3',
+            )}
+          >
+            <span className="text-muted-foreground text-[11px]">
+              Page {pagination.total === 0 ? 0 : pagination.page} of{' '}
+              {pagination.totalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-7"
+                onClick={onPreviousPage}
+                disabled={!pagination.hasPrevPage || isFetching}
+                aria-label="Previous available inventory page"
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-7"
+                onClick={onNextPage}
+                disabled={!pagination.hasNextPage || isFetching}
+                aria-label="Next available inventory page"
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
             </div>
           </div>
         </CardContent>

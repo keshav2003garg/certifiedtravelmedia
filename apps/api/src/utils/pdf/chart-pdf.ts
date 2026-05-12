@@ -82,6 +82,29 @@ function createChartPDFDocument(chart: ChartResult, title: string) {
   });
 }
 
+function drawFlagIcon(
+  doc: PDFKit.PDFDocument,
+  x: number,
+  y: number,
+  color: string,
+) {
+  doc.save();
+  doc
+    .moveTo(x, y)
+    .lineTo(x, y + 8)
+    .strokeColor(color)
+    .lineWidth(0.8)
+    .stroke();
+  doc
+    .moveTo(x + 1, y)
+    .lineTo(x + 8, y + 2)
+    .lineTo(x + 1, y + 4)
+    .closePath()
+    .fillColor(color)
+    .fill();
+  doc.restore();
+}
+
 function drawChartPDFPage(
   doc: PDFKit.PDFDocument,
   { chart, sectorLabel }: ChartPDFInput,
@@ -241,9 +264,7 @@ function drawChartPDFPage(
       if (!cell) continue;
 
       let bgColor: string | null = null;
-      if (cell.isFlagged) {
-        bgColor = '#EF4444';
-      } else if (cell.tileType === 'Removal') {
+      if (cell.tileType === 'Removal') {
         bgColor = '#FEE2E2';
       } else if (cell.tileType === 'Paid') {
         if (cell.isNew) {
@@ -264,8 +285,7 @@ function drawChartPDFPage(
           .fill();
       }
 
-      const textColor =
-        cell.isFlagged || cell.tileType === 'Paid' ? '#FFFFFF' : '#000000';
+      const textColor = cell.tileType === 'Paid' ? '#FFFFFF' : '#000000';
       const textX = x + 3;
       const textW = w - 6;
 
@@ -278,8 +298,7 @@ function drawChartPDFPage(
       });
 
       if (cell.isFlagged) {
-        doc.fontSize(5).font('Helvetica-Bold').fillColor('#FFFFFF');
-        doc.text('Flag', textX, rowY + cellH - 9, { width: textW });
+        drawFlagIcon(doc, x + w - 12, rowY + cellH - 11, textColor);
       } else if (cell.tileType === 'Removal') {
         doc.fontSize(5).font('Helvetica').fillColor('#DC2626');
         doc.text('REMOVE', textX, rowY + cellH - 9, { width: textW });

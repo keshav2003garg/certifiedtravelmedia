@@ -22,6 +22,8 @@ const PHOTO_PIXEL_WIDTH = 170;
 const PHOTO_PIXEL_HEIGHT = 350;
 const QR_PIXEL_SIZE = 250;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const LOGO_URL = 'https://certifiedtravelmedia.net/logo.png';
+const LOGO_DISPLAY_SIZE = 22;
 
 export interface InventoryBulkQrLabelPdfItem {
   brochureName: string;
@@ -92,6 +94,10 @@ function parseDataImageBuffer(value: string) {
 
 function isImageSource(value: string) {
   return isHttpImageUrl(value) || parseDataImageBuffer(value) !== null;
+}
+
+async function loadLogoBuffer() {
+  return fetchImageBuffer(LOGO_URL);
 }
 
 async function fetchImageBuffer(url: string) {
@@ -305,7 +311,7 @@ function drawLabel(
 export async function generateInventoryBulkQrLabelsPDF({
   items,
 }: InventoryBulkQrLabelsPdfInput) {
-  const [qrCache, photoCache] = await Promise.all([
+  const [qrCache, photoCache, logoBuffer] = await Promise.all([
     loadImageCache(
       items.map((item) => item.qrCodeUrl),
       QR_FETCH_CONCURRENCY,
@@ -322,12 +328,14 @@ export async function generateInventoryBulkQrLabelsPDF({
         format: 'jpeg',
       },
     ),
+    loadLogoBuffer(),
   ]);
 
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'portrait',
     margin: 0,
+    bufferPages: true,
     info: {
       Title: 'Inventory Bulk QR Labels',
       Author: 'Certified Travel Media',
@@ -348,6 +356,26 @@ export async function generateInventoryBulkQrLabelsPDF({
 
     drawLabel(doc, item, labelX, labelY, photoCache, qrCache);
   });
+
+  const range = doc.bufferedPageRange();
+  for (let index = 0; index < range.count; index++) {
+    doc.switchToPage(index);
+    if (logoBuffer) {
+      try {
+        doc.image(
+          logoBuffer,
+          (PAGE_WIDTH - LOGO_DISPLAY_SIZE) / 2,
+          (MARGIN_Y - LOGO_DISPLAY_SIZE) / 2,
+          {
+            width: LOGO_DISPLAY_SIZE,
+            height: LOGO_DISPLAY_SIZE,
+          },
+        );
+      } catch {
+        // ignore logo render errors
+      }
+    }
+  }
 
   const generatedDate = new Date().toISOString().slice(0, 10);
 

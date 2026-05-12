@@ -17,6 +17,7 @@ import type {
   GetSectorChartRequest,
   InitializeSectorChartRequest,
   ListCustomFillersRequest,
+  ListSectorInventoryRequest,
   ListSectorStandSizesRequest,
   OpenSectorChartsPdfRequest,
   SaveChartRequest,
@@ -283,6 +284,18 @@ export function useChartEditor() {
     [],
   );
 
+  const listSectorInventory = useCallback(
+    async ({ sectorId, ...query }: ListSectorInventoryRequest['payload']) => {
+      const response = await api<ListSectorInventoryRequest['response']>(
+        `${CHARTS_ENDPOINT}/sectors/${sectorId}/inventory`,
+        { query },
+      );
+
+      return response.data;
+    },
+    [],
+  );
+
   const createCustomFiller = useCallback(
     async (payload: CreateCustomFillerRequest['payload']) => {
       const response = await api<CreateCustomFillerRequest['response']>(
@@ -322,6 +335,15 @@ export function useChartEditor() {
     queryOptions({
       queryKey: [ReactQueryKeys.GET_CHART_CUSTOM_FILLERS, params],
       queryFn: () => listCustomFillers(params),
+    });
+
+  const sectorInventoryQueryOptions = (
+    payload: ListSectorInventoryRequest['payload'],
+  ) =>
+    queryOptions({
+      queryKey: [ReactQueryKeys.GET_SECTOR_CHART_INVENTORY, payload],
+      queryFn: () => listSectorInventory(payload),
+      enabled: payload.sectorId.length > 0,
     });
 
   const saveChartMutation = useMutation({
@@ -414,6 +436,7 @@ export function useChartEditor() {
     getSectorChartsPdfUrl,
     sectorStandSizesQueryOptions,
     sectorChartQueryOptions,
+    sectorInventoryQueryOptions,
     customFillersQueryOptions,
     saveChartMutation,
     upsertTileMutation,

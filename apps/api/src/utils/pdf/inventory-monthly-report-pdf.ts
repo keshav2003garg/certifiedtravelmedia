@@ -1,6 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-
 import PDFDocument from 'pdfkit';
 import sharp from 'sharp';
 
@@ -28,6 +25,7 @@ const TRANSACTION_TABLE_WIDTH = TABLE_WIDTH;
 const IMAGE_TIMEOUT_MS = 3500;
 const IMAGE_FETCH_CONCURRENCY = 8;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const LOGO_URL = 'https://certifiedtravelmedia.net/logo.png';
 
 const COLORS = {
   background: '#ffffff',
@@ -46,14 +44,6 @@ const COLORS = {
   success: '#047857',
   danger: '#b42318',
 } as const;
-
-const LOGO_PATH_CANDIDATES = [
-  resolve(process.cwd(), 'apps/admin/public/logo.png'),
-  resolve(process.cwd(), 'apps/charts/public/logo.png'),
-  resolve(process.cwd(), '../admin/public/logo.png'),
-  resolve(process.cwd(), '../charts/public/logo.png'),
-  resolve(process.cwd(), 'public/logo.png'),
-] as const;
 
 const TRANSACTION_COLUMNS = [
   { label: 'Date', width: 82, align: 'left' },
@@ -292,15 +282,7 @@ function drawCell(params: {
 }
 
 async function loadLogoBuffer() {
-  const results = await Promise.allSettled(
-    LOGO_PATH_CANDIDATES.map((path) => readFile(path)),
-  );
-
-  for (const result of results) {
-    if (result.status === 'fulfilled') return Buffer.from(result.value);
-  }
-
-  return null;
+  return fetchImageBuffer(LOGO_URL);
 }
 
 function drawLogoFallback(doc: PDFKit.PDFDocument, x: number, y: number) {

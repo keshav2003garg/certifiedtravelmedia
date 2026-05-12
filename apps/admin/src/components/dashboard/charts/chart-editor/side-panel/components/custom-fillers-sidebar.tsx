@@ -163,7 +163,7 @@ export const CustomFillersSidebar = memo(function CustomFillersSidebar({
   return (
     <Card
       className={cn(
-        isCompact && 'flex min-h-0 flex-1 basis-0 flex-col overflow-hidden',
+        isCompact && 'flex min-h-0 max-h-28 flex-1 basis-0 flex-col overflow-hidden',
       )}
     >
       <CardHeader className={cn(isCompact ? 'px-3 py-2' : 'pb-3')}>

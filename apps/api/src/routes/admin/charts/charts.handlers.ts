@@ -16,6 +16,7 @@ import type {
   ListArchivesContext,
   ListChartsContext,
   ListCustomFillersContext,
+  ListSectorInventoryContext,
   SaveChartContext,
   UpsertTileContext,
 } from './charts.validators';
@@ -86,6 +87,20 @@ export async function listCustomFillersHandler(ctx: ListCustomFillersContext) {
 
   return sendResponse(ctx, 200, 'Custom fillers retrieved successfully', {
     customFillers: result.data,
+    pagination: result.pagination,
+  });
+}
+
+export async function listSectorInventoryHandler(
+  ctx: ListSectorInventoryContext,
+) {
+  const { sectorId } = ctx.req.valid('param');
+  const params = ctx.req.valid('query');
+
+  const result = await chartsService.listSectorInventory(sectorId, params);
+
+  return sendResponse(ctx, 200, 'Available inventory retrieved successfully', {
+    inventory: result.data,
     pagination: result.pagination,
   });
 }

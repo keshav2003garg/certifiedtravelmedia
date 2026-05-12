@@ -1,5 +1,9 @@
 import { createValidatorSchema } from '@repo/server-utils/utils/zod-validator-schema';
-import { paginationSchema } from '@repo/server-utils/validator/pagination.validator';
+import {
+  limitValidator,
+  pageValidator,
+  paginationSchema,
+} from '@repo/server-utils/validator/pagination.validator';
 import { z } from '@repo/utils/zod';
 
 import { tileTypeEnum } from '@services/database/schemas';
@@ -158,6 +162,18 @@ export const getSectorChartValidator = createValidatorSchema({
 });
 export type GetSectorChartContext = TypedContext<
   typeof getSectorChartValidator
+>;
+
+export const listSectorInventoryValidator = createValidatorSchema({
+  param: sectorIdParamSchema,
+  query: z.object({
+    page: pageValidator,
+    limit: limitValidator,
+    search: optionalTrimmedSearchSchema,
+  }),
+});
+export type ListSectorInventoryContext = TypedContext<
+  typeof listSectorInventoryValidator
 >;
 
 export const initializeSectorChartValidator = createValidatorSchema({

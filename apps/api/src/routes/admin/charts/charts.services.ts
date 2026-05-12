@@ -59,6 +59,7 @@ import type {
   ListChartsResult,
   ListCustomFillersParams,
   ListCustomFillersResult,
+  ListSectorInventoryParams,
   SaveChartInput,
   SectorChartsResult,
   SectorStandSizeResult,
@@ -317,6 +318,23 @@ class ChartsService {
       );
   }
 
+  private buildSectorInventoryWhere(sectorId: string, search?: string) {
+    const conditions: SQL[] = [
+      eq(schema.warehousesSectors.sectorId, sectorId),
+      eq(schema.warehouses.isActive, true),
+      gt(schema.inventoryItems.boxes, 0),
+    ];
+
+    if (search) {
+      const term = `%${this.escapeLike(search)}%`;
+      const searchWhere = or(ilike(schema.brochures.name, term));
+
+      if (searchWhere) conditions.push(searchWhere);
+    }
+
+    return and(...conditions);
+  }
+
   private formatInventoryItem(row: InventoryItemRow): ChartInventoryItemResult {
     return {
       id: row.id,
@@ -402,6 +420,75 @@ class ChartsService {
       );
 
     return rows.map((row) => this.formatInventoryItem(row));
+  }
+
+  async listSectorInventory(
+    sectorId: string,
+    params: ListSectorInventoryParams,
+  ) {
+    await this.getSectorOrThrow(sectorId);
+
+    const whereClause = this.buildSectorInventoryWhere(sectorId, params.search);
+    const [countResult, rows] = await Promise.all([
+      db
+        .select({ total: count() })
+        .from(schema.inventoryItems)
+        .innerJoin(
+          schema.warehouses,
+          eq(schema.inventoryItems.warehouseId, schema.warehouses.id),
+        )
+        .innerJoin(
+          schema.brochureImagePackSizes,
+          eq(
+            schema.inventoryItems.brochureImagePackSizeId,
+            schema.brochureImagePackSizes.id,
+          ),
+        )
+        .innerJoin(
+          schema.brochureImages,
+          eq(
+            schema.brochureImagePackSizes.brochureImageId,
+            schema.brochureImages.id,
+          ),
+        )
+        .innerJoin(
+          schema.brochures,
+          eq(schema.brochureImages.brochureId, schema.brochures.id),
+        )
+        .innerJoin(
+          schema.brochureTypes,
+          eq(schema.brochures.brochureTypeId, schema.brochureTypes.id),
+        )
+        .leftJoin(
+          schema.customers,
+          eq(schema.brochures.customerId, schema.customers.id),
+        )
+        .innerJoin(
+          schema.warehousesSectors,
+          eq(schema.warehousesSectors.warehouseId, schema.warehouses.id),
+        )
+        .where(whereClause),
+      this.inventoryBaseQuery()
+        .innerJoin(
+          schema.warehousesSectors,
+          eq(schema.warehousesSectors.warehouseId, schema.warehouses.id),
+        )
+        .where(whereClause)
+        .orderBy(
+          asc(schema.warehouses.name),
+          asc(schema.brochures.name),
+          asc(schema.brochureTypes.name),
+        )
+        .limit(params.limit)
+        .offset(getPaginationOffset(params)),
+    ]);
+
+    return createPaginatedResult({
+      data: rows.map((row) => this.formatInventoryItem(row)),
+      page: params.page,
+      limit: params.limit,
+      total: countResult[0]?.total ?? 0,
+    });
   }
 
   private formatLocation(

@@ -13,10 +13,15 @@ import type {
   ChartInventoryItem,
   ChartLayout,
   ChartTile,
+  Pagination,
 } from '@/hooks/useChartEditor/types';
 
 interface ChartEditorSidePanelProps {
   chart: ChartLayout;
+  availableInventory: ChartInventoryItem[];
+  availableInventoryPagination: Pagination;
+  availableInventorySearchValue: string;
+  isAvailableInventoryFetching: boolean;
   tiles: ChartTile[];
   selectedTile: ChartTile | null;
   selectedTileId: string | null;
@@ -34,6 +39,9 @@ interface ChartEditorSidePanelProps {
   onAddPaidTile: (tile: ChartTile) => void;
   onInventoryItemDragStart: (item: ChartInventoryItem) => void;
   onInventoryItemDragEnd: () => void;
+  onAvailableInventorySearchChange: (value: string) => void;
+  onAvailableInventoryNextPage: () => void;
+  onAvailableInventoryPreviousPage: () => void;
   onCustomFillerDragStart: (filler: ChartCustomFiller) => void;
   onCustomFillerDragEnd: () => void;
   onPaidTileDragStart: (tile: ChartTile) => void;
@@ -47,6 +55,10 @@ interface ChartEditorSidePanelProps {
 
 export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
   chart,
+  availableInventory,
+  availableInventoryPagination,
+  availableInventorySearchValue,
+  isAvailableInventoryFetching,
   tiles,
   selectedTile,
   selectedTileId,
@@ -64,6 +76,9 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
   onAddPaidTile,
   onInventoryItemDragStart,
   onInventoryItemDragEnd,
+  onAvailableInventorySearchChange,
+  onAvailableInventoryNextPage,
+  onAvailableInventoryPreviousPage,
   onCustomFillerDragStart,
   onCustomFillerDragEnd,
   onPaidTileDragStart,
@@ -134,12 +149,18 @@ export const ChartEditorSidePanel = memo(function ChartEditorSidePanel({
       />
 
       <AvailableInventorySidebar
-        items={chart.availableInventory}
+        items={availableInventory}
+        pagination={availableInventoryPagination}
+        searchValue={availableInventorySearchValue}
+        isFetching={isAvailableInventoryFetching}
         isLocked={isReadOnly}
         isCompact={isFullscreen}
         hasEmptyCells={hasEmptyCells}
         canPlaceItem={canPlaceInventoryItem}
         onAddInventoryItem={onAddInventoryItem}
+        onSearchChange={onAvailableInventorySearchChange}
+        onNextPage={onAvailableInventoryNextPage}
+        onPreviousPage={onAvailableInventoryPreviousPage}
         onInventoryItemDragStart={onInventoryItemDragStart}
         onInventoryItemDragEnd={onInventoryItemDragEnd}
       />

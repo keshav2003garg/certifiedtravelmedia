@@ -42,13 +42,15 @@ export const inventoryRequestFormSchema = z.object({
     .positive('Boxes must be greater than 0')
     .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
       message: 'Boxes can have at most two decimal places',
-    }),
+    })
+    .optional(),
   unitsPerBox: z
     .number()
     .positive('Units per box must be greater than 0')
     .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
       message: 'Units per box can have at most two decimal places',
-    }),
+    })
+    .optional(),
   transactionType: z.enum(TRANSACTION_TYPES),
   notes: z.string().trim().max(2000, 'Notes must be 2000 characters or less'),
 });
@@ -65,11 +67,11 @@ export function getDefaultInventoryRequestValues() {
     customerName: '',
     imageUrl: '',
     dateReceived: todayISODate(),
-    boxes: 1,
-    unitsPerBox: 1,
+    boxes: undefined,
+    unitsPerBox: undefined,
     transactionType: 'Delivery',
     notes: '',
-  } satisfies InventoryRequestFormData;
+  } satisfies Partial<InventoryRequestFormData>;
 }
 
 export const TRANSACTION_TYPE_OPTIONS = TRANSACTION_TYPES.map((value) => ({

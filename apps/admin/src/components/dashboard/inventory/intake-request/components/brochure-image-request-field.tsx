@@ -7,7 +7,7 @@ import {
   FormMessage,
 } from '@repo/ui/components/base/form';
 import { Skeleton } from '@repo/ui/components/base/skeleton';
-import { Image as ImageIcon } from '@repo/ui/lib/icons';
+import { Check, Image as ImageIcon } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
 
 import ImageUploadField from '@/components/common/image-upload-field';
@@ -44,6 +44,7 @@ function BrochureImageRequestField({
   );
   const uploadValue = value && !savedImageUrls.has(value) ? value : '';
   const hasSelectedBrochure = brochureId.length > 0;
+  const hasSavedImages = hasSelectedBrochure && !isLoading && images.length > 0;
 
   return (
     <FormItem>
@@ -52,62 +53,100 @@ function BrochureImageRequestField({
         <div className="space-y-3">
           {hasSelectedBrochure ? (
             isLoading ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Skeleton className="h-36 w-full" />
-                <Skeleton className="h-36 w-full" />
+              <div className="space-y-2 rounded-lg border p-3">
+                <Skeleton className="h-4 w-40" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Skeleton className="h-36 w-full rounded-md" />
+                  <Skeleton className="h-36 w-full rounded-md" />
+                </div>
               </div>
-            ) : images.length === 0 ? (
-              <div className="rounded-md border border-dashed p-5 text-center">
-                <ImageIcon className="text-muted-foreground mx-auto size-8" />
-                <p className="text-foreground mt-2 text-sm font-medium">
-                  No saved images
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  Upload a new image for this request.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {images.map((image) => {
-                  const imageUrl = image.imageUrl ?? '';
-                  const isActive = imageUrl.length > 0 && value === imageUrl;
+            ) : images.length === 0 ? null : (
+              <>
+                {/* Saved images — selectable grid */}
+                <div
+                  className={cn(
+                    'space-y-2 rounded-lg border p-3',
+                    invalid && 'border-destructive',
+                  )}
+                >
+                  <p className="text-sm font-medium">
+                    Map from existing images
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {images.map((image) => {
+                      const imageUrl = image.imageUrl ?? '';
+                      const isActive =
+                        imageUrl.length > 0 && value === imageUrl;
 
-                  return (
-                    <button
-                      key={image.id}
-                      type="button"
-                      onClick={() => onChange(isActive ? '' : imageUrl)}
-                      disabled={disabled || imageUrl.length === 0}
-                      className={cn(
-                        'group bg-card relative flex flex-col overflow-hidden rounded-md border text-left transition-colors',
-                        isActive
-                          ? 'border-primary ring-primary/30 ring-2'
-                          : 'border-border hover:border-primary/60',
-                        imageUrl.length === 0 &&
-                          'cursor-not-allowed opacity-70',
-                      )}
-                    >
-                      <div className="bg-muted relative flex h-56 w-full items-center justify-center overflow-hidden sm:h-64">
-                        {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt=""
-                            className="size-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="text-muted-foreground flex size-full items-center justify-center">
-                            <ImageIcon className="size-8" />
+                      return (
+                        <button
+                          key={image.id}
+                          type="button"
+                          onClick={() => onChange(isActive ? '' : imageUrl)}
+                          disabled={disabled || imageUrl.length === 0}
+                          className={cn(
+                            'group bg-card flex flex-col overflow-hidden rounded-md border text-left transition-all',
+                            isActive
+                              ? 'border-primary ring-primary/30 ring-2'
+                              : 'border-border hover:border-primary/60',
+                            imageUrl.length === 0 &&
+                              'cursor-not-allowed opacity-70',
+                          )}
+                        >
+                          <div className="bg-muted flex h-44 w-full items-center justify-center overflow-hidden">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt=""
+                                className="size-full object-contain"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="text-muted-foreground flex size-full items-center justify-center">
+                                <ImageIcon className="size-8" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                          {/* Selection indicator banner */}
+                          <div
+                            className={cn(
+                              'flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium transition-colors',
+                              isActive
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted text-muted-foreground',
+                            )}
+                          >
+                            {isActive ? (
+                              <>
+                                <Check className="size-3" />
+                                Selected
+                              </>
+                            ) : (
+                              'Tap to select'
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* "or" divider */}
+                <div className="flex items-center gap-3">
+                  <div className="bg-border h-px flex-1" />
+                  <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    or
+                  </span>
+                  <div className="bg-border h-px flex-1" />
+                </div>
+              </>
             )
           ) : null}
 
+          {/* Upload / camera section */}
+          {hasSavedImages ? (
+            <p className="text-sm font-medium">Take a new photo or upload</p>
+          ) : null}
           <ImageUploadField
             bucket="inventory"
             prefix={
@@ -120,11 +159,6 @@ function BrochureImageRequestField({
             onChange={onChange}
             disabled={disabled}
             invalid={invalid}
-            helperText={
-              hasSelectedBrochure
-                ? 'Upload a new image if none of the saved brochure images match.'
-                : 'Attach the cover image used for manager review.'
-            }
             className="h-56"
           />
         </div>

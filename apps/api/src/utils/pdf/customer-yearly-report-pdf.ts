@@ -1,6 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-
 import PDFDocument from 'pdfkit';
 import sharp from 'sharp';
 
@@ -44,13 +41,7 @@ const COLORS = {
   white: '#ffffff',
 } as const;
 
-const LOGO_PATH_CANDIDATES = [
-  resolve(process.cwd(), 'apps/admin/public/logo.png'),
-  resolve(process.cwd(), 'apps/charts/public/logo.png'),
-  resolve(process.cwd(), '../admin/public/logo.png'),
-  resolve(process.cwd(), '../charts/public/logo.png'),
-  resolve(process.cwd(), 'public/logo.png'),
-] as const;
+const LOGO_URL = 'https://certifiedtravelmedia.net/logo.png';
 
 function finalize(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolveBuffer, reject) => {
@@ -335,15 +326,7 @@ async function normalizeBrochureImage(buffer: Buffer) {
 }
 
 async function loadLogoBuffer() {
-  const results = await Promise.allSettled(
-    LOGO_PATH_CANDIDATES.map((path) => readFile(path)),
-  );
-
-  for (const result of results) {
-    if (result.status === 'fulfilled') return Buffer.from(result.value);
-  }
-
-  return null;
+  return fetchImageBuffer(LOGO_URL);
 }
 
 function getVariantImageKey(variant: CustomerYearlyReportVariant) {

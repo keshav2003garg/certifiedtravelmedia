@@ -18,10 +18,15 @@ import type {
   ChartInventoryItem,
   ChartLayout,
   ChartTile,
+  Pagination,
 } from '@/hooks/useChartEditor/types';
 
 interface ChartEditorProps {
   chart: ChartLayout;
+  availableInventory: ChartInventoryItem[];
+  availableInventoryPagination: Pagination;
+  availableInventorySearchValue: string;
+  isAvailableInventoryFetching: boolean;
   isFullscreen?: boolean;
   isManager: boolean;
   isSaving: boolean;
@@ -35,6 +40,9 @@ interface ChartEditorProps {
   onInitialize: () => void;
   onPrint: () => void;
   onMonthChange: (month: number, year: number) => void;
+  onAvailableInventorySearchChange: (value: string) => void;
+  onAvailableInventoryNextPage: () => void;
+  onAvailableInventoryPreviousPage: () => void;
 }
 
 function getChartKey(chart: ChartLayout) {
@@ -159,6 +167,10 @@ export function ChartEditor(props: ChartEditorProps) {
 
 function ChartEditorInner({
   chart,
+  availableInventory,
+  availableInventoryPagination,
+  availableInventorySearchValue,
+  isAvailableInventoryFetching,
   isFullscreen = false,
   isManager,
   isSaving,
@@ -172,6 +184,9 @@ function ChartEditorInner({
   onInitialize,
   onPrint,
   onMonthChange,
+  onAvailableInventorySearchChange,
+  onAvailableInventoryNextPage,
+  onAvailableInventoryPreviousPage,
 }: ChartEditorProps) {
   const [tiles, setTiles] = useState<ChartTile[]>(chart.tiles);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
@@ -216,10 +231,9 @@ function ChartEditorInner({
 
   const draggedInventoryItem = useMemo(
     () =>
-      chart.availableInventory.find(
-        (item) => item.id === draggedInventoryItemId,
-      ) ?? null,
-    [chart.availableInventory, draggedInventoryItemId],
+      availableInventory.find((item) => item.id === draggedInventoryItemId) ??
+      null,
+    [availableInventory, draggedInventoryItemId],
   );
 
   const draggedCustomFiller = useMemo(
@@ -752,6 +766,10 @@ function ChartEditorInner({
 
         <ChartEditorSidePanel
           chart={chart}
+          availableInventory={availableInventory}
+          availableInventoryPagination={availableInventoryPagination}
+          availableInventorySearchValue={availableInventorySearchValue}
+          isAvailableInventoryFetching={isAvailableInventoryFetching}
           tiles={tiles}
           selectedTile={selectedTile}
           selectedTileId={selectedTileId}
@@ -769,6 +787,9 @@ function ChartEditorInner({
           onAddPaidTile={handleAddPaidTile}
           onInventoryItemDragStart={handleInventoryDragStart}
           onInventoryItemDragEnd={handleInventoryDragEnd}
+          onAvailableInventorySearchChange={onAvailableInventorySearchChange}
+          onAvailableInventoryNextPage={onAvailableInventoryNextPage}
+          onAvailableInventoryPreviousPage={onAvailableInventoryPreviousPage}
           onCustomFillerDragStart={handleCustomFillerDragStart}
           onCustomFillerDragEnd={handleCustomFillerDragEnd}
           onPaidTileDragStart={handlePaidTileDragStart}

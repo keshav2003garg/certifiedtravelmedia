@@ -8,11 +8,16 @@ import { Card, CardContent } from '@repo/ui/components/base/card';
 import { AlertCircle, ArrowLeft, Loader2 } from '@repo/ui/lib/icons';
 
 import { useChartEditor } from '@/hooks/useChartEditor';
+import { useChartAvailableInventoryFilters } from '@/hooks/useChartEditor/useChartAvailableInventoryFilters';
 
 import { ChartEditor } from './chart-editor';
 import { ChartEditorSkeleton } from './chart-editor-skeleton';
 
-import type { ChartTile } from '@/hooks/useChartEditor/types';
+import type {
+  ChartInventoryItem,
+  ChartTile,
+  Pagination,
+} from '@/hooks/useChartEditor/types';
 
 interface ChartEditorPageProps {
   sectorId: string;
@@ -40,20 +45,32 @@ function ChartEditorPage({
   const router = useRouter();
   const {
     sectorChartQueryOptions,
+    sectorInventoryQueryOptions,
     saveChartMutation,
     completeChartMutation,
     cloneChartMutation,
     initializeSectorChartMutation,
     openSectorChartsPdfMutation,
   } = useChartEditor();
+  const availableInventoryFilters = useChartAvailableInventoryFilters();
 
   const chartQueryOptions = useMemo(
     () => sectorChartQueryOptions({ sectorId, width, height, month, year }),
     [sectorChartQueryOptions, sectorId, width, height, month, year],
   );
+  const inventoryQueryOptions = useMemo(
+    () =>
+      sectorInventoryQueryOptions({
+        sectorId,
+        ...availableInventoryFilters.params,
+      }),
+    [sectorInventoryQueryOptions, sectorId, availableInventoryFilters.params],
+  );
 
   const { data, isError, isFetching, isLoading, refetch } =
     useQuery(chartQueryOptions);
+  const { data: inventoryData, isFetching: isAvailableInventoryFetching } =
+    useQuery(inventoryQueryOptions);
   const chart = data?.chart;
   const chartId = chart?.id ?? null;
 
@@ -166,6 +183,21 @@ function ChartEditorPage({
       ) : (
         <ChartEditor
           chart={chart}
+          availableInventory={
+            inventoryData?.inventory ?? chart.availableInventory
+          }
+          availableInventoryPagination={
+            inventoryData?.pagination ??
+            getInventoryPaginationFallback(
+              chart.availableInventory,
+              availableInventoryFilters.page,
+              availableInventoryFilters.limit,
+            )
+          }
+          availableInventorySearchValue={
+            availableInventoryFilters.searchInputValue
+          }
+          isAvailableInventoryFetching={isAvailableInventoryFetching}
           isFullscreen={isFullscreen}
           isManager={isManager}
           isSaving={saveChartMutation.isPending}
@@ -179,10 +211,33 @@ function ChartEditorPage({
           onInitialize={handleInitialize}
           onPrint={handlePrint}
           onMonthChange={onMonthChange}
+          onAvailableInventorySearchChange={availableInventoryFilters.setSearch}
+          onAvailableInventoryNextPage={availableInventoryFilters.goToNextPage}
+          onAvailableInventoryPreviousPage={
+            availableInventoryFilters.goToPreviousPage
+          }
         />
       )}
     </div>
   );
+}
+
+function getInventoryPaginationFallback(
+  items: ChartInventoryItem[],
+  page: number,
+  limit: number,
+): Pagination {
+  const total = items.length;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    page,
+    limit,
+    total,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1,
+  };
 }
 
 interface ChartEditorErrorProps {
