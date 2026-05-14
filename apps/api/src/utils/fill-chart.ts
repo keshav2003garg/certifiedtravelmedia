@@ -22,6 +22,7 @@ export interface Placement {
 
 export interface Removal {
   brochureName: string;
+  customerName: string | null;
   type: PlacementType;
   expiredDate: string;
   size: { cols: number; rows: number };
@@ -350,6 +351,7 @@ export async function getFillChart(
 
     removals.push({
       brochureName: getBrochureName(distribution),
+      customerName: distribution.customerName ?? null,
       type: distribution.unitOfMeasure,
       expiredDate: distribution.endingDate,
       size: { ...size },

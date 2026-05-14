@@ -27,7 +27,6 @@ import {
 } from './charts.handlers';
 import {
   chartIdValidator,
-  cloneChartValidator,
   createCustomFillerValidator,
   deleteTileValidator,
   exportPocketsSoldReportValidator,
@@ -168,7 +167,7 @@ chartsRoute.post(
 chartsRoute.post(
   '/:id/clone',
   isManagerOrAbove,
-  validator(cloneChartValidator),
+  validator(chartIdValidator),
   cloneChartHandler,
 );
 

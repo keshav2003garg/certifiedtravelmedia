@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Tooltip,
@@ -14,7 +14,6 @@ interface ChartGridProps {
   height: number;
   tiles: ChartTile[];
   removals?: ChartRemoval[];
-  persisted?: boolean;
 }
 
 const TIER_COLORS = {
@@ -54,7 +53,7 @@ const MIN_CELL_SIZE = 40;
 const MAX_CELL_SIZE = 80;
 
 function ChartGrid(props: ChartGridProps) {
-  const { width, height, tiles, removals = [], persisted = false } = props;
+  const { width, height, tiles, removals = [] } = props;
 
   const [cellSize, setCellSize] = useState(60);
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
@@ -118,7 +117,6 @@ function ChartGrid(props: ChartGridProps) {
             cellSize={cellSize}
             tiles={tiles}
             removals={removals}
-            persisted={persisted}
             hasContent={hasContent}
             isMobile={isMobile}
             isTouchDevice={isTouchDevice}
@@ -184,7 +182,6 @@ interface GridContentProps {
   cellSize: number;
   tiles: ChartTile[];
   removals: ChartRemoval[];
-  persisted: boolean;
   hasContent: boolean;
   isMobile: boolean;
   isTouchDevice: boolean;
@@ -198,7 +195,6 @@ function GridContent({
   cellSize,
   tiles,
   removals,
-  persisted,
   hasContent,
   isMobile,
   isTouchDevice,
@@ -208,6 +204,29 @@ function GridContent({
   const textSizeType = isMobile
     ? 'text-[9px] leading-[10px]'
     : 'text-[11px] leading-[13px]';
+  const { removalByTileId, gapRemovals } = useMemo(() => {
+    const byTileId = new Map<string, ChartRemoval>();
+    const gaps: ChartRemoval[] = [];
+
+    for (const removal of removals) {
+      const overlappingTiles = tiles.filter(
+        (tile) =>
+          tile.row === removal.position.row &&
+          tile.col < removal.position.col + removal.size.cols &&
+          removal.position.col < tile.col + tile.colSpan,
+      );
+
+      if (overlappingTiles.length > 0) {
+        for (const tile of overlappingTiles) {
+          byTileId.set(tile.id, removal);
+        }
+      } else {
+        gaps.push(removal);
+      }
+    }
+
+    return { removalByTileId: byTileId, gapRemovals: gaps };
+  }, [removals, tiles]);
 
   return (
     <>
@@ -226,8 +245,10 @@ function GridContent({
 
       {/* Tiles (Paid + Filler) */}
       {tiles.map((tile) => {
+        const removal = removalByTileId.get(tile.id) ?? null;
         const isFiller = tile.tileType === 'Filler';
         const isNew = !isFiller && tile.isNew;
+        const coverPhotoUrl = isFiller ? null : tile.coverPhotoUrl;
         const colors = isFiller
           ? FILLER_COLORS
           : isNew
@@ -251,7 +272,7 @@ function GridContent({
           >
             <TooltipTrigger asChild>
               <div
-                className={`absolute ${colors.bg} ${colors.text} ${colors.border} ${tile.isFlagged ? FLAGGED_RING : ''} flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border-2 p-0.5 text-center shadow-md transition-transform hover:z-10 hover:scale-105 active:scale-95 md:rounded-lg md:p-1`}
+                className={`absolute box-border ${colors.bg} ${colors.text} ${colors.border} ${tile.isFlagged ? FLAGGED_RING : ''} flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border-2 p-0.5 text-center shadow-md transition-transform hover:z-10 hover:scale-105 active:scale-95 md:rounded-lg md:p-1`}
                 style={{
                   left: tile.col * cellSize + 1,
                   top: tile.row * cellSize + 1,
@@ -264,10 +285,10 @@ function GridContent({
                     : undefined
                 }
               >
-                {tile.coverPhotoUrl ? (
+                {coverPhotoUrl ? (
                   <div className="absolute inset-0">
                     <img
-                      src={tile.coverPhotoUrl}
+                      src={coverPhotoUrl}
                       alt={tile.label || ''}
                       className="h-full w-full object-cover"
                     />
@@ -289,6 +310,12 @@ function GridContent({
                 {tile.isFlagged && (
                   <span className="absolute top-0 right-0 text-[8px]">🚩</span>
                 )}
+                {removal ? (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-1 z-20 rounded-[inherit] border-[3px] border-red-700"
+                  />
+                ) : null}
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-50 text-center">
@@ -299,11 +326,6 @@ function GridContent({
                 {tile.brochureTypeName && (
                   <p className="text-xs opacity-80">
                     Type: {tile.brochureTypeName}
-                  </p>
-                )}
-                {tile.customerName && (
-                  <p className="text-xs opacity-80">
-                    Customer: {tile.customerName}
                   </p>
                 )}
                 {tile.contractId && (
@@ -321,67 +343,81 @@ function GridContent({
                     🚩 {tile.flagNote}
                   </p>
                 )}
+                {removal && (
+                  <div className="mt-1 border-t border-red-200 pt-1 text-red-600">
+                    <p className="text-xs font-semibold">
+                      To remove: {removal.brochureName}
+                    </p>
+                    {removal.contractId && (
+                      <p className="text-xs opacity-80">
+                        Contract: {removal.contractId}
+                      </p>
+                    )}
+                    <p className="text-xs opacity-80">
+                      Expired: {removal.expiredDate}
+                    </p>
+                  </div>
+                )}
               </div>
             </TooltipContent>
           </Tooltip>
         );
       })}
 
-      {/* Removals - only shown when not persisted */}
-      {!persisted &&
-        removals.map((removal, index) => {
-          const tooltipId = `removal-${index}`;
-          const isOpen = openTooltip === tooltipId;
+      {/* Empty removal positions */}
+      {gapRemovals.map((removal, index) => {
+        const tooltipId = `removal-${index}`;
+        const isOpen = openTooltip === tooltipId;
 
-          return (
-            <Tooltip
-              key={tooltipId}
-              open={isTouchDevice ? isOpen : undefined}
-              onOpenChange={
-                isTouchDevice
-                  ? (open) => setOpenTooltip(open ? tooltipId : null)
-                  : undefined
-              }
-            >
-              <TooltipTrigger asChild>
-                <div
-                  className={`absolute ${REMOVAL_COLORS.bg} ${REMOVAL_COLORS.text} ${REMOVAL_COLORS.border} flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border-2 border-dashed p-0.5 text-center shadow-md transition-transform hover:z-10 hover:scale-105 active:scale-95 md:rounded-lg md:p-1`}
-                  style={{
-                    left: removal.position.col * cellSize + 1,
-                    top: removal.position.row * cellSize + 1,
-                    width: removal.size.cols * cellSize - 2,
-                    height: removal.size.rows * cellSize - 2,
-                  }}
-                  onClick={
-                    isTouchDevice
-                      ? () => setOpenTooltip(isOpen ? null : tooltipId)
-                      : undefined
-                  }
-                >
-                  <span
-                    className={`${textSizeType} line-clamp-2 w-full overflow-hidden px-0.5 font-semibold`}
-                  >
-                    {removal.brochureName}
-                  </span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className="max-w-50 border-red-200 bg-red-50 text-center text-red-900"
+        return (
+          <Tooltip
+            key={tooltipId}
+            open={isTouchDevice ? isOpen : undefined}
+            onOpenChange={
+              isTouchDevice
+                ? (open) => setOpenTooltip(open ? tooltipId : null)
+                : undefined
+            }
+          >
+            <TooltipTrigger asChild>
+              <div
+                className={`absolute box-border ${REMOVAL_COLORS.bg} ${REMOVAL_COLORS.text} ${REMOVAL_COLORS.border} flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-md border-[3px] p-0.5 text-center shadow-md transition-transform hover:z-10 hover:scale-105 active:scale-95 md:rounded-lg md:p-1`}
+                style={{
+                  left: removal.position.col * cellSize + 1,
+                  top: removal.position.row * cellSize + 1,
+                  width: removal.size.cols * cellSize - 2,
+                  height: removal.size.rows * cellSize - 2,
+                }}
+                onClick={
+                  isTouchDevice
+                    ? () => setOpenTooltip(isOpen ? null : tooltipId)
+                    : undefined
+                }
               >
-                <div className="space-y-1">
-                  <p className="font-semibold">⚠️ {removal.brochureName}</p>
-                  <p className="text-xs opacity-80">
-                    Contract: {removal.contractId}
-                  </p>
-                  <p className="text-xs opacity-80">
-                    Expired: {removal.expiredDate}
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+                <span
+                  className={`${textSizeType} line-clamp-2 w-full overflow-hidden px-0.5 font-semibold`}
+                >
+                  {removal.brochureName}
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              className="max-w-50 border-red-200 bg-red-50 text-center text-red-900"
+            >
+              <div className="space-y-1">
+                <p className="font-semibold">⚠️ {removal.brochureName}</p>
+                <p className="text-xs opacity-80">
+                  Contract: {removal.contractId}
+                </p>
+                <p className="text-xs opacity-80">
+                  Expired: {removal.expiredDate}
+                </p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
 
       {/* Empty state */}
       {!hasContent && (

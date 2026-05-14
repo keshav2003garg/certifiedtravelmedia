@@ -40,6 +40,11 @@ interface CellData {
   contractEndDate: string | null;
 }
 
+interface FooterSection {
+  label: string;
+  lines: string[];
+}
+
 function finalize(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const buffers: Buffer[] = [];
@@ -67,6 +72,54 @@ function formatDate(dateStr: string) {
 
 function getChartPageLayout(chart: ChartResult) {
   return chart.location.pockets.width > 6 ? 'landscape' : 'portrait';
+}
+
+function getReadableLabel(value: string | null | undefined, fallback: string) {
+  const label = value?.trim();
+  return label && label.length > 0 ? label : fallback;
+}
+
+function getFontSizeForWidth(
+  doc: PDFKit.PDFDocument,
+  text: string,
+  width: number,
+  maxSize: number,
+  minSize: number,
+) {
+  let fontSize = maxSize;
+
+  while (fontSize > minSize) {
+    doc.fontSize(fontSize);
+    if (doc.widthOfString(text) <= width) return fontSize;
+    fontSize -= 0.25;
+  }
+
+  return minSize;
+}
+
+function drawRemovalInstruction(
+  doc: PDFKit.PDFDocument,
+  x: number,
+  y: number,
+  width: number,
+  brochureName: string | null | undefined,
+) {
+  const label = 'REMOVE:';
+  const name = getReadableLabel(brochureName, 'Brochure to remove');
+
+  doc.save();
+
+  doc.font('Helvetica-Bold').fontSize(4.8);
+  const labelWidth = Math.min(doc.widthOfString(label) + 2, width * 0.4);
+  const nameX = x + labelWidth + 1;
+  const nameWidth = Math.max(width - labelWidth - 1, width * 0.5);
+  const nameFontSize = getFontSizeForWidth(doc, name, nameWidth, 4.8, 3.2);
+
+  doc.font('Helvetica-Bold').fontSize(4.8).fillColor('#DC2626');
+  doc.text(label, x, y, { width: labelWidth, lineBreak: false });
+  doc.font('Helvetica-Bold').fontSize(nameFontSize).fillColor('#DC2626');
+  doc.text(name, nameX, y, { width: nameWidth, lineBreak: false });
+  doc.restore();
 }
 
 function createChartPDFDocument(chart: ChartResult, title: string) {
@@ -117,6 +170,7 @@ function drawChartPDFPage(
     Array.from({ length: gridW }, () => null),
   );
   const occupied = new Set<string>();
+  const removalOverlays = new Map<string, (typeof chart.removals)[number]>();
 
   for (const tile of chart.tiles) {
     if (tile.row < gridH && tile.col < gridW) {
@@ -139,20 +193,34 @@ function drawChartPDFPage(
   for (const removal of chart.removals) {
     const r = removal.position.row;
     const c = removal.position.col;
-    if (r < gridH && c < gridW) {
-      grid[r]![c] = {
-        label: removal.brochureName,
-        colSpan: removal.size.cols,
-        tileType: 'Removal',
-        isFlagged: false,
-        flagNote: null,
-        isNew: false,
-        tier: null,
-        contractEndDate: removal.expiredDate,
-      };
-      for (let cc = 1; cc < removal.size.cols; cc++) {
-        occupied.add(`${r},${c + cc}`);
+    if (r >= gridH || c >= gridW) continue;
+
+    const overlappingTiles = chart.tiles.filter(
+      (tile) =>
+        tile.row === r &&
+        tile.col < c + removal.size.cols &&
+        c < tile.col + tile.colSpan,
+    );
+
+    if (overlappingTiles.length > 0) {
+      for (const tile of overlappingTiles) {
+        removalOverlays.set(`${tile.row},${tile.col}`, removal);
       }
+      continue;
+    }
+
+    grid[r]![c] = {
+      label: removal.brochureName,
+      colSpan: removal.size.cols,
+      tileType: 'Removal',
+      isFlagged: false,
+      flagNote: null,
+      isNew: false,
+      tier: null,
+      contractEndDate: removal.expiredDate,
+    };
+    for (let cc = 1; cc < removal.size.cols; cc++) {
+      occupied.add(`${r},${c + cc}`);
     }
   }
 
@@ -252,6 +320,7 @@ function drawChartPDFPage(
       if (occupied.has(`${r},${c}`)) continue;
 
       const cell = grid[r]![c];
+      const removalOverlay = removalOverlays.get(`${r},${c}`);
       const x = gridStartX + rowHeaderW + c * cellW;
       const w = cell ? cellW * cell.colSpan : cellW;
 
@@ -288,11 +357,13 @@ function drawChartPDFPage(
       const textColor = cell.tileType === 'Paid' ? '#FFFFFF' : '#000000';
       const textX = x + 3;
       const textW = w - 6;
+      const hasRemovalMarker =
+        cell.tileType === 'Removal' || Boolean(removalOverlay);
 
       doc.fontSize(6).font('Helvetica-Bold').fillColor(textColor);
       doc.text(cell.label, textX, rowY + 4, {
         width: textW,
-        height: cellH - 12,
+        height: hasRemovalMarker ? cellH - 16 : cellH - 12,
         lineBreak: true,
         ellipsis: false,
       });
@@ -300,8 +371,26 @@ function drawChartPDFPage(
       if (cell.isFlagged) {
         drawFlagIcon(doc, x + w - 12, rowY + cellH - 11, textColor);
       } else if (cell.tileType === 'Removal') {
-        doc.fontSize(5).font('Helvetica').fillColor('#DC2626');
-        doc.text('REMOVE', textX, rowY + cellH - 9, { width: textW });
+        drawRemovalInstruction(doc, textX, rowY + cellH - 9, textW, cell.label);
+      }
+
+      if (removalOverlay && cell.tileType !== 'Removal') {
+        doc
+          .save()
+          .dash(2, { space: 1.5 })
+          .rect(x + 1, rowY + 1, w - 2, cellH - 2)
+          .strokeColor('#DC2626')
+          .lineWidth(1)
+          .stroke()
+          .undash()
+          .restore();
+        drawRemovalInstruction(
+          doc,
+          textX,
+          rowY + cellH - 9,
+          textW,
+          removalOverlay.brochureName,
+        );
       }
     }
 
@@ -323,54 +412,99 @@ function drawChartPDFPage(
     .stroke();
 
   // ── Driver Notes ──
-  const notesY = colHeaderBottom + gridH * cellH + 15;
-
+  const footerSections: FooterSection[] = [];
   const newTiles = chart.tiles.filter((t) => t.isNew && t.tileType === 'Paid');
   const flaggedTiles = chart.tiles.filter((t) => t.isFlagged);
-  const removalNames = chart.removals.map((r) => r.brochureName);
-
-  const noteLines: string[] = [];
 
   if (newTiles.length > 0) {
-    noteLines.push(`NEW: ${newTiles.map((t) => t.label).join(', ')}`);
+    footerSections.push({
+      label: 'PLACE',
+      lines: newTiles.map((tile) =>
+        getReadableLabel(tile.label, 'New placement'),
+      ),
+    });
+  }
+
+  if (chart.removals.length > 0) {
+    footerSections.push({
+      label: 'REMOVE',
+      lines: chart.removals.map((removal) =>
+        getReadableLabel(removal.brochureName, 'Brochure to remove'),
+      ),
+    });
   }
 
   if (flaggedTiles.length > 0) {
-    for (const t of flaggedTiles) {
-      noteLines.push(`FLAG — ${t.label}: ${t.flagNote || 'Flagged'}`);
-    }
-  }
-
-  if (removalNames.length > 0) {
-    noteLines.push(`REMOVE & RECYCLE: ${removalNames.join(', ')}`);
+    footerSections.push({
+      label: 'FLAGS',
+      lines: flaggedTiles.map((tile) => {
+        const label = getReadableLabel(tile.label, 'Flagged tile');
+        return `${label}: ${tile.flagNote || 'Flagged'}`;
+      }),
+    });
   }
 
   if (chart.generalNotes) {
-    noteLines.push(`Notes: ${chart.generalNotes}`);
+    footerSections.push({
+      label: 'NOTES',
+      lines: [chart.generalNotes],
+    });
   }
 
-  if (noteLines.length > 0) {
-    let currentNoteY = notesY;
+  let footerY = colHeaderBottom + gridH * cellH + 15;
+  const footerLabelW = 66;
+  const footerGap = 10;
+  const footerTextX = margin + footerLabelW + footerGap;
+  const footerTextW = contentW - footerLabelW - footerGap;
 
-    if (currentNoteY + noteLines.length * 12 > pageH - margin) {
-      doc.addPage();
-      currentNoteY = margin;
+  const addFooterPage = () => {
+    doc.addPage({ layout: getChartPageLayout(chart) });
+    footerY = margin;
+  };
+
+  const ensureFooterSpace = (height: number) => {
+    if (footerY + height > doc.page.height - margin) {
+      addFooterPage();
     }
+  };
 
+  if (footerSections.length > 0) {
+    ensureFooterSpace(16);
     doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000');
-    doc.text('Driver notes:', margin, currentNoteY);
-    currentNoteY += 14;
+    doc.text('Driver notes:', margin, footerY, { width: contentW });
+    footerY += 15;
 
-    doc.fontSize(8).font('Helvetica').fillColor('#000000');
-    for (const line of noteLines) {
-      doc.text(line, margin, currentNoteY, { width: contentW * 0.6 });
-      currentNoteY += doc.heightOfString(line, { width: contentW * 0.6 }) + 2;
+    for (const section of footerSections) {
+      const sectionText = section.lines.join('\n');
+      doc.fontSize(8).font('Helvetica');
+      const textHeight = doc.heightOfString(sectionText, {
+        width: footerTextW,
+        lineGap: 2,
+      });
+      const sectionHeight = Math.max(11, textHeight) + 7;
+
+      ensureFooterSpace(sectionHeight);
+      doc
+        .fontSize(8)
+        .font('Helvetica-Bold')
+        .fillColor(section.label === 'REMOVE' ? '#DC2626' : '#000000')
+        .text(`${section.label}:`, margin, footerY, {
+          width: footerLabelW,
+          align: 'right',
+        });
+      doc
+        .fontSize(8)
+        .font('Helvetica')
+        .fillColor('#000000')
+        .text(sectionText, footerTextX, footerY, {
+          width: footerTextW,
+          lineGap: 2,
+        });
+      footerY += sectionHeight;
     }
   }
 
   // ── Legend ──
-  const legendY =
-    notesY + (noteLines.length > 0 ? noteLines.length * 12 + 20 : 0);
   const legend = [
     { color: '#22C55E', label: 'New Client' },
     { color: '#F59E0B', label: 'Premium Placement' },
@@ -381,34 +515,32 @@ function drawChartPDFPage(
   const legendItemW = 130;
   const legendTotalW = legend.length * legendItemW;
   let legendX = margin + (contentW - legendTotalW) / 2;
-  const clampedLegendY = Math.min(legendY, pageH - margin - 25);
+  ensureFooterSpace(24);
+  footerY += 4;
 
   for (const item of legend) {
     doc
-      .rect(legendX, clampedLegendY, swatchSize, swatchSize)
+      .rect(legendX, footerY, swatchSize, swatchSize)
       .fillColor(item.color)
       .fill();
     doc
       .fontSize(8)
       .font('Helvetica')
       .fillColor('#000000')
-      .text(item.label, legendX + swatchSize + 4, clampedLegendY + 1, {
+      .text(item.label, legendX + swatchSize + 4, footerY + 1, {
         width: legendItemW - swatchSize - 4,
       });
     legendX += legendItemW;
   }
+  footerY += 20;
 
   // Print date (bottom-right)
-  const printDateY = Math.max(
-    legendY + 20,
-    colHeaderBottom + gridH * cellH + 15,
-  );
-  const finalPrintDateY = Math.min(printDateY, pageH - margin - 15);
+  ensureFooterSpace(12);
   doc.fontSize(8).font('Helvetica').fillColor('#000000');
   doc.text(
     `Print date: ${formatDate(new Date().toISOString().split('T')[0]!)}`,
     margin,
-    finalPrintDateY,
+    footerY,
     { align: 'right', width: contentW },
   );
 }

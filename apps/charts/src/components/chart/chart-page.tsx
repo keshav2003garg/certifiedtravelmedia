@@ -14,10 +14,10 @@ interface ChartPageProps {
 
 export function ChartPage({ locationId }: ChartPageProps) {
   const { chartQueryOptions } = useChart();
-  const { month, year, setMonth, setYear } = useChartFilters();
+  const { month, year, params, handlePeriodChange } = useChartFilters();
 
   const { data: chart } = useSuspenseQuery(
-    chartQueryOptions({ locationId, month, year }),
+    chartQueryOptions({ locationId, ...params }),
   );
 
   return (
@@ -29,8 +29,7 @@ export function ChartPage({ locationId }: ChartPageProps) {
           locationId={locationId}
           month={month}
           year={year}
-          onMonthChange={setMonth}
-          onYearChange={setYear}
+          onPeriodChange={handlePeriodChange}
         />
 
         <ChartGrid
@@ -38,7 +37,6 @@ export function ChartPage({ locationId }: ChartPageProps) {
           height={chart.location.pockets.height}
           tiles={chart.tiles}
           removals={chart.removals}
-          persisted={chart.persisted}
         />
 
         <ChartNotes generalNotes={chart.generalNotes} />

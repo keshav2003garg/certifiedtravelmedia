@@ -20,6 +20,7 @@ import type {
 import type {
   ChartCustomFiller,
   ChartInventoryItem,
+  ChartRemoval,
   ChartTile,
 } from '@/hooks/useChartEditor/types';
 
@@ -27,6 +28,7 @@ interface InteractiveGridProps {
   width: number;
   height: number;
   tiles: ChartTile[];
+  removals?: ChartRemoval[];
   draggedInventoryItem: ChartInventoryItem | null;
   draggedCustomFiller: ChartCustomFiller | null;
   draggedPaidTile: ChartTile | null;
@@ -106,6 +108,7 @@ export const InteractiveGrid = memo(function InteractiveGrid({
   width,
   height,
   tiles,
+  removals = [],
   draggedInventoryItem,
   draggedCustomFiller,
   draggedPaidTile,
@@ -136,18 +139,60 @@ export const InteractiveGrid = memo(function InteractiveGrid({
     null,
   );
 
-  const { tileMap, occupiedCells } = useMemo(() => {
+  const {
+    tileMap,
+    occupiedCells,
+    removalGapMap,
+    removalTileMap,
+    removalOccupiedCells,
+  } = useMemo(() => {
     const map = new Map<string, ChartTile>();
     const occupied = new Set<string>();
+    const gapRemovals = new Map<string, ChartRemoval>();
+    const tileRemovals = new Map<string, ChartRemoval>();
+    const removalOccupied = new Set<string>();
+
     for (const tile of tiles) {
       map.set(`${tile.col}-${tile.row}`, tile);
-      // Mark extra cells as occupied for multi-column tiles
       for (let c = 1; c < (tile.colSpan ?? 1); c++) {
         occupied.add(`${tile.col + c}-${tile.row}`);
       }
     }
-    return { tileMap: map, occupiedCells: occupied };
-  }, [tiles]);
+
+    for (const removal of removals) {
+      const overlappingTiles = tiles.filter(
+        (tile) =>
+          tile.row === removal.position.row &&
+          tile.col < removal.position.col + removal.size.cols &&
+          removal.position.col < tile.col + tile.colSpan,
+      );
+
+      if (overlappingTiles.length > 0) {
+        for (const tile of overlappingTiles) {
+          tileRemovals.set(`${tile.col}-${tile.row}`, removal);
+        }
+        continue;
+      }
+
+      gapRemovals.set(
+        `${removal.position.col}-${removal.position.row}`,
+        removal,
+      );
+      for (let c = 1; c < removal.size.cols; c += 1) {
+        removalOccupied.add(
+          `${removal.position.col + c}-${removal.position.row}`,
+        );
+      }
+    }
+
+    return {
+      tileMap: map,
+      occupiedCells: occupied,
+      removalGapMap: gapRemovals,
+      removalTileMap: tileRemovals,
+      removalOccupiedCells: removalOccupied,
+    };
+  }, [removals, tiles]);
 
   const rows = useMemo(() => {
     const result: { row: number; cells: { col: number; row: number }[] }[] = [];
@@ -488,9 +533,13 @@ export const InteractiveGrid = memo(function InteractiveGrid({
         {rows.map((rowData) =>
           rowData.cells.map((cell) => {
             const key = `${cell.col}-${cell.row}`;
-            // Skip cells occupied by a multi-column tile
-            if (occupiedCells.has(key)) return null;
+            if (occupiedCells.has(key) || removalOccupiedCells.has(key)) {
+              return null;
+            }
             const tile = tileMap.get(key) ?? null;
+            const removal = tile
+              ? (removalTileMap.get(key) ?? null)
+              : (removalGapMap.get(key) ?? null);
             const isTileDragTarget =
               dragOverCell?.col === cell.col && dragOverCell.row === cell.row;
             const canDropMovedTile = dragState?.isDragging
@@ -512,8 +561,9 @@ export const InteractiveGrid = memo(function InteractiveGrid({
                 key={key}
                 col={cell.col}
                 row={cell.row}
-                colSpan={tile?.colSpan ?? 1}
+                colSpan={tile?.colSpan ?? removal?.size.cols ?? 1}
                 tile={tile}
+                removal={removal}
                 selectedTileId={selectedTileId}
                 isLocked={isLocked}
                 isDragTarget={isDragTarget}

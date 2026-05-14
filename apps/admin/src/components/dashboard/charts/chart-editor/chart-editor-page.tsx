@@ -181,42 +181,48 @@ function ChartEditorPage({
       {isLoading || !chart ? (
         <ChartEditorSkeleton />
       ) : (
-        <ChartEditor
-          chart={chart}
-          availableInventory={
-            inventoryData?.inventory ?? chart.availableInventory
-          }
-          availableInventoryPagination={
-            inventoryData?.pagination ??
-            getInventoryPaginationFallback(
-              chart.availableInventory,
-              availableInventoryFilters.page,
-              availableInventoryFilters.limit,
-            )
-          }
-          availableInventorySearchValue={
-            availableInventoryFilters.searchInputValue
-          }
-          isAvailableInventoryFetching={isAvailableInventoryFetching}
-          isFullscreen={isFullscreen}
-          isManager={isManager}
-          isSaving={saveChartMutation.isPending}
-          isCompleting={completeChartMutation.isPending}
-          isCloning={cloneChartMutation.isPending}
-          isInitializing={initializeSectorChartMutation.isPending}
-          isPrinting={openSectorChartsPdfMutation.isPending}
-          onSave={handleSave}
-          onComplete={handleComplete}
-          onClone={handleClone}
-          onInitialize={handleInitialize}
-          onPrint={handlePrint}
-          onMonthChange={onMonthChange}
-          onAvailableInventorySearchChange={availableInventoryFilters.setSearch}
-          onAvailableInventoryNextPage={availableInventoryFilters.goToNextPage}
-          onAvailableInventoryPreviousPage={
-            availableInventoryFilters.goToPreviousPage
-          }
-        />
+        <>
+          <ChartEditor
+            chart={chart}
+            availableInventory={
+              inventoryData?.inventory ?? chart.availableInventory
+            }
+            availableInventoryPagination={
+              inventoryData?.pagination ??
+              getInventoryPaginationFallback(
+                chart.availableInventory,
+                availableInventoryFilters.page,
+                availableInventoryFilters.limit,
+              )
+            }
+            availableInventorySearchValue={
+              availableInventoryFilters.searchInputValue
+            }
+            isAvailableInventoryFetching={isAvailableInventoryFetching}
+            isFullscreen={isFullscreen}
+            isManager={isManager}
+            isSaving={saveChartMutation.isPending}
+            isCompleting={completeChartMutation.isPending}
+            isCloning={cloneChartMutation.isPending}
+            isInitializing={initializeSectorChartMutation.isPending}
+            isPrinting={openSectorChartsPdfMutation.isPending}
+            onSave={handleSave}
+            onComplete={handleComplete}
+            onClone={handleClone}
+            onInitialize={handleInitialize}
+            onPrint={handlePrint}
+            onMonthChange={onMonthChange}
+            onAvailableInventorySearchChange={
+              availableInventoryFilters.setSearch
+            }
+            onAvailableInventoryNextPage={
+              availableInventoryFilters.goToNextPage
+            }
+            onAvailableInventoryPreviousPage={
+              availableInventoryFilters.goToPreviousPage
+            }
+          />
+        </>
       )}
     </div>
   );

@@ -478,7 +478,7 @@ function drawHeader(
   drawLogo(doc, logoBuffer, 22);
 
   drawText(doc, {
-    text: 'Monthly Distribution Report',
+    text: 'Yearly Distribution Report',
     x: MARGIN,
     y: 106,
     width: CONTENT_WIDTH,
@@ -763,29 +763,9 @@ function drawVariantRow(params: {
   drawReportImage(doc, imageBuffer, rowX + 8, startY + 7);
 
   drawText(doc, {
-    text: 'PACK ID',
-    x: rowX + 104,
-    y: startY + 10,
-    width: 292,
-    font: 'Helvetica-Bold',
-    size: 6.5,
-    color: COLORS.mutedForeground,
-  });
-  drawText(doc, {
-    text: variant.brochureImagePackSizeId,
-    x: rowX + 104,
-    y: startY + 22,
-    width: 292,
-    font: 'Helvetica-Bold',
-    size: 6.8,
-    color: COLORS.foreground,
-    height: 16,
-    ellipsis: true,
-  });
-  drawText(doc, {
     text: 'UNIT PER BOX',
     x: rowX + 104,
-    y: startY + 41,
+    y: startY + 25,
     width: 292,
     font: 'Helvetica-Bold',
     size: 6.5,
@@ -794,7 +774,7 @@ function drawVariantRow(params: {
   drawText(doc, {
     text: `${formatNumber(variant.unitsPerBox)} units per box`,
     x: rowX + 104,
-    y: startY + 52,
+    y: startY + 35,
     width: 292,
     font: 'Helvetica-Bold',
     size: 8.2,
@@ -1012,7 +992,7 @@ export async function generateCustomerYearlyReportPDF(
     margin: MARGIN,
     bufferPages: true,
     info: {
-      Title: `Customer Monthly Distribution Report - ${report.customer.name} - ${report.period.year}`,
+      Title: `Customer Yearly Distribution Report - ${report.customer.name} - ${report.period.year}`,
       Author: 'Certified Travel Media',
     },
   });
@@ -1053,6 +1033,6 @@ export async function generateCustomerYearlyReportPDF(
 
   return {
     buffer: await finalize(doc),
-    filename: `customer-monthly-distribution-report-${safeFilename(report.customer.name)}-${report.period.year}.pdf`,
+    filename: `customer-yearly-distribution-report-${safeFilename(report.customer.name)}-${report.period.year}.pdf`,
   };
 }

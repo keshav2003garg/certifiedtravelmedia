@@ -10,6 +10,8 @@ import { getFillChart } from '@/utils/fill-chart';
 
 import type { ChartResult, ChartTile } from './charts.types';
 
+type ChartRemoval = ChartResult['removals'][number];
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -28,24 +30,15 @@ class ChartsService {
       : null;
 
     if (layout) {
-      const tiles: ChartTile[] = layout.tiles.map((tile) => ({
-        id: tile.id,
-        col: tile.col,
-        row: tile.row,
-        colSpan: tile.colSpan,
-        tileType: tile.tileType,
-        label: tile.label ?? tile.customFiller?.name ?? null,
-        coverPhotoUrl: tile.coverPhotoUrl,
-        brochureTypeName: null,
-        customFillerId: tile.customFillerId,
-        contractId: tile.contract?.acumaticaContractId ?? null,
-        contractEndDate: tile.contract?.endDate ?? null,
-        tier: tile.contract?.tier ?? null,
-        customerName: null,
-        isNew: tile.isNew,
-        isFlagged: tile.isFlagged,
-        flagNote: tile.flagNote,
-      }));
+      const tiles = this.formatLayoutTiles(layout);
+      const removals = await this.buildPreviousMonthRemovals({
+        locationId: location.id,
+        sectorId: layout.sectorId,
+        pockets,
+        month,
+        year,
+        currentTiles: tiles,
+      });
 
       return {
         location: {
@@ -62,30 +55,23 @@ class ChartsService {
         persisted: true,
         generalNotes: layout.generalNotes ?? null,
         tiles,
-        removals: [],
+        removals,
       };
     }
 
     const fillChart = await getFillChart(locationId, month, year);
 
-    const tiles: ChartTile[] = fillChart.placements.map((p, i) => ({
-      id: `algo-${i}`,
-      col: p.position.col,
-      row: p.position.row,
-      colSpan: p.size.cols,
-      tileType: 'Paid' as const,
-      label: p.brochureName,
-      coverPhotoUrl: null,
-      brochureTypeName: null,
-      customFillerId: null,
-      contractId: p.contractId || null,
-      contractEndDate: p.contractEndDate,
-      tier: p.tier,
-      customerName: p.customerName,
-      isNew: p.isNew,
-      isFlagged: false,
-      flagNote: null,
-    }));
+    const tiles = this.formatGeneratedTiles(fillChart.placements);
+    const removals = sectorId
+      ? await this.buildPreviousMonthRemovals({
+          locationId: location.id,
+          sectorId,
+          pockets,
+          month,
+          year,
+          currentTiles: tiles,
+        })
+      : fillChart.removals;
 
     return {
       location: {
@@ -99,8 +85,162 @@ class ChartsService {
       persisted: false,
       generalNotes: null,
       tiles,
-      removals: fillChart.removals,
+      removals,
     };
+  }
+
+  private formatLayoutTiles(
+    layout: NonNullable<Awaited<ReturnType<ChartsService['findSectorLayout']>>>,
+  ) {
+    return layout.tiles.map(
+      (tile): ChartTile => ({
+        id: tile.id,
+        col: tile.col,
+        row: tile.row,
+        colSpan: tile.colSpan,
+        tileType: tile.tileType,
+        label: tile.label ?? tile.customFiller?.name ?? null,
+        coverPhotoUrl: tile.coverPhotoUrl,
+        brochureTypeName: null,
+        customFillerId: tile.customFillerId,
+        contractId: tile.contract?.acumaticaContractId ?? null,
+        contractEndDate: tile.contract?.endDate ?? null,
+        tier: tile.contract?.tier ?? null,
+        customerName: tile.contract?.customer?.name ?? null,
+        isNew: tile.isNew,
+        isFlagged: tile.isFlagged,
+        flagNote: tile.flagNote,
+      }),
+    );
+  }
+
+  private formatGeneratedTiles(
+    placements: Awaited<ReturnType<typeof getFillChart>>['placements'],
+  ) {
+    return placements.map(
+      (placement, index): ChartTile => ({
+        id: `algo-${index}`,
+        col: placement.position.col,
+        row: placement.position.row,
+        colSpan: placement.size.cols,
+        tileType: 'Paid',
+        label: placement.brochureName,
+        coverPhotoUrl: null,
+        brochureTypeName: null,
+        customFillerId: null,
+        contractId: placement.contractId || null,
+        contractEndDate: placement.contractEndDate,
+        tier: placement.tier,
+        customerName: placement.customerName,
+        isNew: placement.isNew,
+        isFlagged: false,
+        flagNote: null,
+      }),
+    );
+  }
+
+  private getMonthDateRange(month: number, year: number) {
+    const monthValue = String(month).padStart(2, '0');
+
+    return { firstDay: `${year}-${monthValue}-01` };
+  }
+
+  private getPreviousMonthYear(month: number, year: number) {
+    if (month === 1) {
+      return { previousMonth: 12, previousYear: year - 1 };
+    }
+
+    return { previousMonth: month - 1, previousYear: year };
+  }
+
+  private getPaidRemovalIdentityKey(tile: ChartTile) {
+    return [
+      tile.label?.trim().toLowerCase() ?? '',
+      tile.customerName?.trim().toLowerCase() ?? '',
+      tile.colSpan,
+    ].join('|');
+  }
+
+  private isPaidTileActiveOnOrAfter(tile: ChartTile, firstDay: string) {
+    if (tile.tileType !== 'Paid') return false;
+    return !tile.contractEndDate || tile.contractEndDate >= firstDay;
+  }
+
+  private async getComparisonTilesForMonth(params: {
+    locationId: string;
+    sectorId: string;
+    pockets: { width: number; height: number };
+    month: number;
+    year: number;
+  }) {
+    const layout = await this.findSectorLayout(
+      params.sectorId,
+      params.pockets,
+      params.month,
+      params.year,
+    );
+
+    if (layout) return this.formatLayoutTiles(layout);
+
+    const fillChart = await getFillChart(
+      params.locationId,
+      params.month,
+      params.year,
+      params.sectorId,
+    );
+
+    return this.formatGeneratedTiles(fillChart.placements);
+  }
+
+  private async buildPreviousMonthRemovals(params: {
+    locationId: string;
+    sectorId: string;
+    pockets: { width: number; height: number };
+    month: number;
+    year: number;
+    currentTiles: ChartTile[];
+  }): Promise<ChartRemoval[]> {
+    const { firstDay } = this.getMonthDateRange(params.month, params.year);
+    const { previousMonth, previousYear } = this.getPreviousMonthYear(
+      params.month,
+      params.year,
+    );
+    const previousTiles = await this.getComparisonTilesForMonth({
+      locationId: params.locationId,
+      sectorId: params.sectorId,
+      pockets: params.pockets,
+      month: previousMonth,
+      year: previousYear,
+    });
+    const activeCurrentKeys = new Set(
+      params.currentTiles
+        .filter((tile) => this.isPaidTileActiveOnOrAfter(tile, firstDay))
+        .map((tile) => this.getPaidRemovalIdentityKey(tile)),
+    );
+
+    return previousTiles
+      .filter(
+        (tile) =>
+          tile.tileType === 'Paid' &&
+          Boolean(tile.contractEndDate) &&
+          tile.contractEndDate! < firstDay &&
+          !activeCurrentKeys.has(this.getPaidRemovalIdentityKey(tile)),
+      )
+      .map((tile) => ({
+        brochureName: tile.label ?? 'Paid contract',
+        customerName: tile.customerName,
+        type: tile.colSpan > 1 ? ('MAG' as const) : ('BROCH' as const),
+        expiredDate: tile.contractEndDate!,
+        size: { cols: tile.colSpan, rows: 1 },
+        position: { col: tile.col, row: tile.row },
+        contractId: tile.contractId ?? '',
+      }))
+      .sort(
+        (left, right) =>
+          left.position.row - right.position.row ||
+          left.position.col - right.position.col ||
+          left.brochureName.localeCompare(right.brochureName),
+      );
   }
 
   async getSectorLabel(locationDbId: string): Promise<string> {
@@ -141,7 +281,11 @@ class ChartsService {
       with: {
         tiles: {
           with: {
-            contract: true,
+            contract: {
+              with: {
+                customer: true,
+              },
+            },
             customFiller: true,
           },
         },

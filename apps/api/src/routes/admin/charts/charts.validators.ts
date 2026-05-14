@@ -214,16 +214,6 @@ export const deleteTileValidator = createValidatorSchema({
 });
 export type DeleteTileContext = TypedContext<typeof deleteTileValidator>;
 
-export const cloneChartValidator = createValidatorSchema({
-  param: chartIdParamSchema,
-  json: z
-    .object({
-      force: z.boolean().optional(),
-    })
-    .optional(),
-});
-export type CloneChartContext = TypedContext<typeof cloneChartValidator>;
-
 export const listArchivesValidator = createValidatorSchema({
   query: paginationSchema.extend({
     month: monthSchema.optional(),

@@ -47,14 +47,24 @@ export const MonthPicker = memo(function MonthPicker({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="ghost" size="icon" onClick={handlePrev}>
+    <div className="flex h-8 shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-white/80 px-1 shadow-sm">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-6"
+        onClick={handlePrev}
+      >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-foreground min-w-40 text-center text-sm font-semibold">
+      <span className="text-foreground min-w-24 text-center text-xs font-semibold">
         {MONTH_NAMES[month]} {year}
       </span>
-      <Button variant="ghost" size="icon" onClick={handleNext}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-6"
+        onClick={handleNext}
+      >
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>

@@ -226,8 +226,14 @@ function ChartEditorInner({
     const total = chart.gridSize.width * chart.gridSize.height;
     const used = tiles.reduce((sum, tile) => sum + tile.colSpan, 0);
 
-    return { paid, inventory, empty: Math.max(total - used, 0), total };
-  }, [tiles, chart.gridSize]);
+    return {
+      paid,
+      inventory,
+      empty: Math.max(total - used, 0),
+      total,
+      removals: chart.removals.length,
+    };
+  }, [tiles, chart.gridSize, chart.removals.length]);
 
   const draggedInventoryItem = useMemo(
     () =>
@@ -742,6 +748,7 @@ function ChartEditorInner({
           width={chart.gridSize.width}
           height={chart.gridSize.height}
           tiles={tiles}
+          removals={chart.removals}
           draggedInventoryItem={draggedInventoryItem}
           draggedCustomFiller={draggedCustomFiller}
           draggedPaidTile={draggedPaidTile}

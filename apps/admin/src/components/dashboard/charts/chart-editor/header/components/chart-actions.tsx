@@ -42,14 +42,16 @@ export const ChartActions = memo(function ChartActions({
   onClone,
   onPrint,
 }: ChartActionsProps) {
+  const buttonClassName = 'h-8 gap-1 px-2 text-xs';
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex shrink-0 items-center gap-1.5">
       <Button
         type="button"
         variant="outline"
         onClick={onPrint}
         disabled={isPrinting}
-        className="gap-1.5"
+        className={buttonClassName}
       >
         {isPrinting ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -68,7 +70,7 @@ export const ChartActions = memo(function ChartActions({
                   <Button
                     onClick={onSave}
                     disabled={isSaving || unplacedPaidCount > 0}
-                    className="gap-1.5"
+                    className={buttonClassName}
                   >
                     {isSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -94,14 +96,14 @@ export const ChartActions = memo(function ChartActions({
               variant="outline"
               onClick={onComplete}
               disabled={isCompleting}
-              className="gap-1.5"
+              className={buttonClassName}
             >
               {isCompleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              {isCompleting ? 'Locking...' : 'Lock Chart'}
+              {isCompleting ? 'Locking...' : 'Lock'}
             </Button>
           )}
         </>
@@ -112,14 +114,14 @@ export const ChartActions = memo(function ChartActions({
           variant="outline"
           onClick={onClone}
           disabled={isCloning}
-          className="gap-1.5"
+          className={buttonClassName}
         >
           {isCloning ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Copy className="h-4 w-4" />
           )}
-          {isCloning ? 'Cloning...' : 'Clone to Next Month'}
+          {isCloning ? 'Cloning...' : 'Clone Next Month'}
         </Button>
       )}
     </div>

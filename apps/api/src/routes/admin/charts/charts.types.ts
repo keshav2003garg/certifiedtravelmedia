@@ -1,7 +1,6 @@
 import type { PaginatedResponse } from '@repo/server-utils/types/util.types';
 import type { z } from '@repo/utils/zod';
 import type {
-  cloneChartValidator,
   createCustomFillerValidator,
   exportPocketsSoldReportValidator,
   getSectorChartValidator,
@@ -35,7 +34,6 @@ export type CreateCustomFillerInput = z.infer<
 >;
 export type SaveChartInput = z.infer<typeof saveChartValidator.json>;
 export type TileInput = z.infer<typeof upsertTileValidator.json>;
-export type CloneChartInput = z.infer<typeof cloneChartValidator.json>;
 export type ListArchivesParams = z.infer<typeof listArchivesValidator.query>;
 
 export interface ChartLocationResult {
@@ -102,6 +100,16 @@ export interface ChartTileResult {
   acumaticaContractId: string | null;
 }
 
+export interface ChartRemovalResult {
+  brochureName: string;
+  type: 'BROCH' | 'MAG';
+  expiredDate: string;
+  size: { cols: number; rows: number };
+  position: { col: number; row: number };
+  contractId: string;
+  customerName: string | null;
+}
+
 export interface ChartCustomFillerResult {
   id: string;
   name: string;
@@ -159,6 +167,11 @@ export interface ChartLayoutResult {
   customFillers: ChartCustomFillerResult[];
   paidTiles: ChartTileResult[];
   tiles: ChartTileResult[];
+  removals: ChartRemovalResult[];
+}
+
+export interface CloneChartResult {
+  chart: ChartLayoutResult;
 }
 
 export interface ArchiveListItem {
@@ -185,6 +198,7 @@ export interface ArchiveSnapshot {
     | 'availableInventory'
     | 'paidTiles'
     | 'customFillers'
+    | 'removals'
   >;
   tiles: ChartTileResult[];
   metadata: {

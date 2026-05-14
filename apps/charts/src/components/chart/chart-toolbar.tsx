@@ -26,16 +26,14 @@ interface ChartToolbarProps {
   locationId: string;
   month: number;
   year: number;
-  onMonthChange: (month: number) => void;
-  onYearChange: (year: number) => void;
+  onPeriodChange: (month: number, year: number) => void;
 }
 
 export function ChartToolbar({
   locationId,
   month,
   year,
-  onMonthChange,
-  onYearChange,
+  onPeriodChange,
 }: ChartToolbarProps) {
   const { getChartPDFUrl } = useChart();
 
@@ -50,8 +48,7 @@ export function ChartToolbar({
         <MonthPicker
           month={month}
           year={year}
-          onMonthChange={onMonthChange}
-          onYearChange={onYearChange}
+          onPeriodChange={onPeriodChange}
         />
         <Button
           variant="outline"

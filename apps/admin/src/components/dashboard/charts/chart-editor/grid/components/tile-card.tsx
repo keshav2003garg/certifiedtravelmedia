@@ -10,10 +10,11 @@ import { Flag } from '@repo/ui/lib/icons';
 import { cn } from '@repo/ui/lib/utils';
 
 import type { MouseEvent, PointerEvent } from 'react';
-import type { ChartTile } from '@/hooks/useChartEditor/types';
+import type { ChartRemoval, ChartTile } from '@/hooks/useChartEditor/types';
 
 interface TileCardProps {
   tile: ChartTile;
+  removal?: ChartRemoval | null;
   isSelected: boolean;
   isLocked: boolean;
   onClick: () => void;
@@ -23,6 +24,7 @@ interface TileCardProps {
 
 export const TileCard = memo(function TileCard({
   tile,
+  removal = null,
   isSelected,
   isLocked,
   onClick,
@@ -37,7 +39,13 @@ export const TileCard = memo(function TileCard({
   const isCustomFiller = Boolean(tile.customFillerId);
 
   const tooltipContent = useMemo(() => {
-    if (!isPaid && !isInventory && !isCustomFiller && !tile.isFlagged) {
+    if (
+      !isPaid &&
+      !isInventory &&
+      !isCustomFiller &&
+      !tile.isFlagged &&
+      !removal
+    ) {
       return null;
     }
 
@@ -54,21 +62,21 @@ export const TileCard = memo(function TileCard({
         {hasDetails && tile.contractEndDate ? (
           <span>Ends: {tile.contractEndDate}</span>
         ) : null}
-        {hasDetails && tile.warehouseName ? (
-          <span>Warehouse: {tile.warehouseName}</span>
-        ) : null}
-        {hasDetails && tile.boxes !== null ? (
-          <span>Boxes: {tile.boxes}</span>
-        ) : null}
-        {hasDetails && tile.stockLevel ? (
-          <span>Stock: {tile.stockLevel}</span>
-        ) : null}
         {tile.isFlagged && tile.flagNote ? (
           <span className="text-base text-red-300">⚑ {tile.flagNote}</span>
         ) : null}
+        {removal ? (
+          <div className="mt-1 flex flex-col border-t border-red-200 pt-1 text-red-600">
+            <span className="font-semibold">{removal.brochureName}</span>
+            {removal.contractId ? (
+              <span>Contract: {removal.contractId}</span>
+            ) : null}
+            <span>Expired: {removal.expiredDate}</span>
+          </div>
+        ) : null}
       </div>
     );
-  }, [isCustomFiller, isInventory, isPaid, tile]);
+  }, [isCustomFiller, isInventory, isPaid, removal, tile]);
 
   const tileButton = (
     <button
@@ -78,7 +86,7 @@ export const TileCard = memo(function TileCard({
       onPointerDown={onPointerDown}
       onContextMenu={onContextMenu}
       className={cn(
-        'relative flex h-full min-h-11 w-full flex-col items-center justify-center rounded-md p-1 text-center transition-colors',
+        'relative box-border flex h-full min-h-11 w-full flex-col items-center justify-center rounded-md p-1 text-center transition-colors',
         !isLocked && onPointerDown
           ? 'cursor-grab touch-none active:cursor-grabbing'
           : '',
@@ -110,6 +118,12 @@ export const TileCard = memo(function TileCard({
             'absolute top-0.5 right-0.5 size-6',
             isFiller ? 'text-red-500' : 'text-red-100',
           )}
+        />
+      ) : null}
+      {removal ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-1 rounded-[inherit] border-[3px] border-red-700"
         />
       ) : null}
     </button>

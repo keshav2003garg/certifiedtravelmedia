@@ -55,6 +55,16 @@ export interface ChartTile {
   acumaticaContractId: string | null;
 }
 
+export interface ChartRemoval {
+  brochureName: string;
+  type: 'BROCH' | 'MAG';
+  expiredDate: string;
+  size: { cols: number; rows: number };
+  position: { col: number; row: number };
+  contractId: string;
+  customerName: string | null;
+}
+
 export interface ChartCustomFiller {
   id: string;
   name: string;
@@ -106,6 +116,7 @@ export interface ChartLayout {
   customFillers: ChartCustomFiller[];
   paidTiles: ChartTile[];
   tiles: ChartTile[];
+  removals: ChartRemoval[];
 }
 
 export interface SectorStandSize {
@@ -209,10 +220,7 @@ export type CompleteChartRequest = ApiData<
   { chart: ChartLayout }
 >;
 
-export type CloneChartRequest = ApiData<
-  { id: string; force?: boolean },
-  { chart: ChartLayout }
->;
+export type CloneChartRequest = ApiData<{ id: string }, { chart: ChartLayout }>;
 
 export type InitializeSectorChartRequest = ApiData<
   {

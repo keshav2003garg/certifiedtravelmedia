@@ -48,8 +48,9 @@ import type {
   ChartInventoryItemResult,
   ChartLayoutResult,
   ChartLocationResult,
+  ChartRemovalResult,
   ChartTileResult,
-  CloneChartInput,
+  CloneChartResult,
   CreateCustomFillerInput,
   ExportPocketsSoldReportParams,
   GetSectorChartParams,
@@ -67,6 +68,9 @@ import type {
 } from './charts.types';
 
 type ChartTileInsert = typeof schema.chartTiles.$inferInsert;
+type CloneTileValues = Omit<ChartTileInsert, 'chartLayoutId' | 'colSpan'> & {
+  colSpan: number;
+};
 type Sector = typeof schema.sectors.$inferSelect;
 type Location = typeof schema.locations.$inferSelect;
 
@@ -83,6 +87,21 @@ const MONTH_REPORT_COLUMNS = [
   { month: 10, label: 'Oct' },
   { month: 11, label: 'Nov' },
   { month: 12, label: 'Dec' },
+] as const;
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ] as const;
 
 const POCKETS_SOLD_EXPORT_HEADERS = [
@@ -557,6 +576,121 @@ class ChartsService {
     return { nextMonth: month + 1, nextYear: year };
   }
 
+  private getPreviousMonthYear(month: number, year: number) {
+    if (month === 1) {
+      return { previousMonth: 12, previousYear: year - 1 };
+    }
+
+    return { previousMonth: month - 1, previousYear: year };
+  }
+
+  private getPaidRemovalIdentityKey(tile: ChartTileResult) {
+    return [
+      tile.label?.trim().toLowerCase() ?? '',
+      tile.customerName?.trim().toLowerCase() ?? '',
+      tile.colSpan,
+    ].join('|');
+  }
+
+  private isPaidTileActiveOnOrAfter(tile: ChartTileResult, firstDay: string) {
+    if (tile.tileType !== 'Paid') return false;
+    return !tile.contractEndDate || tile.contractEndDate >= firstDay;
+  }
+
+  private async getGeneratedTilesForMonth(params: {
+    sectorId: string;
+    standWidth: number;
+    standHeight: number;
+    month: number;
+    year: number;
+  }) {
+    const [primaryLocation] = await this.getMatchingSectorLocations(
+      params.sectorId,
+      params.standWidth,
+      params.standHeight,
+    );
+
+    if (!primaryLocation) return [];
+
+    return this.buildPreviewTiles(
+      primaryLocation.id,
+      params.sectorId,
+      params.month,
+      params.year,
+    );
+  }
+
+  private async getComparisonTilesForMonth(params: {
+    sectorId: string;
+    standWidth: number;
+    standHeight: number;
+    month: number;
+    year: number;
+  }) {
+    const layout = await this.getSectorLayout(
+      params.sectorId,
+      params.standWidth,
+      params.standHeight,
+      params.month,
+      params.year,
+    );
+
+    if (layout) return this.getFormattedDbTiles(layout);
+
+    return this.getGeneratedTilesForMonth(params);
+  }
+
+  private async buildPreviousMonthRemovals(params: {
+    sectorId: string;
+    standWidth: number;
+    standHeight: number;
+    month: number;
+    year: number;
+    currentTiles: ChartTileResult[];
+  }): Promise<ChartRemovalResult[]> {
+    const { firstDay } = this.getMonthDateRange(params.month, params.year);
+    const { previousMonth, previousYear } = this.getPreviousMonthYear(
+      params.month,
+      params.year,
+    );
+    const previousTiles = await this.getComparisonTilesForMonth({
+      sectorId: params.sectorId,
+      standWidth: params.standWidth,
+      standHeight: params.standHeight,
+      month: previousMonth,
+      year: previousYear,
+    });
+    const activeCurrentKeys = new Set(
+      params.currentTiles
+        .filter((tile) => this.isPaidTileActiveOnOrAfter(tile, firstDay))
+        .map((tile) => this.getPaidRemovalIdentityKey(tile)),
+    );
+
+    return previousTiles
+      .filter(
+        (tile) =>
+          tile.tileType === 'Paid' &&
+          Boolean(tile.contractEndDate) &&
+          tile.contractEndDate! < firstDay &&
+          !activeCurrentKeys.has(this.getPaidRemovalIdentityKey(tile)),
+      )
+      .map((tile) => ({
+        brochureName: tile.label ?? 'Paid contract',
+        type: tile.colSpan > 1 ? ('MAG' as const) : ('BROCH' as const),
+        expiredDate: tile.contractEndDate!,
+        size: { cols: tile.colSpan, rows: 1 },
+        position: { col: tile.col, row: tile.row },
+        contractId: tile.acumaticaContractId ?? tile.contractId ?? '',
+        customerName: tile.customerName,
+      }))
+      .sort(
+        (left, right) =>
+          left.position.row - right.position.row ||
+          left.position.col - right.position.col ||
+          left.brochureName.localeCompare(right.brochureName),
+      );
+  }
+
   private formatTiles(
     tiles: ChartTileWithRelations[],
     inventoryById: Map<string, ChartInventoryItemResult>,
@@ -613,6 +747,7 @@ class ChartsService {
       availableInventory: ChartInventoryItemResult[];
       customFillers: ChartCustomFillerResult[];
       paidTiles: ChartTileResult[];
+      removals: ChartRemovalResult[];
     },
   ): ChartLayoutResult {
     const tiles = this.formatTiles(layout.tiles, options.inventoryById);
@@ -644,6 +779,7 @@ class ChartsService {
       customFillers: options.customFillers,
       paidTiles: options.paidTiles,
       tiles,
+      removals: options.removals,
     };
   }
 
@@ -712,6 +848,14 @@ class ChartsService {
       this.getGeneratedPaidTileCatalog(layout),
     ]);
     const formattedTiles = this.formatTiles(layout.tiles, inventoryById);
+    const removals = await this.buildPreviousMonthRemovals({
+      sectorId: layout.sectorId,
+      standWidth: layout.standWidth,
+      standHeight: layout.standHeight,
+      month: layout.month,
+      year: layout.year,
+      currentTiles: formattedTiles,
+    });
 
     return this.buildChartLayoutResult(layout, {
       ...extra,
@@ -719,6 +863,7 @@ class ChartsService {
       availableInventory,
       customFillers,
       paidTiles: this.mergePaidTileCatalog(generatedPaidTiles, formattedTiles),
+      removals,
     });
   }
 
@@ -740,12 +885,8 @@ class ChartsService {
     } satisfies ChartTileInsert;
   }
 
-  private copyTileToLayout(
-    chartLayoutId: string,
-    tile: ChartTileWithRelations,
-  ) {
+  private copyTileValues(tile: ChartTileWithRelations): CloneTileValues {
     return {
-      chartLayoutId,
       col: tile.col,
       row: tile.row,
       colSpan: tile.colSpan,
@@ -758,7 +899,48 @@ class ChartsService {
       isNew: tile.isNew,
       isFlagged: tile.isFlagged,
       flagNote: tile.flagNote,
+    } satisfies CloneTileValues;
+  }
+
+  private assignChartLayoutId(
+    chartLayoutId: string,
+    values: CloneTileValues,
+  ): ChartTileInsert {
+    return {
+      chartLayoutId,
+      ...values,
     } satisfies ChartTileInsert;
+  }
+
+  private buildCloneTileValues(params: {
+    tiles: ChartTileWithRelations[];
+    targetFirstDay: string;
+  }) {
+    const values: CloneTileValues[] = [];
+
+    for (const tile of params.tiles) {
+      const contractEndDate = tile.contract?.endDate ?? null;
+
+      if (
+        tile.tileType === 'Paid' &&
+        contractEndDate &&
+        contractEndDate < params.targetFirstDay
+      ) {
+        continue;
+      }
+
+      values.push(this.copyTileValues(tile));
+    }
+
+    return values;
+  }
+
+  private async getFormattedDbTiles(layout: ChartLayoutWithRelations) {
+    const inventoryById = await this.getInventoryDetailsByIds(
+      this.getInventoryItemIds(layout.tiles),
+    );
+
+    return this.formatTiles(layout.tiles, inventoryById);
   }
 
   private validateTilePlacements(
@@ -1388,7 +1570,7 @@ class ChartsService {
       contractId: tile.contract?.acumaticaContractId ?? null,
       contractEndDate: tile.contract?.endDate ?? null,
       tier: tile.contract?.tier ?? null,
-      customerName: null,
+      customerName: tile.contract?.customer?.name ?? null,
       isNew: tile.isNew,
       isFlagged: tile.isFlagged,
       flagNote: tile.flagNote,
@@ -1403,6 +1585,7 @@ class ChartsService {
       address: string;
       pockets: { width: number; height: number };
     },
+    removals: ChartRemovalResult[],
   ): PublicChartResult {
     return {
       location: {
@@ -1419,12 +1602,13 @@ class ChartsService {
       persisted: true,
       generalNotes: layout.generalNotes ?? null,
       tiles: layout.tiles.map((tile) => this.formatPublicChartTile(tile)),
-      removals: [],
+      removals,
     };
   }
 
   private buildGeneratedChartResult(
     fillChart: Awaited<ReturnType<typeof getFillChart>>,
+    removals: ChartRemovalResult[],
   ): PublicChartResult {
     return {
       location: fillChart.location,
@@ -1452,7 +1636,7 @@ class ChartsService {
           flagNote: null,
         }),
       ),
-      removals: fillChart.removals,
+      removals,
     };
   }
 
@@ -1481,21 +1665,8 @@ class ChartsService {
     );
 
     const charts = layout
-      ? matchingLocations.map((location) =>
-          this.buildPersistedChartForLocation(layout, location),
-        )
-      : await Promise.all(
-          matchingLocations.map(async (location) =>
-            this.buildGeneratedChartResult(
-              await getFillChart(
-                location.id,
-                params.month,
-                params.year,
-                sectorId,
-              ),
-            ),
-          ),
-        );
+      ? await this.buildPersistedPdfCharts(layout, matchingLocations)
+      : await this.buildGeneratedPdfCharts(sectorId, params, matchingLocations);
 
     const sectorLabel = sector.acumaticaId;
     const filename = `sector-charts-${this.safeFilename(sectorLabel)}-${params.width}x${params.height}-${params.month}-${params.year}.pdf`;
@@ -1506,6 +1677,65 @@ class ChartsService {
       title: `CTM Fill Charts - ${sectorLabel} - ${params.width}x${params.height}`,
       filename,
     };
+  }
+
+  private async buildPersistedPdfCharts(
+    layout: ChartLayoutWithRelations,
+    locations: Array<{
+      id: string;
+      name: string;
+      address: string;
+      pockets: { width: number; height: number };
+    }>,
+  ) {
+    const currentTiles = await this.getFormattedDbTiles(layout);
+    const removals = await this.buildPreviousMonthRemovals({
+      sectorId: layout.sectorId,
+      standWidth: layout.standWidth,
+      standHeight: layout.standHeight,
+      month: layout.month,
+      year: layout.year,
+      currentTiles,
+    });
+
+    return locations.map((location) =>
+      this.buildPersistedChartForLocation(layout, location, removals),
+    );
+  }
+
+  private async buildGeneratedPdfCharts(
+    sectorId: string,
+    params: GetSectorChartParams,
+    locations: Array<{
+      id: string;
+      name: string;
+      address: string;
+      pockets: { width: number; height: number };
+    }>,
+  ) {
+    return Promise.all(
+      locations.map(async (location) => {
+        const [fillChart, currentTiles] = await Promise.all([
+          getFillChart(location.id, params.month, params.year, sectorId),
+          this.buildPreviewTiles(
+            location.id,
+            sectorId,
+            params.month,
+            params.year,
+          ),
+        ]);
+        const removals = await this.buildPreviousMonthRemovals({
+          sectorId,
+          standWidth: params.width,
+          standHeight: params.height,
+          month: params.month,
+          year: params.year,
+          currentTiles,
+        });
+
+        return this.buildGeneratedChartResult(fillChart, removals);
+      }),
+    );
   }
 
   async exportPocketsSoldReportCSV(params: ExportPocketsSoldReportParams) {
@@ -1578,6 +1808,7 @@ class ChartsService {
       availableInventory: [],
       customFillers: [],
       paidTiles: [],
+      removals: [],
     });
     const totalPaid = chart.tiles.filter(
       (tile) => tile.tileType === 'Paid',
@@ -1926,6 +2157,14 @@ class ChartsService {
       this.getSectorInventoryItems(sectorId),
       this.getActiveCustomFillers(),
     ]);
+    const removals = await this.buildPreviousMonthRemovals({
+      sectorId,
+      standWidth: params.width,
+      standHeight: params.height,
+      month: params.month,
+      year: params.year,
+      currentTiles: tiles,
+    });
 
     return {
       id: null,
@@ -1954,6 +2193,7 @@ class ChartsService {
       customFillers,
       paidTiles: tiles,
       tiles,
+      removals,
     };
   }
 
@@ -2180,12 +2420,13 @@ class ChartsService {
     return this.getById(chartId);
   }
 
-  async clone(chartId: string, options?: CloneChartInput) {
+  async clone(chartId: string): Promise<CloneChartResult> {
     const source = await this.getLayoutById(chartId);
     const { nextMonth, nextYear } = this.getNextMonthYear(
       source.month,
       source.year,
     );
+    const { firstDay } = this.getMonthDateRange(nextMonth, nextYear);
 
     this.ensureNotPastMonth({ month: nextMonth, year: nextYear });
 
@@ -2197,51 +2438,49 @@ class ChartsService {
       nextYear,
     );
 
-    if (existing && !options?.force) {
+    if (existing) {
+      const targetMonthName =
+        MONTH_NAMES[nextMonth - 1] ?? `Month ${nextMonth}`;
+
       throw new HttpError(
         409,
-        `A chart already exists for ${nextMonth}/${nextYear}`,
+        `A chart already exists for ${targetMonthName} ${nextYear}. Clone was not created.`,
         'CONFLICT',
       );
     }
 
-    if (existing?.locked || existing?.status === 'Archived') {
-      throw new HttpError(
-        409,
-        'Cannot overwrite a locked or archived chart',
-        'CONFLICT',
-      );
-    }
+    const targetTileValues = this.buildCloneTileValues({
+      tiles: source.tiles,
+      targetFirstDay: firstDay,
+    });
+    this.validateTilePlacements(
+      { standWidth: source.standWidth, standHeight: source.standHeight },
+      targetTileValues,
+    );
 
     const now = new Date().toISOString();
     const result = await db.transaction(async (tx) => {
-      const target = existing
-        ? existing
-        : (
-            await tx
-              .insert(schema.chartLayouts)
-              .values({
-                sectorId: source.sectorId,
-                standWidth: source.standWidth,
-                standHeight: source.standHeight,
-                month: nextMonth,
-                year: nextYear,
-                status: 'Draft',
-                generalNotes: source.generalNotes,
-              })
-              .returning()
-          )[0];
+      const target = (
+        await tx
+          .insert(schema.chartLayouts)
+          .values({
+            sectorId: source.sectorId,
+            standWidth: source.standWidth,
+            standHeight: source.standHeight,
+            month: nextMonth,
+            year: nextYear,
+            status: 'Draft',
+            generalNotes: source.generalNotes,
+          })
+          .returning()
+      )[0];
 
       if (!target) {
         throw new HttpError(500, 'Failed to clone chart', 'INTERNAL_SERVER');
       }
 
-      await tx
-        .delete(schema.chartTiles)
-        .where(eq(schema.chartTiles.chartLayoutId, target.id));
-
-      const targetTiles = source.tiles.map((tile) =>
-        this.copyTileToLayout(target.id, tile),
+      const targetTiles = targetTileValues.map((tile) =>
+        this.assignChartLayoutId(target.id, tile),
       );
 
       if (targetTiles.length > 0) {
@@ -2251,13 +2490,6 @@ class ChartsService {
       await tx
         .update(schema.chartLayouts)
         .set({
-          status: 'Draft',
-          locked: false,
-          generalNotes: source.generalNotes,
-          completedAt: null,
-          completedBy: null,
-          archivedAt: null,
-          archivedBy: null,
           updatedAt: now,
         })
         .where(eq(schema.chartLayouts.id, target.id));
@@ -2265,7 +2497,7 @@ class ChartsService {
       return target;
     });
 
-    return this.getById(result.id);
+    return { chart: await this.getById(result.id) };
   }
 
   async archive(chartId: string, userId: string) {

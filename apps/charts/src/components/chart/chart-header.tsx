@@ -7,7 +7,7 @@ interface ChartHeaderProps {
 export function ChartHeader({ chart }: ChartHeaderProps) {
   const paidCount = chart.tiles.filter((t) => t.tileType === 'Paid').length;
   const fillerCount = chart.tiles.filter((t) => t.tileType === 'Filler').length;
-  const removalCount = !chart.persisted ? chart.removals.length : 0;
+  const removalCount = chart.removals.length;
 
   return (
     <div className="mb-4 text-center sm:mb-6 md:mb-8 md:text-left">

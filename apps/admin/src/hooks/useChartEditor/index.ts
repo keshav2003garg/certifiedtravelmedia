@@ -252,7 +252,7 @@ export function useChartEditor() {
     async (payload: CloneChartRequest['payload']) => {
       const response = await api<CloneChartRequest['response']>(
         `${CHARTS_ENDPOINT}/${payload.id}/clone`,
-        { method: 'POST', body: { force: payload.force ?? false } },
+        { method: 'POST' },
       );
 
       return response.data;

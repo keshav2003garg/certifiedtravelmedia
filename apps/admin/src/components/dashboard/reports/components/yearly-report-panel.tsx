@@ -111,7 +111,7 @@ function YearlyReportPanel({
       <Card className="shadow-none">
         <CardHeader>
           <CardTitle className="text-xl tracking-normal">
-            Customer monthly distribution report
+            Customer yearly distribution report
           </CardTitle>
           <CardDescription>
             Generate month-wise brochure distribution boxes and units for the

@@ -38,6 +38,7 @@ export interface ChartRemoval {
   size: { cols: number; rows: number };
   position: { col: number; row: number };
   contractId: string;
+  customerName: string | null;
 }
 
 export type Chart = Pick<ChartLayout, 'month' | 'year' | 'generalNotes'> & {

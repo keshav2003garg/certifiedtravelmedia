@@ -42,31 +42,23 @@ const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
 interface MonthPickerProps {
   month: number;
   year: number;
-  onMonthChange: (month: number) => void;
-  onYearChange: (year: number) => void;
+  onPeriodChange: (month: number, year: number) => void;
 }
 
-export function MonthPicker({
-  month,
-  year,
-  onMonthChange,
-  onYearChange,
-}: MonthPickerProps) {
+export function MonthPicker({ month, year, onPeriodChange }: MonthPickerProps) {
   const goToPreviousMonth = () => {
     if (month === 1) {
-      onMonthChange(12);
-      onYearChange(year - 1);
+      onPeriodChange(12, year - 1);
     } else {
-      onMonthChange(month - 1);
+      onPeriodChange(month - 1, year);
     }
   };
 
   const goToNextMonth = () => {
     if (month === 12) {
-      onMonthChange(1);
-      onYearChange(year + 1);
+      onPeriodChange(1, year + 1);
     } else {
-      onMonthChange(month + 1);
+      onPeriodChange(month + 1, year);
     }
   };
 
@@ -83,7 +75,7 @@ export function MonthPicker({
 
       <Select
         value={String(month)}
-        onValueChange={(val) => onMonthChange(Number(val))}
+        onValueChange={(val) => onPeriodChange(Number(val), year)}
       >
         <SelectTrigger className="h-8 w-17.5 text-xs sm:h-9 sm:w-30 sm:text-sm md:w-35">
           <SelectValue />
@@ -100,7 +92,7 @@ export function MonthPicker({
 
       <Select
         value={String(year)}
-        onValueChange={(val) => onYearChange(Number(val))}
+        onValueChange={(val) => onPeriodChange(month, Number(val))}
       >
         <SelectTrigger className="h-8 w-20 text-xs sm:h-9 sm:w-22.5 sm:text-sm">
           <SelectValue />

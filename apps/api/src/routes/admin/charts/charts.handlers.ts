@@ -6,7 +6,6 @@ import { chartsService } from './charts.services';
 
 import type {
   ChartIdContext,
-  CloneChartContext,
   CreateCustomFillerContext,
   DeleteTileContext,
   ExportPocketsSoldReportContext,
@@ -159,13 +158,14 @@ export async function completeChartHandler(ctx: ChartIdContext) {
   return sendResponse(ctx, 200, 'Chart completed successfully', { chart });
 }
 
-export async function cloneChartHandler(ctx: CloneChartContext) {
+export async function cloneChartHandler(ctx: ChartIdContext) {
   const { id } = ctx.req.valid('param');
-  const body = ctx.req.valid('json');
 
-  const chart = await chartsService.clone(id, body);
+  const result = await chartsService.clone(id);
 
-  return sendResponse(ctx, 201, 'Chart cloned successfully', { chart });
+  return sendResponse(ctx, 201, 'Chart cloned successfully', {
+    chart: result.chart,
+  });
 }
 
 export async function archiveChartHandler(ctx: ChartIdContext) {

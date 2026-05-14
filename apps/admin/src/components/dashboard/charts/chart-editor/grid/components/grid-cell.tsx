@@ -1,17 +1,24 @@
 import { memo } from 'react';
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@repo/ui/components/base/tooltip';
 import { cn } from '@repo/ui/lib/utils';
 
 import { TileCard } from './tile-card';
 
 import type { DragEvent, MouseEvent, PointerEvent } from 'react';
-import type { ChartTile } from '@/hooks/useChartEditor/types';
+import type { ChartRemoval, ChartTile } from '@/hooks/useChartEditor/types';
 
 interface GridCellProps {
   col: number;
   row: number;
   colSpan?: number;
   tile: ChartTile | null;
+  removal?: ChartRemoval | null;
   selectedTileId: string | null;
   isLocked: boolean;
   isDragTarget: boolean;
@@ -43,6 +50,7 @@ export const GridCell = memo(function GridCell({
   row,
   colSpan = 1,
   tile,
+  removal = null,
   selectedTileId,
   isLocked,
   isDragTarget,
@@ -57,9 +65,16 @@ export const GridCell = memo(function GridCell({
   return (
     <div
       className={cn(
-        'flex h-full min-w-0 items-center justify-center rounded-md border transition-colors',
-        tile ? 'border-transparent' : 'border-gray-200 bg-white',
-        !tile && !isLocked && 'hover:border-gray-300 hover:bg-gray-50',
+        'box-border flex h-full min-w-0 items-center justify-center rounded-md border transition-colors',
+        tile
+          ? 'border-transparent'
+          : removal
+            ? 'border-[3px] border-red-600 bg-red-50 text-red-900'
+            : 'border-gray-200 bg-white',
+        !tile &&
+          !removal &&
+          !isLocked &&
+          'hover:border-gray-300 hover:bg-gray-50',
         isDragTarget && canDropHere && 'ring-2 ring-blue-400 ring-offset-1',
         isDragTarget && !canDropHere && 'ring-2 ring-red-300 ring-offset-1',
       )}
@@ -74,12 +89,15 @@ export const GridCell = memo(function GridCell({
       {tile ? (
         <TileCard
           tile={tile}
+          removal={removal}
           isSelected={selectedTileId === tile.id}
           isLocked={isLocked}
           onClick={() => onSelectTile(tile)}
           onPointerDown={(event) => onTileDragStart?.(tile, event)}
           onContextMenu={(event) => onTileContextMenu?.(tile, event)}
         />
+      ) : removal ? (
+        <RemovalCell removal={removal} onClick={() => onSelectTile(null)} />
       ) : (
         <button
           type="button"
@@ -95,3 +113,47 @@ export const GridCell = memo(function GridCell({
     </div>
   );
 });
+
+interface RemovalCellProps {
+  removal: ChartRemoval;
+  onClick: () => void;
+}
+
+function RemovalCell({ removal, onClick }: RemovalCellProps) {
+  return (
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="flex h-full w-full min-w-0 flex-col items-center justify-center rounded-md px-1 text-center"
+            onClick={onClick}
+            tabIndex={-1}
+          >
+            <span className="text-[10px] font-semibold tracking-normal uppercase">
+              To remove
+            </span>
+            <span className="max-w-full truncate text-xs font-semibold">
+              {removal.brochureName}
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          className="max-w-64 border-red-200 bg-red-50 text-xs text-red-900"
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold">{removal.brochureName}</span>
+            {removal.customerName ? (
+              <span>Customer: {removal.customerName}</span>
+            ) : null}
+            {removal.contractId ? (
+              <span>Contract: {removal.contractId}</span>
+            ) : null}
+            <span>Expired: {removal.expiredDate}</span>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}

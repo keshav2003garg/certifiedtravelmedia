@@ -15,6 +15,7 @@ interface ChartEditorStats {
   paid: number;
   inventory: number;
   empty: number;
+  removals: number;
 }
 
 interface ChartEditorHeaderProps {
@@ -59,7 +60,7 @@ export const ChartEditorHeader = memo(function ChartEditorHeader({
   onMonthChange,
 }: ChartEditorHeaderProps) {
   return (
-    <div className={cn('shrink-0', isFullscreen ? 'space-y-2' : 'space-y-3')}>
+    <div className={cn('shrink-0', isFullscreen ? 'space-y-1.5' : 'space-y-2')}>
       <Card className="border-blue-200 bg-blue-50 md:hidden">
         <CardContent className="flex items-center gap-3 p-3">
           <Monitor className="size-5 shrink-0 text-blue-600" />
@@ -71,77 +72,32 @@ export const ChartEditorHeader = memo(function ChartEditorHeader({
 
       <div
         className={cn(
-          'lg:flex-row lg:items-center lg:justify-between',
-          isFullscreen ? 'flex flex-col gap-2' : 'flex flex-col gap-3',
+          'flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between',
+          isFullscreen ? 'lg:gap-2' : 'lg:gap-3',
         )}
       >
-        <div
-          className={cn('min-w-0', isFullscreen ? 'space-y-0.5' : 'space-y-1')}
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <LayoutGrid className="size-4 shrink-0 text-blue-600" />
-            <h1
-              className={cn(
-                'text-foreground font-semibold tracking-normal',
-                isFullscreen ? 'text-base' : 'text-lg',
-              )}
-            >
-              {chart.displayName}
-            </h1>
-            {chart.locked ? (
-              <Lock className="text-muted-foreground size-4" />
-            ) : null}
-            <Badge
-              variant="outline"
-              className={cn(
-                isPreview
-                  ? 'border-slate-200 bg-slate-50 text-slate-600'
-                  : chart.status === 'Draft'
-                    ? 'border-amber-200 bg-amber-50 text-amber-700'
-                    : chart.status === 'Completed'
-                      ? 'border-green-200 bg-green-50 text-green-700'
-                      : 'border-gray-200 bg-gray-50 text-gray-500',
-              )}
-            >
-              {isPreview
-                ? 'Not initialized'
-                : chart.status === 'Draft'
-                  ? 'Initialized'
-                  : chart.status === 'Completed'
-                    ? 'Locked'
-                    : 'Archived'}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            {chart.sectorDescription ?? 'Sector'} | Stand {chart.standWidth} x{' '}
-            {chart.standHeight} | {chart.locationCount} locations
-          </p>
-        </div>
-
-        <div
-          className={cn(
-            'flex flex-wrap items-center',
-            isFullscreen ? 'gap-2' : 'gap-3',
-          )}
-        >
-          <div
+        <div className="flex min-w-0 items-center gap-2">
+          <LayoutGrid className="size-4 shrink-0 text-blue-600" />
+          <h1
             className={cn(
-              'flex flex-wrap items-center text-sm',
-              isFullscreen ? 'gap-2' : 'gap-3',
+              'text-foreground min-w-0 truncate font-semibold tracking-normal',
+              isFullscreen ? 'text-sm' : 'text-base',
             )}
           >
-            <span className="text-muted-foreground inline-flex items-center gap-1">
-              <Grid3x3 className="size-4" />
-              {chart.gridSize.width} x {chart.gridSize.height}
-            </span>
-            <span className="font-medium text-blue-600">
-              Paid: {stats.paid}
-            </span>
-            <span className="font-medium text-emerald-600">
-              Inventory: {stats.inventory}
-            </span>
-            <span className="text-muted-foreground">Empty: {stats.empty}</span>
-          </div>
+            {chart.displayName}
+          </h1>
+          {chart.locked ? (
+            <Lock className="text-muted-foreground size-4" />
+          ) : null}
+          <ChartStatusBadge chart={chart} isPreview={isPreview} />
+          <span className="text-muted-foreground hidden min-w-0 truncate text-xs xl:inline">
+            {chart.sectorDescription ?? 'Sector'} | Stand {chart.standWidth} x{' '}
+            {chart.standHeight} | {chart.locationCount} locations
+          </span>
+        </div>
+
+        <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-0.5 whitespace-nowrap lg:shrink-0 lg:justify-end">
+          <HeaderStats chart={chart} stats={stats} />
 
           <MonthPicker
             month={chart.month}
@@ -195,3 +151,67 @@ export const ChartEditorHeader = memo(function ChartEditorHeader({
     </div>
   );
 });
+
+interface ChartStatusBadgeProps {
+  chart: ChartLayout;
+  isPreview: boolean;
+}
+
+function ChartStatusBadge({ chart, isPreview }: ChartStatusBadgeProps) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'h-6 shrink-0 px-2 text-xs',
+        isPreview
+          ? 'border-slate-200 bg-slate-50 text-slate-600'
+          : chart.status === 'Draft'
+            ? 'border-amber-200 bg-amber-50 text-amber-700'
+            : chart.status === 'Completed'
+              ? 'border-green-200 bg-green-50 text-green-700'
+              : 'border-gray-200 bg-gray-50 text-gray-500',
+      )}
+    >
+      {isPreview
+        ? 'Not initialized'
+        : chart.status === 'Draft'
+          ? 'Initialized'
+          : chart.status === 'Completed'
+            ? 'Locked'
+            : 'Archived'}
+    </Badge>
+  );
+}
+
+interface HeaderStatsProps {
+  chart: ChartLayout;
+  stats: ChartEditorStats;
+}
+
+function HeaderStats({ chart, stats }: HeaderStatsProps) {
+  return (
+    <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-white/80 px-2 text-xs shadow-sm">
+      <span className="text-muted-foreground inline-flex items-center gap-1 font-medium">
+        <Grid3x3 className="size-3.5" />
+        {chart.gridSize.width}x{chart.gridSize.height}
+      </span>
+      <StatsDivider />
+      <span className="font-semibold text-blue-600">Paid {stats.paid}</span>
+      <span className="font-semibold text-emerald-600">
+        Inv {stats.inventory}
+      </span>
+      <span className="text-muted-foreground font-medium">
+        Empty {stats.empty}
+      </span>
+      {stats.removals > 0 ? (
+        <span className="font-semibold text-red-600">
+          Remove {stats.removals}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function StatsDivider() {
+  return <span className="h-4 w-px bg-slate-200" aria-hidden="true" />;
+}
