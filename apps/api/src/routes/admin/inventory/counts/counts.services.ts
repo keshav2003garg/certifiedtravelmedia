@@ -62,11 +62,51 @@ function getPreviousPeriod(month: number, year: number) {
   return { month: month - 1, year };
 }
 
-function getPeriodFromDate(date: string) {
-  return {
-    month: Number(date.slice(5, 7)),
-    year: Number(date.slice(0, 4)),
-  };
+function getCurrentServerMonthPeriod() {
+  const now = new Date();
+  return { month: now.getUTCMonth() + 1, year: now.getUTCFullYear() };
+}
+
+function getCurrentServerPreviousMonthPeriod() {
+  const current = getCurrentServerMonthPeriod();
+  return getPreviousPeriod(current.month, current.year);
+}
+
+function isCurrentServerMonthPeriod(month: number, year: number) {
+  const current = getCurrentServerMonthPeriod();
+  return month === current.month && year === current.year;
+}
+
+function isPreviousServerMonthPeriod(month: number, year: number) {
+  const previous = getCurrentServerPreviousMonthPeriod();
+  return month === previous.month && year === previous.year;
+}
+
+function assertPeriodIsAllowed(month: number, year: number) {
+  if (
+    isCurrentServerMonthPeriod(month, year) ||
+    isPreviousServerMonthPeriod(month, year)
+  ) {
+    return;
+  }
+
+  throw new HttpError(
+    400,
+    'Month-end counts can only be recorded for the current or previous calendar month',
+    'BAD_REQUEST',
+  );
+}
+
+/**
+ * Returns the server's current date as a YYYY-MM-DD string. Used for
+ * stamping current-month month-end distributions.
+ */
+function getServerToday() {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function escapeLike(value: string) {
@@ -428,32 +468,6 @@ class InventoryCountsService {
     };
   }
 
-  private async getClosingBalanceForPeriod(params: {
-    tx: InventoryCountWriteTx;
-    inventoryItemId: string;
-    month: number;
-    year: number;
-  }) {
-    const endDate = getMonthEndDate(params.month, params.year);
-    const [row] = await params.tx
-      .select({
-        endCount:
-          sql<number>`(array_agg(${inventoryTransactions.balanceAfterBoxes} order by ${inventoryTransactions.transactionDate} desc, ${inventoryTransactions.createdAt} desc, ${inventoryTransactions.id} desc))[1]`.mapWith(
-            Number,
-          ),
-      })
-      .from(inventoryTransactions)
-      .where(
-        and(
-          eq(inventoryTransactions.inventoryItemId, params.inventoryItemId),
-          lte(inventoryTransactions.transactionDate, endDate),
-        ),
-      )
-      .groupBy(inventoryTransactions.inventoryItemId);
-
-    return roundDecimals(row?.endCount ?? 0, 2);
-  }
-
   private async upsertCount(params: {
     tx: InventoryCountWriteTx;
     month: number;
@@ -594,6 +608,76 @@ class InventoryCountsService {
     return item;
   }
 
+  /**
+   * Re-walks every transaction recorded after the supplied month-end
+   * date for the given inventory item and rewrites their
+   * `balanceBeforeBoxes` / `balanceAfterBoxes` so the running chain
+   * is consistent with the new anchor point. The signed delta of each
+   * transaction (`balanceAfterBoxes - balanceBeforeBoxes`) is preserved,
+   * which keeps each transaction's intent intact while shifting the
+   * chain to start from the supplied anchor balance.
+   *
+   * Returns the final balance at the end of the chain so the caller can
+   * sync `inventory_items.boxes` if needed.
+   */
+  private async recalculateChainAfterAnchor(params: {
+    tx: InventoryCountWriteTx;
+    inventoryItemId: string;
+    anchorDate: string;
+    anchorBalance: number;
+  }) {
+    const subsequent = await params.tx
+      .select({
+        id: inventoryTransactions.id,
+        transactionDate: inventoryTransactions.transactionDate,
+        createdAt: inventoryTransactions.createdAt,
+        balanceBeforeBoxes: inventoryTransactions.balanceBeforeBoxes,
+        balanceAfterBoxes: inventoryTransactions.balanceAfterBoxes,
+      })
+      .from(inventoryTransactions)
+      .where(
+        and(
+          eq(inventoryTransactions.inventoryItemId, params.inventoryItemId),
+          sql`${inventoryTransactions.transactionDate} > ${params.anchorDate}`,
+        ),
+      )
+      .orderBy(
+        asc(inventoryTransactions.transactionDate),
+        asc(inventoryTransactions.createdAt),
+        asc(inventoryTransactions.id),
+      );
+
+    let runningBalance = roundDecimals(params.anchorBalance, 2);
+
+    for (const row of subsequent) {
+      const delta = roundDecimals(
+        row.balanceAfterBoxes - row.balanceBeforeBoxes,
+        2,
+      );
+      const nextBalanceBefore = runningBalance;
+      const nextBalanceAfter = roundDecimals(runningBalance + delta, 2);
+
+      const needsUpdate =
+        Math.abs(nextBalanceBefore - row.balanceBeforeBoxes) > DECIMAL_EPSILON ||
+        Math.abs(nextBalanceAfter - row.balanceAfterBoxes) > DECIMAL_EPSILON;
+
+      if (needsUpdate) {
+        await params.tx
+          .update(inventoryTransactions)
+          .set({
+            balanceBeforeBoxes: nextBalanceBefore,
+            balanceAfterBoxes: nextBalanceAfter,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(inventoryTransactions.id, row.id));
+      }
+
+      runningBalance = nextBalanceAfter;
+    }
+
+    return runningBalance;
+  }
+
   private async processCount(params: {
     tx: InventoryCountWriteTx;
     input: BulkMonthEndCountInput['counts'][number];
@@ -606,6 +690,7 @@ class InventoryCountsService {
     month: number;
     year: number;
     transactionDate: string;
+    isCurrentMonth: boolean;
     userId: string;
   }) {
     const endCount = roundDecimals(params.input.endCount, 2);
@@ -627,11 +712,6 @@ class InventoryCountsService {
     this.assertDistributionCanClose({ balanceBeforeBoxes, endCount });
 
     const distributionBoxes = roundDecimals(balanceBeforeBoxes - endCount, 2);
-    const inventoryBalanceAfterUpdate = roundDecimals(
-      params.item.boxes -
-        (distributionBoxes - previousMonthEndDistributionBoxes),
-      2,
-    );
 
     if (
       params.existingCount &&
@@ -661,15 +741,38 @@ class InventoryCountsService {
       userId: params.userId,
     });
 
-    if (
-      Math.abs(inventoryBalanceAfterUpdate - params.item.boxes) >
-      DECIMAL_EPSILON
-    ) {
-      await this.updateInventoryBalance({
+    if (params.isCurrentMonth) {
+      // Current-month counts: skip the chain adjustment entirely.
+      // Transactions dated after today don't exist yet, so there is no
+      // chain to walk. The new month-end Distribution is the latest
+      // entry on this item's chain, so the live inventory balance now
+      // mirrors the recorded end count.
+      if (Math.abs(endCount - params.item.boxes) > DECIMAL_EPSILON) {
+        await this.updateInventoryBalance({
+          tx: params.tx,
+          itemId: params.item.id,
+          balanceAfterBoxes: endCount,
+        });
+      }
+    } else {
+      // Previous-month counts: recalculate the entire transaction chain
+      // that occurred after this date so every subsequent running
+      // balance is consistent with the new anchor, and sync the live
+      // inventory balance to the recalculated end of the chain.
+      const finalBalance = await this.recalculateChainAfterAnchor({
         tx: params.tx,
-        itemId: params.item.id,
-        balanceAfterBoxes: inventoryBalanceAfterUpdate,
+        inventoryItemId: params.item.id,
+        anchorDate: params.transactionDate,
+        anchorBalance: endCount,
       });
+
+      if (Math.abs(finalBalance - params.item.boxes) > DECIMAL_EPSILON) {
+        await this.updateInventoryBalance({
+          tx: params.tx,
+          itemId: params.item.id,
+          balanceAfterBoxes: finalBalance,
+        });
+      }
     }
 
     const count = await this.upsertCount({
@@ -688,50 +791,6 @@ class InventoryCountsService {
       updated: Boolean(params.existingCount),
       skipped: false,
     };
-  }
-
-  async syncMonthEndCountForTransaction(params: {
-    tx: InventoryCountWriteTx;
-    inventoryItemId: string;
-    transactionDate: string;
-  }) {
-    const period = getPeriodFromDate(params.transactionDate);
-    const endCount = await this.getClosingBalanceForPeriod({
-      tx: params.tx,
-      inventoryItemId: params.inventoryItemId,
-      month: period.month,
-      year: period.year,
-    });
-
-    return this.upsertCount({
-      tx: params.tx,
-      inventoryItemId: params.inventoryItemId,
-      month: period.month,
-      year: period.year,
-      endCount,
-    });
-  }
-
-  async syncMonthEndCountsForTransactions(params: {
-    tx: InventoryCountWriteTx;
-    transactions: InventoryTransaction[];
-  }) {
-    const syncedKeys = new Set<string>();
-
-    for (const transaction of params.transactions) {
-      const period = getPeriodFromDate(transaction.transactionDate);
-      const key = `${transaction.inventoryItemId}:${period.year}:${period.month}`;
-
-      if (syncedKeys.has(key)) continue;
-
-      syncedKeys.add(key);
-
-      await this.syncMonthEndCountForTransaction({
-        tx: params.tx,
-        inventoryItemId: transaction.inventoryItemId,
-        transactionDate: transaction.transactionDate,
-      });
-    }
   }
 
   async resolveScanInventoryItemId(
@@ -878,11 +937,21 @@ class InventoryCountsService {
   }
 
   async bulkMonthEndCount(input: BulkMonthEndCountInput, userId: string) {
+    assertPeriodIsAllowed(input.month, input.year);
+
+    const isCurrentMonth = isCurrentServerMonthPeriod(input.month, input.year);
+
     return db.transaction(async (tx) => {
       const inventoryItemIds = input.counts.map(
         (count) => count.inventoryItemId,
       );
-      const transactionDate = getMonthEndDate(input.month, input.year);
+      // Distribution date is derived server-side based on the period:
+      //   - Current month → today
+      //   - Previous month → last calendar day of that month
+      // Any date supplied by the client is ignored.
+      const transactionDate = isCurrentMonth
+        ? getServerToday()
+        : getMonthEndDate(input.month, input.year);
       const startDate = getMonthStartDate(input.month, input.year);
       const previousPeriod = getPreviousPeriod(input.month, input.year);
       const previousEndDate = getMonthEndDate(
@@ -948,7 +1017,14 @@ class InventoryCountsService {
           where: and(
             inArray(inventoryTransactions.inventoryItemId, inventoryItemIds),
             eq(inventoryTransactions.transactionType, 'Distribution'),
-            eq(inventoryTransactions.transactionDate, transactionDate),
+            // Match the existing month-end Distribution by period rather
+            // than by exact date — current-month counts can be resaved
+            // on different days within the same period.
+            gte(inventoryTransactions.transactionDate, startDate),
+            lte(
+              inventoryTransactions.transactionDate,
+              getMonthEndDate(input.month, input.year),
+            ),
           ),
         });
       const itemsById = new Map(items.map((item) => [item.id, item]));
@@ -1028,6 +1104,7 @@ class InventoryCountsService {
             month: input.month,
             year: input.year,
             transactionDate,
+            isCurrentMonth,
             userId,
           }),
         );

@@ -17,7 +17,10 @@ import { Loader2 } from '@repo/ui/lib/icons';
 import { useInventoryItems } from '@/hooks/useInventoryItems';
 import { useResetFormOnActivation } from '@/hooks/useResetFormOnActivation';
 
-import { INVENTORY_TRANSACTION_DECIMAL_EPSILON } from './create-inventory-transaction-dialog.constants';
+import {
+  DELIVERY_OR_START_COUNT_TAB,
+  INVENTORY_TRANSACTION_DECIMAL_EPSILON,
+} from './create-inventory-transaction-dialog.constants';
 import {
   createInventoryTransactionFormSchema,
   getDefaultInventoryTransactionValues,
@@ -28,6 +31,7 @@ import {
   shouldReduceInventory,
 } from './create-inventory-transaction-dialog.utils';
 import InventoryTransactionBalanceSummary from './inventory-transaction-balance-summary';
+import InventoryTransactionDeliveryOrStartCountField from './inventory-transaction-delivery-or-start-count-field';
 import InventoryTransactionDestinationField from './inventory-transaction-destination-field';
 import InventoryTransactionDetailsFields from './inventory-transaction-details-fields';
 import InventoryTransactionTypeField from './inventory-transaction-type-field';
@@ -63,9 +67,11 @@ function CreateInventoryTransactionDialog({
   useResetFormOnActivation(open, form.reset, defaultValues, item.id);
 
   const transactionType = form.watch('transactionType');
+  const formTab = form.watch('formTab');
 
   const isTransferTransaction = transactionType === 'Transfer';
   const isAdjustmentTransaction = transactionType === 'Adjustment';
+  const isDeliveryOrStartCountTab = formTab === DELIVERY_OR_START_COUNT_TAB;
   const isSubmitting = createTransactionMutation.isPending;
 
   const handleSubmit: SubmitHandler<
@@ -115,8 +121,8 @@ function CreateInventoryTransactionDialog({
         <DialogHeader>
           <DialogTitle>Create inventory transaction</DialogTitle>
           <DialogDescription>
-            Record a transfer, return, recycle movement, or adjustment for this
-            inventory item.
+            Record a delivery, start count, transfer, return, recycle
+            movement, or adjustment for this inventory item.
           </DialogDescription>
         </DialogHeader>
 
@@ -131,6 +137,13 @@ function CreateInventoryTransactionDialog({
               form={form}
               isSubmitting={isSubmitting}
             />
+
+            {isDeliveryOrStartCountTab ? (
+              <InventoryTransactionDeliveryOrStartCountField
+                form={form}
+                isSubmitting={isSubmitting}
+              />
+            ) : null}
 
             {isTransferTransaction ? (
               <InventoryTransactionDestinationField

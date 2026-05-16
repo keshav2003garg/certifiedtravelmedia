@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 
 import { Button } from '@repo/ui/components/base/button';
 import {
@@ -57,22 +57,38 @@ export const ScanCountForm = memo(function ScanCountForm({
   submitError,
 }: ScanCountFormProps) {
   const [endCount, setEndCount] = useState<number | null>(null);
-  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
-  const [year, setYear] = useState<number | null>(() =>
-    new Date().getFullYear(),
-  );
+  const allowedPeriods = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const previous =
+      currentMonth === 1
+        ? { month: 12, year: currentYear - 1 }
+        : { month: currentMonth - 1, year: currentYear };
+    const current = { month: currentMonth, year: currentYear };
 
-  const canSubmit =
-    endCount !== null &&
-    year !== null &&
-    year >= 2000 &&
-    year <= 2100 &&
-    !isSubmitting;
+    return [previous, current] as const;
+  }, []);
+  const [periodKey, setPeriodKey] = useState(() => {
+    const period = allowedPeriods[0];
+    return `${period.year}-${String(period.month).padStart(2, '0')}`;
+  });
+  const selectedPeriod = useMemo(() => {
+    const match = allowedPeriods.find(
+      (period) =>
+        `${period.year}-${String(period.month).padStart(2, '0')}` === periodKey,
+    );
+    return match ?? allowedPeriods[0];
+  }, [allowedPeriods, periodKey]);
+  const month = selectedPeriod.month;
+  const year = selectedPeriod.year;
+
+  const canSubmit = endCount !== null && !isSubmitting;
 
   const handleSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      if (!canSubmit || endCount === null || year === null) return;
+      if (!canSubmit || endCount === null) return;
 
       onSubmit({ endCount, month, year });
     },
@@ -101,44 +117,33 @@ export const ScanCountForm = memo(function ScanCountForm({
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="scan-month">Month</Label>
-                <Select
-                  value={String(month)}
-                  onValueChange={(value) => setMonth(Number(value))}
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger id="scan-month" className="h-11">
-                    <SelectValue placeholder="Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_OPTIONS.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={String(option.value)}
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="scan-period">Period</Label>
+              <Select
+                value={periodKey}
+                onValueChange={setPeriodKey}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id="scan-period" className="h-11">
+                  <CalendarDays className="text-muted-foreground size-4" />
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allowedPeriods.map((period) => {
+                    const key = `${period.year}-${String(period.month).padStart(2, '0')}`;
+                    const label =
+                      MONTH_OPTIONS.find(
+                        (option) => option.value === period.month,
+                      )?.label ?? '';
 
-              <div className="space-y-2">
-                <Label htmlFor="scan-year">Year</Label>
-                <NumericInput
-                  id="scan-year"
-                  value={year}
-                  onChange={(value) => setYear(value ?? null)}
-                  min={2000}
-                  max={2100}
-                  integerOnly
-                  disabled={isSubmitting}
-                  placeholder="Year"
-                  className="h-11"
-                />
-              </div>
+                    return (
+                      <SelectItem key={key} value={key}>
+                        {label} {period.year}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

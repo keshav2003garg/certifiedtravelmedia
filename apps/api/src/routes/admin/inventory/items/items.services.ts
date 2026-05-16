@@ -36,8 +36,6 @@ import {
   warehouses,
 } from '@services/database/schemas';
 
-import { inventoryCountsService } from '../counts/counts.services';
-
 import type { SQL } from 'drizzle-orm';
 import type {
   CreateInventoryIntakeInput,
@@ -88,6 +86,19 @@ type InventoryItemsExportCsvRow = Record<
   (typeof INVENTORY_ITEMS_EXPORT_HEADERS)[number],
   string
 >;
+
+/**
+ * Returns the server's current date as a YYYY-MM-DD string.
+ * Used for stamping new inventory transactions — clients are not allowed
+ * to supply a transaction date for direct/transfer transactions.
+ */
+function getServerTransactionDate() {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 class InventoryItemsService {
   private static readonly DECIMAL_EPSILON = 0.000_001;
@@ -932,10 +943,15 @@ class InventoryItemsService {
     userId: string;
   }): Promise<InventoryItemTransactionResult> {
     const balanceBefore = params.item.boxes;
-    const isAdjustment = params.values.transactionType === 'Adjustment';
+    const transactionType = params.values.transactionType;
+    const isAdjustment = transactionType === 'Adjustment';
+    const isStartCount = transactionType === 'Start Count';
+    const isDelivery = transactionType === 'Delivery';
     const reductionBoxes = isAdjustment
       ? Math.abs(Math.min(params.boxes, 0))
-      : params.boxes;
+      : isDelivery || isStartCount
+        ? 0
+        : params.boxes;
 
     if (
       isAdjustment &&
@@ -948,12 +964,20 @@ class InventoryItemsService {
       this.assertCanReduceStock({
         balanceBeforeBoxes: balanceBefore,
         boxes: reductionBoxes,
-        action: params.values.transactionType,
+        action: transactionType,
       });
     }
 
-    const balanceChange = isAdjustment ? params.boxes : -params.boxes;
-    const balanceAfter = roundDecimals(balanceBefore + balanceChange);
+    // Balance semantics by type:
+    //   Start Count → absolute set (balanceAfter = boxes)
+    //   Delivery    → additive    (balanceAfter = balanceBefore + boxes)
+    //   Adjustment  → signed delta (balanceAfter = balanceBefore + boxes)
+    //   Recycle / Return to Client → reduction (balanceAfter = balanceBefore - boxes)
+    const balanceAfter = isStartCount
+      ? roundDecimals(params.boxes)
+      : isDelivery || isAdjustment
+        ? roundDecimals(balanceBefore + params.boxes)
+        : roundDecimals(balanceBefore - params.boxes);
     const item = await this.updateInventoryBalance({
       tx: params.tx,
       itemId: params.item.id,
@@ -962,18 +986,13 @@ class InventoryItemsService {
     const transaction = await this.recordDetailTransaction({
       tx: params.tx,
       itemId: params.item.id,
-      transactionType: params.values.transactionType,
-      transactionDate: params.values.transactionDate,
+      transactionType,
+      transactionDate: getServerTransactionDate(),
       boxes: params.boxes,
       balanceBeforeBoxes: balanceBefore,
       balanceAfterBoxes: balanceAfter,
       notes: params.values.notes,
       userId: params.userId,
-    });
-    await inventoryCountsService.syncMonthEndCountForTransaction({
-      tx: params.tx,
-      inventoryItemId: transaction.inventoryItemId,
-      transactionDate: transaction.transactionDate,
     });
 
     return { item, transaction };
@@ -1073,12 +1092,13 @@ class InventoryItemsService {
       boxes: params.boxes,
     });
     const transferGroupId = randomUUID();
+    const transactionDate = getServerTransactionDate();
     const [sourceTransaction, destinationTransaction] = await Promise.all([
       this.recordDetailTransaction({
         tx: params.tx,
         itemId: params.sourceItem.id,
         transactionType: 'Trans Out',
-        transactionDate: params.values.transactionDate,
+        transactionDate,
         boxes: params.boxes,
         balanceBeforeBoxes: sourceBalanceBefore,
         balanceAfterBoxes: sourceBalanceAfter,
@@ -1092,7 +1112,7 @@ class InventoryItemsService {
         tx: params.tx,
         itemId: destination.item.id,
         transactionType: 'Trans In',
-        transactionDate: params.values.transactionDate,
+        transactionDate,
         boxes: params.boxes,
         balanceBeforeBoxes: destination.balanceBefore,
         balanceAfterBoxes: destination.balanceAfter,
@@ -1103,10 +1123,6 @@ class InventoryItemsService {
         userId: params.userId,
       }),
     ]);
-    await inventoryCountsService.syncMonthEndCountsForTransactions({
-      tx: params.tx,
-      transactions: [sourceTransaction, destinationTransaction],
-    });
 
     return {
       item: sourceItem,
@@ -1156,11 +1172,6 @@ class InventoryItemsService {
         balanceBefore: inventoryResult.balanceBefore,
         balanceAfter: inventoryResult.balanceAfter,
         userId,
-      });
-      await inventoryCountsService.syncMonthEndCountForTransaction({
-        tx,
-        inventoryItemId: transaction.inventoryItemId,
-        transactionDate: transaction.transactionDate,
       });
 
       return {

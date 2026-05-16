@@ -30,7 +30,9 @@ function MonthEndCountsPage() {
   const [countValues, setCountValues] = useState<Record<string, number | null>>(
     {},
   );
-  const filters = useInventoryMonthEndCountsFilters();
+  const filters = useInventoryMonthEndCountsFilters(undefined, {
+    restrictToAllowedPeriods: true,
+  });
   const submittedFilters = useInventoryMonthEndCountsFilters('submitted');
   const {
     monthEndCountsQueryOptions,

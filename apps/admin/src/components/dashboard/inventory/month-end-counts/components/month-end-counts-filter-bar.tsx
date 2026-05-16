@@ -184,38 +184,76 @@ function MonthEndCountsFilterBar({ filters }: MonthEndCountsFilterBarProps) {
           onSearchChange={setBrochureTypeSearch}
         />
 
-        {/* Month — blank by default, must be selected manually */}
-        <Select
-          value={filters.month !== null ? String(filters.month) : ''}
-          onValueChange={(value) =>
-            filters.handleMonthChange(
-              value === FILTER_ALL ? null : Number(value),
-            )
-          }
-        >
-          <SelectTrigger className="h-11">
-            <CalendarDays className="text-muted-foreground size-4" />
-            <SelectValue placeholder="Select month" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={FILTER_ALL}>All months</SelectItem>
-            {MONTH_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={String(option.value)}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Month — restricted to current/previous when in editable counts section */}
+        {filters.isPeriodRestricted ? (
+          <Select
+            value={filters.selectedPeriodKey ?? ''}
+            onValueChange={(value) => {
+              const match = filters.allowedPeriods.find(
+                (period) =>
+                  `${period.year}-${String(period.month).padStart(2, '0')}` ===
+                  value,
+              );
 
-        <NumericInput
-          value={filters.year}
-          onChange={filters.handleYearChange}
-          min={2000}
-          max={2100}
-          integerOnly
-          className="h-11"
-          placeholder="Year"
-        />
+              if (match) {
+                filters.handlePeriodChange(match);
+              }
+            }}
+          >
+            <SelectTrigger className="h-11 sm:col-span-2">
+              <CalendarDays className="text-muted-foreground size-4" />
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              {filters.allowedPeriods.map((period) => {
+                const key = `${period.year}-${String(period.month).padStart(2, '0')}`;
+                const label =
+                  MONTH_OPTIONS.find((option) => option.value === period.month)
+                    ?.label ?? '';
+
+                return (
+                  <SelectItem key={key} value={key}>
+                    {label} {period.year}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        ) : (
+          <>
+            <Select
+              value={filters.month !== null ? String(filters.month) : ''}
+              onValueChange={(value) =>
+                filters.handleMonthChange(
+                  value === FILTER_ALL ? null : Number(value),
+                )
+              }
+            >
+              <SelectTrigger className="h-11">
+                <CalendarDays className="text-muted-foreground size-4" />
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={FILTER_ALL}>All months</SelectItem>
+                {MONTH_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <NumericInput
+              value={filters.year}
+              onChange={filters.handleYearChange}
+              min={2000}
+              max={2100}
+              integerOnly
+              className="h-11"
+              placeholder="Year"
+            />
+          </>
+        )}
       </div>
     </div>
   );

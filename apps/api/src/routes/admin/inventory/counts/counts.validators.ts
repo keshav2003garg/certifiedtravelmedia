@@ -33,6 +33,48 @@ const yearSchema = z.coerce
   .min(2000, 'Year must be 2000 or later')
   .max(2100, 'Year must be 2100 or earlier');
 
+/**
+ * Returns the {month, year} pair for the current calendar month
+ * (server time).
+ */
+export function getCurrentMonthPeriod() {
+  const now = new Date();
+  return {
+    month: now.getUTCMonth() + 1,
+    year: now.getUTCFullYear(),
+  };
+}
+
+/**
+ * Returns the {month, year} pair for the calendar month immediately
+ * preceding the current server month.
+ */
+export function getPreviousMonthPeriod() {
+  const current = getCurrentMonthPeriod();
+
+  if (current.month === 1) {
+    return { month: 12, year: current.year - 1 };
+  }
+
+  return { month: current.month - 1, year: current.year };
+}
+
+/**
+ * Month-end counts may be recorded only for the current month or the
+ * immediately preceding month. Both periods are derived from server
+ * time at the moment of validation — the client cannot pick anything
+ * else.
+ */
+export function getAllowedCountPeriods() {
+  return [getPreviousMonthPeriod(), getCurrentMonthPeriod()] as const;
+}
+
+function isAllowedCountPeriod(month: number, year: number) {
+  return getAllowedCountPeriods().some(
+    (period) => period.month === month && period.year === year,
+  );
+}
+
 const optionalInventoryTextSchema = (field: string) =>
   z
     .string()
@@ -82,7 +124,12 @@ export const bulkMonthEndCountValidator = createValidatorSchema({
         new Set(value.counts.map((count) => count.inventoryItemId)).size ===
         value.counts.length,
       { message: 'Duplicate inventory items are not allowed' },
-    ),
+    )
+    .refine((value) => isAllowedCountPeriod(value.month, value.year), {
+      message:
+        'Month-end counts can only be recorded for the current or previous calendar month',
+      path: ['month'],
+    }),
 });
 export type BulkMonthEndCountContext = TypedContext<
   typeof bulkMonthEndCountValidator
@@ -104,11 +151,17 @@ export type GetScanInventoryItemContext = TypedContext<
 
 export const saveScanMonthEndCountValidator = createValidatorSchema({
   param: inventoryItemIdParamSchema,
-  json: z.object({
-    month: monthSchema,
-    year: yearSchema,
-    endCount: endCountSchema,
-  }),
+  json: z
+    .object({
+      month: monthSchema,
+      year: yearSchema,
+      endCount: endCountSchema,
+    })
+    .refine((value) => isAllowedCountPeriod(value.month, value.year), {
+      message:
+        'Month-end counts can only be recorded for the current or previous calendar month',
+      path: ['month'],
+    }),
 });
 export type SaveScanMonthEndCountContext = TypedContext<
   typeof saveScanMonthEndCountValidator

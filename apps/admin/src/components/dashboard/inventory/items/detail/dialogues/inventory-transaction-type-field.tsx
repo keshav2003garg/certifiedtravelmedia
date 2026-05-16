@@ -8,9 +8,14 @@ import {
   FormMessage,
 } from '@repo/ui/components/base/form';
 
+import {
+  DELIVERY_OR_START_COUNT_TAB,
+  INVENTORY_TRANSACTION_ACTION_TYPES,
+} from './create-inventory-transaction-dialog.constants';
 import InventoryTransactionTypeTabs from './inventory-transaction-type-tabs';
 
 import type { UseFormReturn } from '@repo/ui/lib/form';
+import type { InventoryTransactionTabValue } from './create-inventory-transaction-dialog.constants';
 import type { CreateInventoryTransactionFormData } from './create-inventory-transaction-dialog.schema';
 
 interface InventoryTransactionTypeFieldProps {
@@ -18,16 +23,52 @@ interface InventoryTransactionTypeFieldProps {
   isSubmitting: boolean;
 }
 
+/**
+ * Maps a tab value to the API `transactionType` it should default to
+ * when the tab is activated. The combined "Delivery & Start Count"
+ * tab defaults to `Delivery`.
+ */
+function getDefaultTransactionTypeForTab(
+  tab: InventoryTransactionTabValue,
+): CreateInventoryTransactionFormData['transactionType'] {
+  if (tab === DELIVERY_OR_START_COUNT_TAB) return 'Delivery';
+  return tab;
+}
+
+function isApiTransactionType(
+  value: string,
+): value is CreateInventoryTransactionFormData['transactionType'] {
+  return (
+    INVENTORY_TRANSACTION_ACTION_TYPES as readonly string[]
+  ).includes(value);
+}
+
 function InventoryTransactionTypeField({
   form,
   isSubmitting,
 }: InventoryTransactionTypeFieldProps) {
-  function handleTypeChange(
-    nextType: CreateInventoryTransactionFormData['transactionType'],
-  ) {
-    form.setValue('transactionType', nextType, { shouldValidate: true });
+  function handleTabChange(nextTab: InventoryTransactionTabValue) {
+    form.setValue('formTab', nextTab, { shouldValidate: false });
 
-    if (nextType !== 'Transfer') {
+    const currentType = form.getValues('transactionType');
+    const tabActsAsType = isApiTransactionType(nextTab);
+
+    if (tabActsAsType) {
+      form.setValue('transactionType', nextTab, { shouldValidate: true });
+    } else if (
+      // For the combined tab, only reset the API type when the previous
+      // selection wasn't already one of the combined-tab options.
+      currentType !== 'Delivery' &&
+      currentType !== 'Start Count'
+    ) {
+      form.setValue(
+        'transactionType',
+        getDefaultTransactionTypeForTab(nextTab),
+        { shouldValidate: true },
+      );
+    }
+
+    if (nextTab !== 'Transfer') {
       form.setValue('destinationWarehouseId', '', { shouldValidate: false });
     }
   }
@@ -35,14 +76,14 @@ function InventoryTransactionTypeField({
   return (
     <FormField
       control={form.control}
-      name="transactionType"
+      name="formTab"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Transaction type</FormLabel>
           <FormControl>
             <InventoryTransactionTypeTabs
               value={field.value}
-              onValueChange={handleTypeChange}
+              onValueChange={handleTabChange}
               disabled={isSubmitting}
             />
           </FormControl>

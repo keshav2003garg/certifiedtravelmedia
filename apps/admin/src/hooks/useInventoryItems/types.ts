@@ -21,7 +21,11 @@ export type InventoryItemTransactionActionType =
   | 'Transfer'
   | Extract<
       InventoryTransactionType,
-      'Return to Client' | 'Recycle' | 'Adjustment'
+      | 'Delivery'
+      | 'Start Count'
+      | 'Return to Client'
+      | 'Recycle'
+      | 'Adjustment'
     >;
 
 export type InventoryItemSortBy =
@@ -123,7 +127,6 @@ export type CreateInventoryIntakePayload = {
 
 export type CreateInventoryItemTransactionPayload = {
   boxes: number;
-  transactionDate: string;
   notes?: string;
 } & (
   | {
@@ -133,7 +136,7 @@ export type CreateInventoryItemTransactionPayload = {
   | {
       transactionType: Extract<
         InventoryTransactionType,
-        'Return to Client' | 'Recycle'
+        'Delivery' | 'Start Count' | 'Return to Client' | 'Recycle'
       >;
     }
   | {

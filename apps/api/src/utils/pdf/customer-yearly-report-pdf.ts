@@ -1,6 +1,8 @@
 import PDFDocument from 'pdfkit';
 import sharp from 'sharp';
 
+import { roundDecimals } from '@repo/utils/number';
+
 import type {
   CustomerYearlyReportBrochure,
   CustomerYearlyReportMonth,
@@ -39,6 +41,7 @@ const COLORS = {
   navyDark: '#0a2945',
   infoMuted: '#cce7f5',
   white: '#ffffff',
+  darkGrey: '#4a5560',
 } as const;
 
 const LOGO_URL = 'https://certifiedtravelmedia.net/logo.png';
@@ -331,6 +334,67 @@ async function loadLogoBuffer() {
 
 function getVariantImageKey(variant: CustomerYearlyReportVariant) {
   return variant.brochureImageId;
+}
+
+interface AggregatedImageRow {
+  brochureImageId: string;
+  imageUrl: string | null;
+  packCount: number;
+  distributionBoxes: number;
+  distributionUnits: number;
+  flaggedPackCount: number;
+}
+
+function hasMissingInventory(variant: CustomerYearlyReportVariant) {
+  return (
+    variant.distributionBoxes === null ||
+    variant.distributionBoxes === undefined ||
+    variant.distributionUnits === null ||
+    variant.distributionUnits === undefined ||
+    Number.isNaN(variant.distributionBoxes) ||
+    Number.isNaN(variant.distributionUnits)
+  );
+}
+
+function aggregateVariantsByImage(
+  variants: CustomerYearlyReportVariant[],
+): AggregatedImageRow[] {
+  const rowsByImageId = new Map<string, AggregatedImageRow>();
+  const order: string[] = [];
+
+  for (const variant of variants) {
+    const key = getVariantImageKey(variant);
+    let row = rowsByImageId.get(key);
+
+    if (!row) {
+      row = {
+        brochureImageId: variant.brochureImageId,
+        imageUrl: variant.imageUrl,
+        packCount: 0,
+        distributionBoxes: 0,
+        distributionUnits: 0,
+        flaggedPackCount: 0,
+      };
+      rowsByImageId.set(key, row);
+      order.push(key);
+    }
+
+    row.packCount += 1;
+
+    if (hasMissingInventory(variant)) {
+      row.flaggedPackCount += 1;
+      continue;
+    }
+
+    row.distributionBoxes = roundDecimals(
+      row.distributionBoxes + variant.distributionBoxes,
+    );
+    row.distributionUnits = roundDecimals(
+      row.distributionUnits + variant.distributionUnits,
+    );
+  }
+
+  return order.map((key) => rowsByImageId.get(key)!);
 }
 
 async function loadReportImages(report: CustomerYearlyReportResult) {
@@ -693,25 +757,58 @@ function drawBrochureHeader(
   });
   doc.rect(TABLE_X, startY, 4, BROCHURE_ROW_HEIGHT).fill(COLORS.primary);
 
+  const titleX = TABLE_X + 12;
+  const titleWidth = 390;
+  const titleY = startY + 15;
+  const nameText = truncate(brochure.name, 64);
+  const typeText = truncate(brochure.brochureTypeName, 40);
+  const separator = '  |  ';
+
+  const nameWidth = doc
+    .font('Helvetica-Bold')
+    .fontSize(9.4)
+    .widthOfString(nameText);
+  const separatorWidth = doc
+    .font('Helvetica')
+    .fontSize(9.4)
+    .widthOfString(separator);
+  const remainingWidth = Math.max(
+    0,
+    titleWidth - nameWidth - separatorWidth,
+  );
+
   drawText(doc, {
-    text: truncate(brochure.name, 72),
-    x: TABLE_X + 12,
-    y: startY + 8,
-    width: 390,
+    text: nameText,
+    x: titleX,
+    y: titleY,
+    width: nameWidth,
     font: 'Helvetica-Bold',
     size: 9.4,
     color: COLORS.navy,
     height: 12,
+    lineBreak: false,
     ellipsis: true,
   });
   drawText(doc, {
-    text: `${brochure.brochureTypeName} | ${formatNumber(brochure.variants.length)} image/pack ${brochure.variants.length === 1 ? 'row' : 'rows'}`,
-    x: TABLE_X + 12,
-    y: startY + 22,
-    width: 390,
-    size: 7.2,
-    color: COLORS.mutedForeground,
-    height: 9,
+    text: separator,
+    x: titleX + nameWidth,
+    y: titleY,
+    width: separatorWidth,
+    size: 9.4,
+    color: COLORS.darkGrey,
+    height: 12,
+    lineBreak: false,
+  });
+  drawText(doc, {
+    text: typeText,
+    x: titleX + nameWidth + separatorWidth,
+    y: titleY,
+    width: remainingWidth,
+    font: 'Helvetica-Bold',
+    size: 9.4,
+    color: COLORS.darkGrey,
+    height: 12,
+    lineBreak: false,
     ellipsis: true,
   });
 
@@ -740,12 +837,12 @@ function drawBrochureHeader(
   doc.y = startY + BROCHURE_ROW_HEIGHT;
 }
 
-function drawVariantRow(params: {
+function drawAggregatedImageRow(params: {
   doc: PDFKit.PDFDocument;
-  variant: CustomerYearlyReportVariant;
+  row: AggregatedImageRow;
   imageBuffer: Buffer | null | undefined;
 }) {
-  const { doc, imageBuffer, variant } = params;
+  const { doc, imageBuffer, row } = params;
   ensureSpace(doc, VARIANT_ROW_HEIGHT);
 
   const startY = doc.y;
@@ -762,28 +859,21 @@ function drawVariantRow(params: {
   });
   drawReportImage(doc, imageBuffer, rowX + 8, startY + 7);
 
-  drawText(doc, {
-    text: 'UNIT PER BOX',
-    x: rowX + 104,
-    y: startY + 25,
-    width: 292,
-    font: 'Helvetica-Bold',
-    size: 6.5,
-    color: COLORS.mutedForeground,
-  });
-  drawText(doc, {
-    text: `${formatNumber(variant.unitsPerBox)} units per box`,
-    x: rowX + 104,
-    y: startY + 35,
-    width: 292,
-    font: 'Helvetica-Bold',
-    size: 8.2,
-    color: COLORS.foreground,
-  });
+  if (row.flaggedPackCount > 0) {
+    drawText(doc, {
+      text: `Flagged: ${formatNumber(row.flaggedPackCount)} pack ${row.flaggedPackCount === 1 ? 'ID has' : 'IDs have'} missing inventory`,
+      x: rowX + 104,
+      y: startY + 42,
+      width: 292,
+      font: 'Helvetica-Bold',
+      size: 7,
+      color: COLORS.primaryDark,
+    });
+  }
 
   const values = [
-    ['Distributed boxes', formatNumber(variant.distributionBoxes), 144],
-    ['Distributed units', formatNumber(variant.distributionUnits), 152],
+    ['Distributed boxes', formatNumber(row.distributionBoxes), 144],
+    ['Distributed units', formatNumber(row.distributionUnits), 152],
   ] as const;
   let x = rowX + rowWidth;
 
@@ -845,27 +935,27 @@ function drawBrochure(params: {
   images: Map<string, Buffer | null>;
 }) {
   const { brochure, doc, images } = params;
+  const aggregatedRows = aggregateVariantsByImage(brochure.variants);
   ensureSpace(
     doc,
-    BROCHURE_ROW_HEIGHT +
-      (brochure.variants.length > 0 ? VARIANT_ROW_HEIGHT : 0),
+    BROCHURE_ROW_HEIGHT + (aggregatedRows.length > 0 ? VARIANT_ROW_HEIGHT : 0),
   );
   drawBrochureHeader(doc, brochure);
 
-  if (brochure.variants.length === 0) {
+  if (aggregatedRows.length === 0) {
     drawEmptyTableRow(
       doc,
-      'No image and unit-per-box details are available for this brochure.',
+      'No image and pack details are available for this brochure.',
     );
     doc.y += 4;
     return;
   }
 
-  for (const variant of brochure.variants) {
-    drawVariantRow({
+  for (const row of aggregatedRows) {
+    drawAggregatedImageRow({
       doc,
-      variant,
-      imageBuffer: images.get(getVariantImageKey(variant)),
+      row,
+      imageBuffer: images.get(row.brochureImageId),
     });
   }
 

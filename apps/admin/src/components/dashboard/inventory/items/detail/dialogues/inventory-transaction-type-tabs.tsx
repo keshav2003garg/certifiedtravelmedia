@@ -4,14 +4,12 @@ import { Tabs, TabsList, TabsTrigger } from '@repo/ui/components/base/tabs';
 
 import { inventoryTransactionTypeOptions } from './create-inventory-transaction-dialog.constants';
 
-import type { CreateInventoryTransactionFormData } from './create-inventory-transaction-dialog.schema';
+import type { InventoryTransactionTabValue } from './create-inventory-transaction-dialog.constants';
 
 interface InventoryTransactionTypeTabsProps {
   disabled: boolean;
-  onValueChange: (
-    value: CreateInventoryTransactionFormData['transactionType'],
-  ) => void;
-  value: CreateInventoryTransactionFormData['transactionType'];
+  onValueChange: (value: InventoryTransactionTabValue) => void;
+  value: InventoryTransactionTabValue;
 }
 
 function InventoryTransactionTypeTabs({
@@ -23,12 +21,10 @@ function InventoryTransactionTypeTabs({
     <Tabs
       value={value}
       onValueChange={(nextValue) =>
-        onValueChange(
-          nextValue as CreateInventoryTransactionFormData['transactionType'],
-        )
+        onValueChange(nextValue as InventoryTransactionTabValue)
       }
     >
-      <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+      <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-5">
         {inventoryTransactionTypeOptions.map((option) => {
           const Icon = option.icon;
 

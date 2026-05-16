@@ -1,6 +1,5 @@
 import { memo } from 'react';
 
-import { DatePicker } from '@repo/ui/components/base/date-picker';
 import {
   FormControl,
   FormField,
@@ -29,55 +28,35 @@ function InventoryTransactionDetailsFields({
 }: InventoryTransactionDetailsFieldsProps) {
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField
-          control={form.control}
-          name="boxes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Boxes</FormLabel>
-              <FormControl>
-                <NumericInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  name={field.name}
-                  ref={field.ref}
-                  min={isAdjustmentTransaction ? undefined : 0.01}
-                  max={
-                    isAdjustmentTransaction || currentBoxes <= 0
-                      ? undefined
-                      : currentBoxes
-                  }
-                  step={0.01}
-                  decimals={2}
-                  placeholder="Enter boxes"
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="transactionDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Transaction date</FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={(value) => field.onChange(value ?? '')}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="boxes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Boxes</FormLabel>
+            <FormControl>
+              <NumericInput
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                min={isAdjustmentTransaction ? undefined : 0.01}
+                max={
+                  isAdjustmentTransaction || currentBoxes <= 0
+                    ? undefined
+                    : currentBoxes
+                }
+                step={0.01}
+                decimals={2}
+                placeholder="Enter boxes"
+                disabled={isSubmitting}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={form.control}

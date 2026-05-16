@@ -23,8 +23,6 @@ import {
   warehouses,
 } from '@services/database/schemas';
 
-import { inventoryCountsService } from '../counts/counts.services';
-
 import type { SQL } from 'drizzle-orm';
 import type {
   ApproveInventoryRequestInput,
@@ -743,11 +741,6 @@ class InventoryRequestsService {
         balanceBefore: inventoryResult.balanceBefore,
         balanceAfter: inventoryResult.balanceAfter,
         userId,
-      });
-      await inventoryCountsService.syncMonthEndCountForTransaction({
-        tx,
-        inventoryItemId: transaction.inventoryItemId,
-        transactionDate: transaction.transactionDate,
       });
       const request = await this.markRequestApproved({
         tx,

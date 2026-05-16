@@ -84,7 +84,6 @@ const inventoryItemFilterSchema = z.object({
 });
 
 const detailTransactionBaseSchema = z.object({
-  transactionDate: z.iso.date('Transaction date must be a valid date'),
   notes: optionalTextSchema(2000, 'Notes must be 2000 characters or less'),
 });
 
@@ -138,6 +137,14 @@ export type ListInventoryItemTransactionsContext = TypedContext<
 export const createInventoryItemTransactionValidator = createValidatorSchema({
   param: inventoryItemIdParamSchema,
   json: z.discriminatedUnion('transactionType', [
+    detailTransactionBaseSchema.extend({
+      transactionType: z.literal('Delivery'),
+      boxes: positiveBoxesSchema,
+    }),
+    detailTransactionBaseSchema.extend({
+      transactionType: z.literal('Start Count'),
+      boxes: positiveBoxesSchema,
+    }),
     detailTransactionBaseSchema.extend({
       transactionType: z.literal('Transfer'),
       boxes: positiveBoxesSchema,
