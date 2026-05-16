@@ -313,7 +313,7 @@ function GridContent({
                 {removal ? (
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-1 z-20 rounded-[inherit] border-[3px] border-red-700"
+                    className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] border-4 border-red-600"
                   />
                 ) : null}
               </div>

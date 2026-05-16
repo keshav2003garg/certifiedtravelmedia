@@ -896,7 +896,7 @@ class ChartsService {
       customFillerId: tile.customFillerId,
       label: tile.label,
       coverPhotoUrl: tile.coverPhotoUrl,
-      isNew: tile.isNew,
+      isNew: false,
       isFlagged: tile.isFlagged,
       flagNote: tile.flagNote,
     } satisfies CloneTileValues;

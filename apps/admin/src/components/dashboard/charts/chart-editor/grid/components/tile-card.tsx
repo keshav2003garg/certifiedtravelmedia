@@ -123,7 +123,7 @@ export const TileCard = memo(function TileCard({
       {removal ? (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-1 rounded-[inherit] border-[3px] border-red-700"
+          className="pointer-events-none absolute inset-0 rounded-[inherit] border-4 border-red-600"
         />
       ) : null}
     </button>

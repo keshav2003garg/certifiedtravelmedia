@@ -739,10 +739,9 @@ class InventoryItemsService {
     });
 
     const balanceBefore = existing?.boxes ?? 0;
-    const balanceAfter =
-      params.transactionType === 'Start Count'
-        ? params.boxes
-        : roundDecimals(balanceBefore + params.boxes);
+    // Delivery and Start Count both add to the existing balance.
+    // Start Count is just a label; the inventory effect is identical to Delivery.
+    const balanceAfter = roundDecimals(balanceBefore + params.boxes);
 
     if (existing) {
       const [item] = await params.tx
@@ -969,13 +968,12 @@ class InventoryItemsService {
     }
 
     // Balance semantics by type:
-    //   Start Count → absolute set (balanceAfter = boxes)
+    //   Start Count → additive (label-only; same effect as Delivery)
     //   Delivery    → additive    (balanceAfter = balanceBefore + boxes)
     //   Adjustment  → signed delta (balanceAfter = balanceBefore + boxes)
     //   Recycle / Return to Client → reduction (balanceAfter = balanceBefore - boxes)
-    const balanceAfter = isStartCount
-      ? roundDecimals(params.boxes)
-      : isDelivery || isAdjustment
+    const balanceAfter =
+      isDelivery || isStartCount || isAdjustment
         ? roundDecimals(balanceBefore + params.boxes)
         : roundDecimals(balanceBefore - params.boxes);
     const item = await this.updateInventoryBalance({

@@ -744,6 +744,7 @@ function getMonthIntroHeight(month: CustomerYearlyReportMonth) {
 function drawBrochureHeader(
   doc: PDFKit.PDFDocument,
   brochure: CustomerYearlyReportBrochure,
+  imageCount: number,
 ) {
   const startY = doc.y;
   drawCell({
@@ -758,7 +759,10 @@ function drawBrochureHeader(
   doc.rect(TABLE_X, startY, 4, BROCHURE_ROW_HEIGHT).fill(COLORS.primary);
 
   const titleX = TABLE_X + 12;
-  const titleWidth = 390;
+  // When the consolidated boxes/units row is hidden (3+ images),
+  // give the brochure name + type the full table width.
+  const showConsolidatedTotals = imageCount < 3;
+  const titleWidth = showConsolidatedTotals ? 390 : TABLE_WIDTH - 24;
   const titleY = startY + 15;
   const nameText = truncate(brochure.name, 64);
   const typeText = truncate(brochure.brochureTypeName, 40);
@@ -812,26 +816,28 @@ function drawBrochureHeader(
     ellipsis: true,
   });
 
-  const values = [
-    [`${formatNumber(brochure.distributionBoxes)} boxes`, 140],
-    [`${formatNumber(brochure.distributionUnits)} units`, 148],
-  ] as const;
-  let x = TABLE_X + TABLE_WIDTH;
+  if (showConsolidatedTotals) {
+    const values = [
+      [`${formatNumber(brochure.distributionBoxes)} boxes`, 140],
+      [`${formatNumber(brochure.distributionUnits)} units`, 148],
+    ] as const;
+    let x = TABLE_X + TABLE_WIDTH;
 
-  for (const [value, width] of [...values].reverse()) {
-    x -= width;
-    drawText(doc, {
-      text: value,
-      x,
-      y: startY + 14,
-      width: width - 12,
-      font: 'Helvetica-Bold',
-      size: 8.4,
-      color: COLORS.foreground,
-      align: 'right',
-      height: 10,
-      ellipsis: true,
-    });
+    for (const [value, width] of [...values].reverse()) {
+      x -= width;
+      drawText(doc, {
+        text: value,
+        x,
+        y: startY + 14,
+        width: width - 12,
+        font: 'Helvetica-Bold',
+        size: 8.4,
+        color: COLORS.foreground,
+        align: 'right',
+        height: 10,
+        ellipsis: true,
+      });
+    }
   }
 
   doc.y = startY + BROCHURE_ROW_HEIGHT;
@@ -940,7 +946,7 @@ function drawBrochure(params: {
     doc,
     BROCHURE_ROW_HEIGHT + (aggregatedRows.length > 0 ? VARIANT_ROW_HEIGHT : 0),
   );
-  drawBrochureHeader(doc, brochure);
+  drawBrochureHeader(doc, brochure, aggregatedRows.length);
 
   if (aggregatedRows.length === 0) {
     drawEmptyTableRow(

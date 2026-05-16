@@ -9,9 +9,8 @@ export function normalizeOptionalTransactionText(value: string) {
 export function shouldReduceInventory(
   values: Pick<CreateInventoryTransactionFormData, 'boxes' | 'transactionType'>,
 ) {
-  // Delivery and Start Count never reduce inventory:
-  //   - Delivery is purely additive
-  //   - Start Count is an absolute set, not a relative move
+  // Delivery and Start Count never reduce inventory; both are purely additive.
+  // Start Count is just a label — its inventory effect matches Delivery.
   if (
     values.transactionType === 'Delivery' ||
     values.transactionType === 'Start Count'
